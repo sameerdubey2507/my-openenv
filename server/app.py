@@ -1804,9 +1804,10 @@ _TASK_FEATURES: Dict[str, List[str]] = {
     "task8_transfer_cascade": ["golden_hour_curves", "comm_failures", "crew_fatigue", "hospital_diversion", "protocol_compliance"],
     "task9_surge":            ["start_triage", "golden_hour_curves", "comm_failures", "multi_agency", "mutual_aid", "hospital_diversion", "cascade_failure", "demand_forecast", "crew_fatigue", "protocol_compliance"],
 }
-if __name__ == "__main__":
+def main():
+    """Entry point for the OpenEnv multi-mode deployment."""
     uvicorn.run(
-        "server.main:app",
+        "server.app:app",
         host="0.0.0.0",
         port=SERVER_PORT,
         log_level="info",
@@ -1817,3 +1818,8 @@ if __name__ == "__main__":
         timeout_keep_alive=75,
         limit_concurrency=100,
     )
+
+if __name__ == "__main__":
+    main()
+
+    
