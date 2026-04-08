@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.scripts]
-emergi-env = "server.app:app"
+server = "server.app:main"
 
 [project.optional-dependencies]
 dev = [
