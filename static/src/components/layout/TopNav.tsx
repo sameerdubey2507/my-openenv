@@ -23,7 +23,7 @@ const INITIAL_NOTIFICATIONS = [
   { id: 2, type: 'system', title: 'Fleet Rebalancing Complete', body: 'Optimal redistribution achieved across 12 zones.', time: '8m ago', read: false },
   { id: 3, type: 'alert', title: 'Hospital H-NOBLE at 92% Capacity', body: 'Diversion protocol activated. Redirecting to H-KEM.', time: '15m ago', read: false },
   { id: 4, type: 'info', title: 'RL Agent Checkpoint Saved', body: 'Model v3.7.2 — reward +8,452.92 — accuracy 94.1%.', time: '22m ago', read: true },
-  { id: 5, type: 'system', title: 'WebSocket Reconnected', body: 'Connection to ws://0.0.0.0:7860/ws restored after 1.2s.', time: '31m ago', read: true },
+  { id: 5, type: 'system', title: 'WebSocket Reconnected', body: 'Connection to production cluster restored.', time: '31m ago', read: true },
   { id: 6, type: 'alert', title: 'Ambulance AMB-12 Fatigue Warning', body: 'Driver R. Sharma exceeding 6hr continuous shift.', time: '45m ago', read: true },
 ];
 
