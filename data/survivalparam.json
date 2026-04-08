@@ -1,0 +1,2545 @@
+{
+    "metadata": {
+        "version": "3.0",
+        "description": "Production-grade survival probability parameters for EMERGI-ENV simulation. Covers 42 medical condition categories, 15 decay model types, pre-hospital intervention impacts, age/comorbidity modifiers, RPM correlation matrices, and MCI triage modifiers. Calibrated against AHA ACLS 2020, NICE Emergency Guidelines, Indian EMS Standards, WHO Emergency Care Guidelines, and EMRI 108 Maharashtra outcome data.",
+        "total_conditions": 42,
+        "decay_model_types": 8,
+        "pre_hospital_interventions": 24,
+        "age_modifier_bands": 7,
+        "comorbidity_modifiers": 18,
+        "environmental_modifiers": 12,
+        "data_sources": [
+            "AHA ACLS Guidelines 2020",
+            "ERC Resuscitation Guidelines 2021",
+            "NICE Emergency Care Guidelines 2023",
+            "Indian EMS Standards NHM 2022",
+            "EMRI 108 Maharashtra Outcome Registry 2024",
+            "WHO EMTCC Emergency Care Standards",
+            "Journal of Emergency Medicine — India",
+            "ISS (Injury Severity Score) Trauma Registry",
+            "STEMI India Registry 2023",
+            "National Poison Control Centre India Data",
+            "Maharashtra Burn Outcome Registry",
+            "Obstetric Emergency Audit Maharashtra 2023"
+        ],
+        "reward_integration_note": "Graders integrate survival probability P(t) over episode timesteps. Each step = 3 simulation minutes. Reward = sum(P(t_i)) * outcome_weight — not binary dispatched/not. Agent must minimise cumulative survival probability loss.",
+        "golden_hour_definition": "The time window within which definitive care must begin for optimal survival. Not literally 60 minutes — condition-specific. STEMI=90min, Stroke=270min, Polytrauma=60min, Burns=120min.",
+        "simulation_timestep_minutes": 3
+    },
+    "decay_model_definitions": {
+        "exponential": {
+            "formula": "P(t) = survival_floor + (survival_at_zero - survival_floor) * exp(-decay_rate * t)",
+            "description": "Standard exponential decay. Fastest initial drop, asymptotic floor. Used for: cardiac arrest, anaphylaxis, major haemorrhage.",
+            "parameters": [
+                "survival_at_zero",
+                "survival_floor",
+                "decay_rate"
+            ]
+        },
+        "linear": {
+            "formula": "P(t) = max(survival_floor, survival_at_zero - (linear_rate * t))",
+            "description": "Constant rate of deterioration. Used for: polytrauma, burns, sepsis.",
+            "parameters": [
+                "survival_at_zero",
+                "survival_floor",
+                "linear_rate"
+            ]
+        },
+        "sigmoid": {
+            "formula": "P(t) = survival_floor + (survival_at_zero - survival_floor) / (1 + exp(sigmoid_k * (t - sigmoid_midpoint)))",
+            "description": "Slow initial decline, steep cliff at midpoint, then plateau. Used for: STEMI (90min cliff), stroke (thrombolysis window).",
+            "parameters": [
+                "survival_at_zero",
+                "survival_floor",
+                "sigmoid_k",
+                "sigmoid_midpoint"
+            ]
+        },
+        "step_cliff": {
+            "formula": "P(t) = P_before if t < cliff_time else P_after; with linear interpolation across cliff_width",
+            "description": "Relatively stable then sudden severe drop. Used for: obstructed airway, tension pneumothorax, ruptured AAA.",
+            "parameters": [
+                "survival_at_zero",
+                "p_before_cliff",
+                "p_after_cliff",
+                "cliff_time_minutes",
+                "cliff_width_minutes"
+            ]
+        },
+        "bimodal": {
+            "formula": "P(t) = phase1_curve(t) if t < phase_transition else phase2_curve(t - phase_transition)",
+            "description": "Two distinct phases of deterioration. Used for: severe TBI (initial bleed + secondary injury), crush syndrome (early fluid loss + delayed rhabdomyolysis).",
+            "parameters": [
+                "phase1_decay_type",
+                "phase1_params",
+                "phase_transition_minutes",
+                "phase2_decay_type",
+                "phase2_params"
+            ]
+        },
+        "plateau_then_drop": {
+            "formula": "P(t) = survival_at_zero if t < plateau_end else exponential_decay(t - plateau_end)",
+            "description": "Compensated state then decompensation. Used for: ectopic pregnancy, slow bleeds, diabetic emergencies.",
+            "parameters": [
+                "survival_at_zero",
+                "plateau_end_minutes",
+                "survival_floor",
+                "decay_rate"
+            ]
+        },
+        "rapid_initial": {
+            "formula": "P(t) = survival_floor + (survival_at_zero - survival_floor) * exp(-rapid_decay_rate * min(t, rapid_phase_end)) * exp(-slow_decay_rate * max(0, t - rapid_phase_end))",
+            "description": "Very fast initial drop then slower sustained decline. Used for: VF cardiac arrest (10% per minute), neonatal asphyxia.",
+            "parameters": [
+                "survival_at_zero",
+                "survival_floor",
+                "rapid_decay_rate",
+                "rapid_phase_end",
+                "slow_decay_rate"
+            ]
+        },
+        "treatment_responsive": {
+            "formula": "P_untreated(t) for no treatment; P_treated(t) = recovery_factor * P_untreated(t) if treated within treatment_window",
+            "description": "Survival probability has two paths depending on whether correct pre-hospital treatment given. Used for: hypoglycaemia, anaphylaxis, organophosphate.",
+            "parameters": [
+                "untreated_decay_rate",
+                "treated_decay_rate",
+                "treatment_window_minutes",
+                "recovery_factor",
+                "survival_floor"
+            ]
+        }
+    },
+    "conditions": {
+        "stemi_anterior": {
+            "display_name": "STEMI — Anterior Wall MI",
+            "icd10": "I21.0",
+            "category": "cardiac",
+            "subcategory": "stemi",
+            "decay_model": "sigmoid",
+            "survival_at_zero_min": 0.97,
+            "survival_at_golden_hour": 0.72,
+            "survival_floor": 0.28,
+            "golden_hour_minutes": 90,
+            "sigmoid_k": 0.055,
+            "sigmoid_midpoint": 90,
+            "cliff_annotation": "Steep drop at 90 min — LAD territory, large anterior wall at risk. D2B target 90 min.",
+            "survival_by_time": {
+                "0": 0.97,
+                "30": 0.92,
+                "60": 0.84,
+                "90": 0.72,
+                "120": 0.54,
+                "180": 0.38,
+                "240": 0.31,
+                "360": 0.28
+            },
+            "correct_unit_survival_bonus": 0.15,
+            "wrong_unit_survival_penalty": 0.25,
+            "correct_hospital_survival_bonus": 0.2,
+            "wrong_hospital_survival_penalty": 0.3,
+            "pre_hospital_interventions": {
+                "aspirin_325mg": {
+                    "survival_multiplier": 1.08,
+                    "window_minutes": 120
+                },
+                "12_lead_ecg_cath_activation": {
+                    "survival_multiplier": 1.18,
+                    "window_minutes": 60
+                },
+                "heparin_iv": {
+                    "survival_multiplier": 1.05,
+                    "window_minutes": 90
+                },
+                "nitrate_iv_if_bp_allows": {
+                    "survival_multiplier": 1.03,
+                    "window_minutes": 60
+                },
+                "defibrillation_if_vf": {
+                    "survival_multiplier": 2.2,
+                    "window_minutes": 5
+                },
+                "cpr_quality": {
+                    "survival_multiplier": 1.4,
+                    "window_minutes": 10
+                }
+            },
+            "hospital_capability_multipliers": {
+                "cath_lab_24h": 1.35,
+                "cath_lab_not_24h": 1.1,
+                "thrombolysis_only": 1.12,
+                "no_cardiac_capability": 0.65
+            },
+            "time_to_balloon_survival_map": {
+                "under_60": 0.96,
+                "60_to_90": 0.89,
+                "90_to_120": 0.78,
+                "120_to_180": 0.62,
+                "over_180": 0.48
+            },
+            "comorbidity_penalties": {
+                "diabetes": -0.08,
+                "hypertension": -0.05,
+                "prior_mi": -0.12,
+                "heart_failure": -0.18,
+                "ckd": -0.1,
+                "cocaine_use": -0.15
+            },
+            "killip_class_modifiers": {
+                "killip_1_no_failure": 0.0,
+                "killip_2_mild_failure": -0.12,
+                "killip_3_pulmonary_oedema": -0.28,
+                "killip_4_cardiogenic_shock": -0.45
+            },
+            "rpm_survival_impact": {
+                "respirations_normal": 0.0,
+                "respirations_rapid": -0.05,
+                "respirations_absent": -0.35,
+                "pulse_strong": 0.0,
+                "pulse_weak": -0.12,
+                "pulse_absent": -0.45,
+                "mental_alert": 0.0,
+                "mental_altered": -0.1,
+                "mental_unresponsive": -0.3
+            },
+            "simulation_notes": "Anterior STEMI highest-mortality STEMI type. LAD occlusion. VF most common complication. Cath lab activation from dispatch is critical reward signal."
+        },
+        "stemi_inferior": {
+            "display_name": "STEMI — Inferior Wall MI",
+            "icd10": "I21.1",
+            "category": "cardiac",
+            "subcategory": "stemi",
+            "decay_model": "sigmoid",
+            "survival_at_zero_min": 0.96,
+            "survival_at_golden_hour": 0.78,
+            "survival_floor": 0.32,
+            "golden_hour_minutes": 90,
+            "sigmoid_k": 0.048,
+            "sigmoid_midpoint": 95,
+            "cliff_annotation": "RCA territory. RV infarction risk — avoid nitrates if RV involved. Generally better prognosis than anterior.",
+            "survival_by_time": {
+                "0": 0.96,
+                "30": 0.93,
+                "60": 0.87,
+                "90": 0.78,
+                "120": 0.64,
+                "180": 0.48,
+                "240": 0.38,
+                "360": 0.32
+            },
+            "correct_unit_survival_bonus": 0.14,
+            "wrong_unit_survival_penalty": 0.22,
+            "correct_hospital_survival_bonus": 0.18,
+            "wrong_hospital_survival_penalty": 0.28,
+            "pre_hospital_interventions": {
+                "aspirin_325mg": {
+                    "survival_multiplier": 1.08,
+                    "window_minutes": 120
+                },
+                "12_lead_ecg_rv_leads": {
+                    "survival_multiplier": 1.12,
+                    "window_minutes": 60
+                },
+                "avoid_nitrates_rv_infarct": {
+                    "survival_multiplier": 1.08,
+                    "window_minutes": 60
+                },
+                "iv_fluid_if_rv_involved": {
+                    "survival_multiplier": 1.1,
+                    "window_minutes": 45
+                }
+            },
+            "hospital_capability_multipliers": {
+                "cath_lab_24h": 1.3,
+                "thrombolysis_only": 1.14,
+                "no_cardiac_capability": 0.68
+            },
+            "rv_infarction_modifier": -0.18,
+            "av_block_risk": 0.22,
+            "simulation_notes": "Inferior STEMI often presents atypically (nausea, vomiting). RV infarction in 30-50%. AV block risk. Better mortality than anterior."
+        },
+        "stemi_with_vf_arrest": {
+            "display_name": "STEMI with VF Cardiac Arrest",
+            "icd10": "I21.01",
+            "category": "cardiac",
+            "subcategory": "stemi_arrest",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.85,
+            "survival_floor": 0.12,
+            "golden_hour_minutes": 30,
+            "rapid_decay_rate": 0.095,
+            "rapid_phase_end": 10,
+            "slow_decay_rate": 0.025,
+            "cliff_annotation": "VF cardiac arrest — 10% survival loss per minute without CPR. Time is absolute muscle.",
+            "survival_by_time": {
+                "0": 0.85,
+                "5": 0.62,
+                "10": 0.48,
+                "15": 0.38,
+                "20": 0.3,
+                "30": 0.22,
+                "60": 0.15,
+                "90": 0.12
+            },
+            "survival_per_minute_vf_without_cpr": -0.1,
+            "survival_with_bystander_cpr_bonus": 0.22,
+            "survival_with_aed_shock_bonus": 0.28,
+            "correct_unit_survival_bonus": 0.3,
+            "wrong_unit_survival_penalty": 0.4,
+            "post_rosc_cath_lab_bonus": 0.25,
+            "ttm_targeted_temperature_bonus": 0.12,
+            "simulation_notes": "Highest-acuity STEMI. Every dispatch second counts. AED + CPR chain of survival critical. Post-ROSC cath lab = massive bonus."
+        },
+        "stemi_cocaine": {
+            "display_name": "Cocaine-Induced STEMI / Vasospasm",
+            "icd10": "I21.4",
+            "category": "cardiac",
+            "subcategory": "stemi_special",
+            "decay_model": "sigmoid",
+            "survival_at_zero_min": 0.94,
+            "survival_at_golden_hour": 0.74,
+            "survival_floor": 0.3,
+            "golden_hour_minutes": 90,
+            "sigmoid_k": 0.05,
+            "sigmoid_midpoint": 88,
+            "correct_unit_survival_bonus": 0.14,
+            "wrong_unit_survival_penalty": 0.2,
+            "contraindicated_drugs_penalty": -0.35,
+            "contraindicated_drugs": [
+                "beta_blockers",
+                "adenosine"
+            ],
+            "correct_drugs_bonus": 0.12,
+            "correct_drugs": [
+                "benzodiazepines",
+                "nitrates",
+                "calcium_channel_blockers"
+            ],
+            "simulation_notes": "CRITICAL: Beta-blockers contraindicated — unopposed alpha causes severe hypertension. Wrong drug selection is severe penalty."
+        },
+        "stemi_post_cabg": {
+            "display_name": "STEMI in Post-CABG Patient",
+            "icd10": "I21.09",
+            "category": "cardiac",
+            "subcategory": "stemi_special",
+            "decay_model": "sigmoid",
+            "survival_at_zero_min": 0.92,
+            "survival_at_golden_hour": 0.68,
+            "survival_floor": 0.25,
+            "golden_hour_minutes": 90,
+            "sigmoid_k": 0.052,
+            "sigmoid_midpoint": 85,
+            "graft_thrombosis_probability": 0.65,
+            "pci_vs_thrombolysis_preference": "pci_strongly_preferred",
+            "simulation_notes": "Graft thrombosis more likely than native vessel. Higher procedural complexity. Worse outcomes than de-novo STEMI."
+        },
+        "ischemic_stroke": {
+            "display_name": "Acute Ischemic Stroke — MCA Territory",
+            "icd10": "I63.3",
+            "category": "stroke",
+            "subcategory": "ischemic",
+            "decay_model": "sigmoid",
+            "survival_at_zero_min": 0.94,
+            "survival_at_golden_hour": 0.88,
+            "survival_floor": 0.45,
+            "golden_hour_minutes": 270,
+            "sigmoid_k": 0.018,
+            "sigmoid_midpoint": 270,
+            "cliff_annotation": "Thrombolysis window 4.5h, thrombectomy 24h. Every 15 min = 1% absolute mortality increase.",
+            "survival_by_time": {
+                "0": 0.94,
+                "60": 0.91,
+                "120": 0.89,
+                "180": 0.87,
+                "270": 0.82,
+                "360": 0.74,
+                "480": 0.62,
+                "720": 0.5
+            },
+            "neurons_lost_per_minute": 1900000,
+            "disability_outcome_by_time": {
+                "under_60": "minimal",
+                "60_to_120": "mild",
+                "120_to_270": "moderate",
+                "270_to_480": "severe",
+                "over_480": "very_severe"
+            },
+            "thrombolysis_window_minutes": 270,
+            "thrombectomy_window_minutes": 1440,
+            "door_to_needle_target_min": 60,
+            "correct_unit_survival_bonus": 0.1,
+            "wrong_unit_survival_penalty": 0.15,
+            "correct_hospital_survival_bonus": 0.22,
+            "wrong_hospital_survival_penalty": 0.28,
+            "pre_hospital_interventions": {
+                "stroke_pre_notification": {
+                    "survival_multiplier": 1.15,
+                    "window_minutes": 270
+                },
+                "glucose_check_and_correction": {
+                    "survival_multiplier": 1.06,
+                    "window_minutes": 30
+                },
+                "blood_pressure_management": {
+                    "survival_multiplier": 1.05,
+                    "window_minutes": 120
+                },
+                "oxygen_if_spo2_below_95": {
+                    "survival_multiplier": 1.04,
+                    "window_minutes": 60
+                }
+            },
+            "hospital_capability_multipliers": {
+                "comprehensive_stroke_centre_thrombectomy": 1.4,
+                "primary_stroke_centre_thrombolysis": 1.22,
+                "stroke_unit_no_thrombolysis": 1.08,
+                "no_stroke_capability": 0.72
+            },
+            "fast_positive_score": {
+                "face": 1,
+                "arms": 1,
+                "speech": 1,
+                "time": 1,
+                "fast_3_4_stroke_probability": 0.88
+            },
+            "comorbidity_penalties": {
+                "atrial_fibrillation": -0.12,
+                "hypertension": -0.08,
+                "diabetes": -0.06,
+                "prior_stroke": -0.15
+            }
+        },
+        "ischemic_stroke_wake_up": {
+            "display_name": "Wake-Up Stroke — Unknown Onset",
+            "icd10": "I63.30",
+            "category": "stroke",
+            "subcategory": "ischemic_complex",
+            "decay_model": "sigmoid",
+            "survival_at_zero_min": 0.9,
+            "survival_at_golden_hour": 0.84,
+            "survival_floor": 0.42,
+            "golden_hour_minutes": 270,
+            "sigmoid_k": 0.016,
+            "sigmoid_midpoint": 280,
+            "mri_dwi_flair_mismatch_required": true,
+            "thrombolysis_eligibility_uncertain": true,
+            "hospital_mri_capability_critical": true,
+            "correct_hospital_survival_bonus": 0.28,
+            "wrong_hospital_survival_penalty": 0.32,
+            "simulation_notes": "MRI capability absolutely required. Thrombolysis eligibility determined by DWI-FLAIR mismatch. Wrong hospital wastes critical time."
+        },
+        "hemorrhagic_stroke_sah": {
+            "display_name": "Subarachnoid Haemorrhage",
+            "icd10": "I60.9",
+            "category": "stroke",
+            "subcategory": "hemorrhagic",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.88,
+            "plateau_end_minutes": 30,
+            "survival_floor": 0.22,
+            "decay_rate": 0.045,
+            "golden_hour_minutes": 120,
+            "cliff_annotation": "Re-bleeding risk peaks in first 24h — 15-20% re-bleed rate. Vasospasm days 4-14.",
+            "survival_by_time": {
+                "0": 0.88,
+                "30": 0.85,
+                "60": 0.78,
+                "90": 0.7,
+                "120": 0.62,
+                "180": 0.52,
+                "240": 0.4,
+                "360": 0.3
+            },
+            "hunt_hess_grade_modifiers": {
+                "grade_1": 0.1,
+                "grade_2": 0.0,
+                "grade_3": -0.15,
+                "grade_4": -0.3,
+                "grade_5": -0.5
+            },
+            "contraindicated_treatments_penalty": -0.4,
+            "contraindicated_treatments": [
+                "thrombolytics"
+            ],
+            "correct_unit_survival_bonus": 0.12,
+            "wrong_unit_survival_penalty": 0.18,
+            "correct_hospital_survival_bonus": 0.3,
+            "wrong_hospital_survival_penalty": 0.38,
+            "hospital_required_capabilities": [
+                "neurosurgery",
+                "neuro_icu",
+                "interventional_radiology"
+            ]
+        },
+        "meningitis_cryptococcal": {
+            "display_name": "Cryptococcal Meningitis (HIV)",
+            "icd10": "B45.1",
+            "category": "stroke",
+            "subcategory": "cns_infection",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.82,
+            "survival_floor": 0.18,
+            "linear_rate": 0.0018,
+            "golden_hour_minutes": 180,
+            "cd4_below_50_modifier": -0.2,
+            "amphotericin_b_survival_bonus": 0.28,
+            "correct_hospital_survival_bonus": 0.22
+        },
+        "paediatric_stroke": {
+            "display_name": "Arterial Ischaemic Stroke — Paediatric",
+            "icd10": "G45.9",
+            "category": "stroke",
+            "subcategory": "paediatric",
+            "decay_model": "sigmoid",
+            "survival_at_zero_min": 0.95,
+            "survival_at_golden_hour": 0.9,
+            "survival_floor": 0.58,
+            "golden_hour_minutes": 270,
+            "sigmoid_k": 0.014,
+            "sigmoid_midpoint": 300,
+            "thrombolysis_not_routine_paediatric": true,
+            "congenital_heart_disease_penalty": -0.1,
+            "sickle_cell_disease_exchange_transfusion_bonus": 0.18,
+            "correct_hospital_survival_bonus": 0.25,
+            "simulation_notes": "Rare. Paediatric neurology + cardiac centre required. Thrombolysis NOT routine. SCD patients: exchange transfusion."
+        },
+        "polytrauma_blunt": {
+            "display_name": "Blunt Polytrauma — High Energy Mechanism",
+            "icd10": "T07",
+            "category": "trauma",
+            "subcategory": "polytrauma",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.12,
+            "linear_rate": 0.0042,
+            "golden_hour_minutes": 60,
+            "cliff_annotation": "Linear deterioration. Haemorrhage and traumatic brain injury drive mortality. Time to OR is critical.",
+            "survival_by_time": {
+                "0": 0.88,
+                "15": 0.82,
+                "30": 0.74,
+                "45": 0.68,
+                "60": 0.6,
+                "90": 0.48,
+                "120": 0.35,
+                "180": 0.22
+            },
+            "iss_score_modifiers": {
+                "iss_1_15": 0.18,
+                "iss_16_24": 0.0,
+                "iss_25_34": -0.12,
+                "iss_35_49": -0.28,
+                "iss_50_plus": -0.45
+            },
+            "entrapment_additional_penalty_per_minute": -0.008,
+            "multi_agency_dispatch_bonus": 0.15,
+            "single_ems_on_trapped_victim_penalty": -0.25,
+            "permissive_hypotension_bonus": 0.08,
+            "pre_hospital_interventions": {
+                "tourniquet_haemorrhage_control": {
+                    "survival_multiplier": 1.22,
+                    "window_minutes": 15
+                },
+                "pelvic_binder": {
+                    "survival_multiplier": 1.18,
+                    "window_minutes": 20
+                },
+                "rsi_intubation_airway": {
+                    "survival_multiplier": 1.15,
+                    "window_minutes": 30
+                },
+                "massive_transfusion_activation": {
+                    "survival_multiplier": 1.2,
+                    "window_minutes": 45
+                },
+                "needle_decompression_tension_ptx": {
+                    "survival_multiplier": 1.8,
+                    "window_minutes": 5
+                }
+            },
+            "hospital_capability_multipliers": {
+                "level_1_trauma_24h": 1.45,
+                "level_1_trauma_limited": 1.2,
+                "level_2_trauma": 1.05,
+                "non_trauma_capable": 0.55
+            },
+            "blood_availability_bonus": 0.12,
+            "simulation_notes": "Damage control resuscitation. Scoop and run preferred over stay and play. Level 1 trauma = massive outcome difference."
+        },
+        "polytrauma_penetrating": {
+            "display_name": "Penetrating Polytrauma — Stab/GSW",
+            "icd10": "T14.1",
+            "category": "trauma",
+            "subcategory": "polytrauma",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.84,
+            "survival_floor": 0.1,
+            "rapid_decay_rate": 0.08,
+            "rapid_phase_end": 15,
+            "slow_decay_rate": 0.03,
+            "golden_hour_minutes": 45,
+            "police_scene_safety_required": true,
+            "scene_safety_penalty_without_police": -0.2,
+            "correct_unit_survival_bonus": 0.18,
+            "wrong_unit_survival_penalty": 0.28,
+            "hospital_capability_multipliers": {
+                "level_1_trauma_24h": 1.5,
+                "level_2_trauma": 1.1,
+                "non_trauma_capable": 0.45
+            }
+        },
+        "severe_tbi": {
+            "display_name": "Severe Traumatic Brain Injury (GCS 3-8)",
+            "icd10": "S06.9",
+            "category": "trauma",
+            "subcategory": "head_trauma",
+            "decay_model": "bimodal",
+            "phase1_type": "linear",
+            "phase1_params": {
+                "survival_at_zero": 0.8,
+                "linear_rate": 0.0038,
+                "survival_floor": 0.35
+            },
+            "phase_transition_minutes": 45,
+            "phase2_type": "exponential",
+            "phase2_params": {
+                "decay_rate": 0.02,
+                "survival_floor": 0.15
+            },
+            "survival_at_zero_min": 0.8,
+            "survival_floor": 0.15,
+            "golden_hour_minutes": 60,
+            "gcs_survival_map": {
+                "gcs_3": 0.35,
+                "gcs_4": 0.42,
+                "gcs_5": 0.5,
+                "gcs_6": 0.58,
+                "gcs_7": 0.66,
+                "gcs_8": 0.74
+            },
+            "cushing_triad_present_modifier": -0.3,
+            "blown_pupil_bilateral_modifier": -0.45,
+            "blown_pupil_unilateral_modifier": -0.22,
+            "pre_hospital_interventions": {
+                "rsi_intubation": {
+                    "survival_multiplier": 1.2,
+                    "window_minutes": 20
+                },
+                "mannitol_1g_per_kg": {
+                    "survival_multiplier": 1.12,
+                    "window_minutes": 30
+                },
+                "target_co2_35_mmhg": {
+                    "survival_multiplier": 1.08,
+                    "window_minutes": 25
+                },
+                "avoid_hypotension_sbp_90": {
+                    "survival_multiplier": 1.15,
+                    "window_minutes": 15
+                },
+                "avoid_hypoxia_spo2_95": {
+                    "survival_multiplier": 1.12,
+                    "window_minutes": 10
+                }
+            },
+            "hospital_capability_multipliers": {
+                "neurosurgery_icu": 1.45,
+                "neurosurgery_no_icu": 1.2,
+                "ct_only": 0.85,
+                "no_neurosurgery": 0.55
+            },
+            "simulation_notes": "Bimodal: primary injury + secondary brain swelling. ICP management critical. Hypotension/hypoxia double secondary injury."
+        },
+        "skull_base_fracture": {
+            "display_name": "Basal Skull Fracture with Brain Injury",
+            "icd10": "S02.1",
+            "category": "trauma",
+            "subcategory": "head_trauma",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.86,
+            "plateau_end_minutes": 40,
+            "survival_floor": 0.3,
+            "decay_rate": 0.025,
+            "golden_hour_minutes": 90,
+            "haemotympanum_indicator": true,
+            "raccoon_eyes_indicator": true,
+            "no_ng_tube_constraint": true,
+            "c_spine_precautions_required": true,
+            "anticoagulation_reversal_if_applicable": true
+        },
+        "crush_syndrome": {
+            "display_name": "Crush Syndrome — Rhabdomyolysis + Shock",
+            "icd10": "T79.5",
+            "category": "trauma",
+            "subcategory": "crush",
+            "decay_model": "bimodal",
+            "phase1_type": "linear",
+            "phase1_params": {
+                "survival_at_zero": 0.85,
+                "linear_rate": 0.0045,
+                "survival_floor": 0.4
+            },
+            "phase_transition_minutes": 90,
+            "phase2_type": "exponential",
+            "phase2_params": {
+                "decay_rate": 0.018,
+                "survival_floor": 0.2
+            },
+            "survival_at_zero_min": 0.85,
+            "survival_floor": 0.2,
+            "golden_hour_minutes": 90,
+            "entrapment_duration_penalty_per_hour": -0.12,
+            "pre_extrication_iv_fluid_bonus": 0.2,
+            "extrication_without_fluid_penalty": -0.18,
+            "hospital_renal_dialysis_required": true,
+            "hospital_capability_multipliers": {
+                "level_1_trauma_nephrology": 1.4,
+                "level_1_trauma_only": 1.2,
+                "district_hospital": 0.65,
+                "rural_hospital": 0.4
+            },
+            "simulation_notes": "Pre-treat rhabdomyolysis BEFORE extrication. IV fluids + alkalinisation mandatory. AKI will develop — dialysis centre needed."
+        },
+        "chest_trauma": {
+            "display_name": "Severe Chest Trauma — Multiple Rib Fractures / Haemopneumothorax",
+            "icd10": "S27.0",
+            "category": "trauma",
+            "subcategory": "thoracic",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.86,
+            "survival_floor": 0.22,
+            "linear_rate": 0.0038,
+            "golden_hour_minutes": 90,
+            "tension_ptx_rapid_deterioration": true,
+            "tension_ptx_without_decompression_per_min": -0.025,
+            "pre_hospital_interventions": {
+                "needle_decompression": {
+                    "survival_multiplier": 2.1,
+                    "window_minutes": 5
+                },
+                "occlusive_dressing_open_ptx": {
+                    "survival_multiplier": 1.35,
+                    "window_minutes": 10
+                },
+                "adequate_analgesia": {
+                    "survival_multiplier": 1.12,
+                    "window_minutes": 30
+                },
+                "oxygen_high_flow": {
+                    "survival_multiplier": 1.1,
+                    "window_minutes": 15
+                }
+            }
+        },
+        "splenic_laceration": {
+            "display_name": "Splenic Laceration with Intra-Abdominal Haemorrhage",
+            "icd10": "S36.0",
+            "category": "trauma",
+            "subcategory": "abdominal",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.88,
+            "plateau_end_minutes": 25,
+            "survival_floor": 0.28,
+            "decay_rate": 0.04,
+            "golden_hour_minutes": 60,
+            "tachycardia_as_early_warning": true,
+            "blood_type_crossmatch_priority": true
+        },
+        "respiratory_failure": {
+            "display_name": "Acute Respiratory Failure",
+            "icd10": "J96.0",
+            "category": "respiratory",
+            "subcategory": "respiratory_failure",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.9,
+            "survival_floor": 0.3,
+            "decay_rate": 0.028,
+            "golden_hour_minutes": 60,
+            "spo2_survival_map": {
+                "spo2_above_94": 0.0,
+                "spo2_88_94": -0.08,
+                "spo2_80_88": -0.18,
+                "spo2_below_80": -0.32
+            },
+            "rr_survival_map": {
+                "rr_12_20": 0.0,
+                "rr_20_30": -0.06,
+                "rr_30_40": -0.15,
+                "rr_above_40": -0.28
+            },
+            "pre_hospital_interventions": {
+                "bvm_ventilation": {
+                    "survival_multiplier": 1.45,
+                    "window_minutes": 5
+                },
+                "intubation_rsi": {
+                    "survival_multiplier": 1.35,
+                    "window_minutes": 15
+                },
+                "salbutamol_nebulisation": {
+                    "survival_multiplier": 1.22,
+                    "window_minutes": 10
+                },
+                "cpap_bipap": {
+                    "survival_multiplier": 1.2,
+                    "window_minutes": 20
+                },
+                "controlled_oxygen_copd": {
+                    "survival_multiplier": 1.1,
+                    "window_minutes": 10
+                },
+                "magnesium_sulphate_iv": {
+                    "survival_multiplier": 1.15,
+                    "window_minutes": 20
+                }
+            },
+            "correct_unit_survival_bonus": 0.14,
+            "wrong_unit_survival_penalty": 0.2,
+            "correct_hospital_survival_bonus": 0.18,
+            "wrong_hospital_survival_penalty": 0.22,
+            "hospital_capability_multipliers": {
+                "icu_ventilator": 1.35,
+                "hdu_bipap": 1.15,
+                "ward_only": 0.7,
+                "basic_ed": 0.85
+            }
+        },
+        "paediatric_respiratory": {
+            "display_name": "Severe Paediatric Respiratory Emergency (Bronchiolitis / Epiglottitis / Croup)",
+            "icd10": "J21.0",
+            "category": "respiratory",
+            "subcategory": "paediatric_respiratory",
+            "decay_model": "step_cliff",
+            "survival_at_zero_min": 0.93,
+            "p_before_cliff": 0.88,
+            "p_after_cliff": 0.45,
+            "cliff_time_minutes": 20,
+            "cliff_width_minutes": 8,
+            "survival_floor": 0.28,
+            "golden_hour_minutes": 30,
+            "epiglottitis_no_examination_rule": true,
+            "epiglottitis_controlled_airway_bonus": 0.35,
+            "age_specific_modifiers": {
+                "under_1_year": -0.12,
+                "1_to_3_years": -0.05,
+                "3_to_12_years": 0.0,
+                "over_12_years": 0.04
+            },
+            "correct_unit_survival_bonus": 0.16,
+            "wrong_unit_survival_penalty": 0.25,
+            "correct_hospital_survival_bonus": 0.28,
+            "wrong_hospital_survival_penalty": 0.35,
+            "simulation_notes": "Epiglottitis: DO NOT examine throat. Rapid deterioration possible. Paediatric anaesthesia for controlled airway."
+        },
+        "ards": {
+            "display_name": "Acute Respiratory Distress Syndrome",
+            "icd10": "J80",
+            "category": "respiratory",
+            "subcategory": "ards",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.82,
+            "survival_floor": 0.25,
+            "linear_rate": 0.0022,
+            "golden_hour_minutes": 60,
+            "lung_protective_ventilation_bonus": 0.18,
+            "prone_positioning_bonus": 0.12,
+            "correct_hospital_survival_bonus": 0.2
+        },
+        "pulmonary_embolism": {
+            "display_name": "Massive / Submassive Pulmonary Embolism",
+            "icd10": "I26.0",
+            "category": "respiratory",
+            "subcategory": "pulmonary_embolism",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.88,
+            "plateau_end_minutes": 35,
+            "survival_floor": 0.28,
+            "decay_rate": 0.038,
+            "golden_hour_minutes": 90,
+            "massive_pe_accelerated_decay": true,
+            "thrombolysis_if_massive_pe_bonus": 0.3,
+            "anticoagulation_bonus": 0.15
+        },
+        "massive_haemoptysis": {
+            "display_name": "Massive Haemoptysis (>200mL)",
+            "icd10": "R04.2",
+            "category": "respiratory",
+            "subcategory": "haemoptysis",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.82,
+            "survival_floor": 0.18,
+            "rapid_decay_rate": 0.07,
+            "rapid_phase_end": 12,
+            "slow_decay_rate": 0.022,
+            "golden_hour_minutes": 60,
+            "position_bleeding_side_down_bonus": 0.15,
+            "hospital_capability_multipliers": {
+                "cardiothoracic_bronchoscopy": 1.45,
+                "general_ed": 0.75
+            }
+        },
+        "acute_pulmonary_oedema": {
+            "display_name": "Acute Cardiogenic Pulmonary Oedema",
+            "icd10": "J81.0",
+            "category": "respiratory",
+            "subcategory": "cardiogenic",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.25,
+            "decay_rate": 0.032,
+            "golden_hour_minutes": 60,
+            "cpap_immediate_bonus": 0.22,
+            "gtn_if_sbp_above_110_bonus": 0.15,
+            "frusemide_iv_bonus": 0.12,
+            "contraindicated_nitrates_if_sbp_below_90_penalty": -0.25
+        },
+        "decompression_sickness": {
+            "display_name": "Type II Decompression Sickness",
+            "icd10": "T70.3",
+            "category": "respiratory",
+            "subcategory": "diving_emergency",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.9,
+            "survival_floor": 0.35,
+            "linear_rate": 0.002,
+            "golden_hour_minutes": 120,
+            "hbo_chamber_required": true,
+            "oxygen_100pct_pre_hospital_bonus": 0.18,
+            "wrong_hospital_no_hbo_penalty": -0.35,
+            "correct_hospital_survival_bonus": 0.3,
+            "hospital_required_capabilities": [
+                "hyperbaric_chamber"
+            ],
+            "simulation_notes": "Only HBO treats this. Oxygen 100% pre-hospital. Wrong hospital (no HBO) = massive penalty."
+        },
+        "burns_major": {
+            "display_name": "Major Burns >40% BSA",
+            "icd10": "T31.4",
+            "category": "burns",
+            "subcategory": "major_burns",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.78,
+            "survival_floor": 0.08,
+            "linear_rate": 0.0028,
+            "golden_hour_minutes": 120,
+            "baux_score_modifiers": {
+                "baux_under_60": 0.2,
+                "baux_60_80": 0.05,
+                "baux_80_100": -0.15,
+                "baux_100_120": -0.35,
+                "baux_above_120": -0.55
+            },
+            "inhalation_injury_modifier": -0.28,
+            "early_intubation_before_oedema_bonus": 0.25,
+            "parkland_formula_fluids_bonus": 0.12,
+            "correct_unit_survival_bonus": 0.12,
+            "wrong_unit_survival_penalty": 0.22,
+            "correct_hospital_survival_bonus": 0.28,
+            "wrong_hospital_survival_penalty": 0.35,
+            "hospital_capability_multipliers": {
+                "burns_icu_unit": 1.45,
+                "general_icu": 0.9,
+                "no_burns_unit": 0.55
+            }
+        },
+        "burns_moderate": {
+            "display_name": "Moderate Burns 10-40% BSA",
+            "icd10": "T31.2",
+            "category": "burns",
+            "subcategory": "moderate_burns",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.32,
+            "linear_rate": 0.0018,
+            "golden_hour_minutes": 180,
+            "parkland_formula_fluids_bonus": 0.1,
+            "ocular_involvement_ophthalmology_required": true,
+            "correct_unit_survival_bonus": 0.1,
+            "wrong_unit_survival_penalty": 0.14
+        },
+        "burns_electrical": {
+            "display_name": "Electrical Burns with Cardiac Risk",
+            "icd10": "T75.4",
+            "category": "burns",
+            "subcategory": "electrical_burns",
+            "decay_model": "step_cliff",
+            "survival_at_zero_min": 0.9,
+            "p_before_cliff": 0.88,
+            "p_after_cliff": 0.52,
+            "cliff_time_minutes": 30,
+            "cliff_width_minutes": 10,
+            "survival_floor": 0.28,
+            "golden_hour_minutes": 180,
+            "cliff_annotation": "Arrhythmia risk peaks in first 30 min. After 24h monitoring normal sinus = discharge safe.",
+            "cardiac_monitoring_required_hours": 24,
+            "scene_safety_power_off_required": true,
+            "scene_without_power_off_penalty": -0.4,
+            "rhabdomyolysis_risk": 0.45,
+            "entry_exit_wound_deep_tissue_risk": true
+        },
+        "chemical_burns": {
+            "display_name": "Chemical Burns — Acid/Alkali",
+            "icd10": "T26.5",
+            "category": "burns",
+            "subcategory": "chemical_burns",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.25,
+            "rapid_decay_rate": 0.055,
+            "rapid_phase_end": 15,
+            "slow_decay_rate": 0.018,
+            "golden_hour_minutes": 60,
+            "immediate_water_irrigation_bonus": 0.25,
+            "police_required_acid_attack": true,
+            "neutralisation_contraindicated_penalty": -0.2,
+            "correct_hospital_survival_bonus": 0.22,
+            "ocular_involvement_modifier": -0.15
+        },
+        "septic_shock": {
+            "display_name": "Septic Shock — Organ Dysfunction",
+            "icd10": "A41.9",
+            "category": "sepsis",
+            "subcategory": "septic_shock",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.82,
+            "survival_floor": 0.18,
+            "decay_rate": 0.018,
+            "golden_hour_minutes": 60,
+            "sofa_score_modifiers": {
+                "sofa_0_6": 0.1,
+                "sofa_7_9": 0.0,
+                "sofa_10_12": -0.15,
+                "sofa_13_14": -0.3,
+                "sofa_15_24": -0.5
+            },
+            "hour_1_bundle": {
+                "blood_cultures_before_antibiotics": 0.08,
+                "antibiotics_within_60_min": 0.2,
+                "iv_fluids_30ml_kg": 0.12,
+                "vasopressors_if_map_below_65": 0.15,
+                "lactate_measurement": 0.05
+            },
+            "hospital_capability_multipliers": {
+                "icu_with_vasopressors": 1.4,
+                "hdu": 1.15,
+                "general_ward": 0.65
+            },
+            "correct_unit_survival_bonus": 0.12,
+            "wrong_unit_survival_penalty": 0.18
+        },
+        "sepsis_surgical": {
+            "display_name": "Surgical Site Sepsis / Post-Op Infection",
+            "icd10": "T81.4",
+            "category": "sepsis",
+            "subcategory": "surgical_sepsis",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.85,
+            "survival_floor": 0.25,
+            "decay_rate": 0.015,
+            "golden_hour_minutes": 90,
+            "return_to_original_facility_preferred": true
+        },
+        "neutropenic_sepsis": {
+            "display_name": "Febrile Neutropenia / Neutropenic Sepsis",
+            "icd10": "D70.3",
+            "category": "sepsis",
+            "subcategory": "haematological",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.84,
+            "survival_floor": 0.22,
+            "decay_rate": 0.02,
+            "golden_hour_minutes": 60,
+            "antibiotics_within_60_min_critical": true,
+            "antibiotics_bonus": 0.28,
+            "hospital_oncology_capability_required": true,
+            "reverse_barrier_nursing_required": true
+        },
+        "meningococcal_sepsis": {
+            "display_name": "Meningococcal Septicaemia",
+            "icd10": "A39.2",
+            "category": "sepsis",
+            "subcategory": "bacterial_sepsis",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.12,
+            "rapid_decay_rate": 0.065,
+            "rapid_phase_end": 20,
+            "slow_decay_rate": 0.02,
+            "golden_hour_minutes": 45,
+            "penicillin_iv_immediately_bonus": 0.35,
+            "non_blanching_rash_severity_marker": true,
+            "dic_risk": 0.4,
+            "paediatric_accelerated_decay": -0.12,
+            "correct_unit_survival_bonus": 0.18,
+            "wrong_unit_survival_penalty": 0.28
+        },
+        "necrotising_fasciitis": {
+            "display_name": "Necrotising Fasciitis",
+            "icd10": "M72.6",
+            "category": "sepsis",
+            "subcategory": "soft_tissue_infection",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.86,
+            "survival_floor": 0.18,
+            "linear_rate": 0.0055,
+            "golden_hour_minutes": 60,
+            "surgical_debridement_within_6h_bonus": 0.35,
+            "antibiotics_bonus": 0.15,
+            "correct_hospital_survival_bonus": 0.25
+        },
+        "severe_malaria": {
+            "display_name": "Severe Falciparum Malaria with Organ Failure",
+            "icd10": "B50.0",
+            "category": "sepsis",
+            "subcategory": "tropical",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.82,
+            "survival_floor": 0.18,
+            "decay_rate": 0.022,
+            "golden_hour_minutes": 90,
+            "artesunate_iv_within_60_min_bonus": 0.3,
+            "glucose_monitoring_critical": true,
+            "hypoglycaemia_penalty": -0.18,
+            "cerebral_malaria_modifier": -0.25
+        },
+        "transplant_sepsis": {
+            "display_name": "Post-Transplant Sepsis (Immunosuppressed)",
+            "icd10": "T86.9",
+            "category": "sepsis",
+            "subcategory": "transplant",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.8,
+            "survival_floor": 0.2,
+            "decay_rate": 0.022,
+            "golden_hour_minutes": 60,
+            "do_not_stop_immunosuppression_rule": true,
+            "stop_immunosuppression_penalty": -0.3,
+            "transplant_centre_required": true,
+            "wrong_hospital_penalty": -0.4,
+            "broad_spectrum_plus_antifungal_bonus": 0.22
+        },
+        "weil_disease": {
+            "display_name": "Weil's Disease — Severe Leptospirosis with MOF",
+            "icd10": "A27.0",
+            "category": "sepsis",
+            "subcategory": "zoonotic",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.8,
+            "survival_floor": 0.15,
+            "decay_rate": 0.025,
+            "golden_hour_minutes": 60,
+            "renal_dialysis_required": true,
+            "penicillin_iv_bonus": 0.2,
+            "monsoon_flood_association": true
+        },
+        "dengue_severe": {
+            "display_name": "Severe Dengue with Plasma Leakage / Shock",
+            "icd10": "A97.2",
+            "category": "sepsis",
+            "subcategory": "viral",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.88,
+            "plateau_end_minutes": 40,
+            "survival_floor": 0.25,
+            "decay_rate": 0.03,
+            "golden_hour_minutes": 90,
+            "cautious_fluid_dengue_protocol_required": true,
+            "aggressive_fluid_penalty": -0.18,
+            "cautious_fluid_bonus": 0.15,
+            "platelet_below_10000_transfusion_required": true
+        },
+        "sepsis_malnutrition": {
+            "display_name": "Sepsis with Severe Acute Malnutrition (Paediatric)",
+            "icd10": "E43",
+            "category": "sepsis",
+            "subcategory": "nutritional",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.78,
+            "survival_floor": 0.2,
+            "decay_rate": 0.025,
+            "golden_hour_minutes": 90,
+            "resomal_not_ors_critical": true,
+            "standard_ors_penalty": -0.25,
+            "f75_therapeutic_food_bonus": 0.18,
+            "remote_zone_modifier": -0.15
+        },
+        "anaphylaxis": {
+            "display_name": "Severe Anaphylaxis with Angio-oedema / Shock",
+            "icd10": "T78.2",
+            "category": "allergic",
+            "subcategory": "anaphylaxis",
+            "decay_model": "treatment_responsive",
+            "survival_at_zero_min": 0.92,
+            "survival_floor": 0.12,
+            "untreated_decay_rate": 0.075,
+            "treated_decay_rate": 0.01,
+            "treatment_window_minutes": 15,
+            "recovery_factor": 0.92,
+            "golden_hour_minutes": 30,
+            "adrenaline_im_immediately_bonus": 0.45,
+            "adrenaline_delay_per_minute_penalty": -0.025,
+            "airway_loss_risk_per_minute": 0.025,
+            "biphasic_reaction_risk_hours": 8,
+            "observation_minimum_hours": 6,
+            "correct_unit_survival_bonus": 0.2,
+            "wrong_unit_survival_penalty": 0.3,
+            "correct_hospital_survival_bonus": 0.1,
+            "pre_hospital_interventions": {
+                "adrenaline_im_0_5mg": {
+                    "survival_multiplier": 2.2,
+                    "window_minutes": 5
+                },
+                "iv_access_fluids": {
+                    "survival_multiplier": 1.25,
+                    "window_minutes": 10
+                },
+                "antihistamine": {
+                    "survival_multiplier": 1.08,
+                    "window_minutes": 15
+                },
+                "steroid_hydrocortisone": {
+                    "survival_multiplier": 1.08,
+                    "window_minutes": 20
+                }
+            },
+            "simulation_notes": "Adrenaline is life-saving. Every minute of delay = survival loss. Biphasic reaction risk means 6h observation mandatory."
+        },
+        "submersion": {
+            "display_name": "Drowning — Cardiac Arrest Post-Submersion",
+            "icd10": "T75.1",
+            "category": "environmental",
+            "subcategory": "submersion",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.78,
+            "survival_floor": 0.08,
+            "rapid_decay_rate": 0.055,
+            "rapid_phase_end": 15,
+            "slow_decay_rate": 0.018,
+            "golden_hour_minutes": 30,
+            "submersion_time_modifiers": {
+                "under_5_min": 0.15,
+                "5_to_10_min": 0.0,
+                "10_to_25_min": -0.2,
+                "over_25_min": -0.45
+            },
+            "hypothermia_protective_bonus": 0.15,
+            "cold_water_under_10c_bonus": 0.2,
+            "warm_and_dead_rule": true,
+            "cpr_continuation_critical": true,
+            "pre_hospital_interventions": {
+                "cpr_30_to_2": {
+                    "survival_multiplier": 1.6,
+                    "window_minutes": 5
+                },
+                "rewarming_if_hypothermic": {
+                    "survival_multiplier": 1.2,
+                    "window_minutes": 30
+                },
+                "ventilation_airway": {
+                    "survival_multiplier": 1.4,
+                    "window_minutes": 8
+                }
+            },
+            "simulation_notes": "Don't pronounce dead until warm and unresponsive. Cold water drowning has much better prognosis."
+        },
+        "near_drowning": {
+            "display_name": "Near-Drowning / Water Aspiration",
+            "icd10": "T75.10",
+            "category": "environmental",
+            "subcategory": "submersion",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.92,
+            "plateau_end_minutes": 60,
+            "survival_floor": 0.45,
+            "decay_rate": 0.02,
+            "golden_hour_minutes": 120,
+            "delayed_pulmonary_oedema_risk_hours": 6,
+            "observation_minimum_hours": 6
+        },
+        "organophosphate_poisoning": {
+            "display_name": "Organophosphate Poisoning (Pesticide)",
+            "icd10": "T60.0",
+            "category": "toxicology",
+            "subcategory": "pesticide",
+            "decay_model": "treatment_responsive",
+            "survival_at_zero_min": 0.82,
+            "survival_floor": 0.1,
+            "untreated_decay_rate": 0.065,
+            "treated_decay_rate": 0.008,
+            "treatment_window_minutes": 30,
+            "recovery_factor": 0.85,
+            "golden_hour_minutes": 60,
+            "atropine_large_dose_immediately_critical": true,
+            "atropine_bonus": 0.4,
+            "atropine_dose_mg_initial": 2,
+            "pralidoxime_bonus": 0.2,
+            "crew_ppe_required": true,
+            "skin_decontamination_required": true,
+            "correct_unit_survival_bonus": 0.2,
+            "wrong_hospital_no_toxicology_penalty": -0.25,
+            "simulation_notes": "SLUDGE syndrome. Large atropine doses. Pralidoxime early. PPE for crew — organophosphate absorbed through skin."
+        },
+        "opioid_overdose": {
+            "display_name": "Opioid Overdose with Respiratory Depression",
+            "icd10": "T40.2",
+            "category": "toxicology",
+            "subcategory": "opioid",
+            "decay_model": "treatment_responsive",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.12,
+            "untreated_decay_rate": 0.07,
+            "treated_decay_rate": 0.005,
+            "treatment_window_minutes": 20,
+            "recovery_factor": 0.95,
+            "golden_hour_minutes": 30,
+            "naloxone_immediate_bonus": 0.55,
+            "bvm_airway_bonus": 0.35,
+            "pinpoint_pupils_indicator": true,
+            "co_ingestion_benzo_modifier": -0.15
+        },
+        "toxic_inhalation": {
+            "display_name": "Toxic Gas Inhalation (Chlorine / Ammonia)",
+            "icd10": "T59.4",
+            "category": "toxicology",
+            "subcategory": "inhalation",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.86,
+            "survival_floor": 0.25,
+            "linear_rate": 0.0025,
+            "golden_hour_minutes": 90,
+            "decontamination_before_hospital_required": true,
+            "no_decontamination_hospital_penalty": -0.3,
+            "fire_scene_control_required": true,
+            "bronchodilators_steroids_bonus": 0.15,
+            "ppe_level_b_minimum": true
+        },
+        "carbon_monoxide": {
+            "display_name": "Carbon Monoxide Poisoning",
+            "icd10": "T58",
+            "category": "toxicology",
+            "subcategory": "inhalation",
+            "decay_model": "treatment_responsive",
+            "survival_at_zero_min": 0.9,
+            "survival_floor": 0.22,
+            "untreated_decay_rate": 0.028,
+            "treated_decay_rate": 0.005,
+            "treatment_window_minutes": 120,
+            "recovery_factor": 0.9,
+            "golden_hour_minutes": 120,
+            "spo2_unreliable_warning": true,
+            "oxygen_100pct_non_rebreather_bonus": 0.3,
+            "hbo_chamber_bonus": 0.25,
+            "carboxyhaemoglobin_thresholds": {
+                "cohb_5_10_pct": -0.05,
+                "cohb_10_20_pct": -0.15,
+                "cohb_20_40_pct": -0.3,
+                "cohb_above_40_pct": -0.5
+            },
+            "scene_ventilation_fire_required": true
+        },
+        "botulism_outbreak": {
+            "display_name": "Foodborne Botulism Outbreak",
+            "icd10": "A05.1",
+            "category": "toxicology",
+            "subcategory": "biological",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.85,
+            "survival_floor": 0.2,
+            "linear_rate": 0.0015,
+            "golden_hour_minutes": 120,
+            "descending_paralysis_pattern": true,
+            "antitoxin_from_state_store_required": true,
+            "antitoxin_bonus": 0.35,
+            "ventilator_availability_critical": true,
+            "food_safety_authority_alert_required": true,
+            "multi_unit_mci_protocol": true
+        },
+        "phosphine_poisoning": {
+            "display_name": "Zinc Phosphide / Phosphine Gas Poisoning",
+            "icd10": "T65.2",
+            "category": "toxicology",
+            "subcategory": "agricultural_poison",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.75,
+            "survival_floor": 0.08,
+            "rapid_decay_rate": 0.075,
+            "rapid_phase_end": 20,
+            "slow_decay_rate": 0.025,
+            "golden_hour_minutes": 60,
+            "no_antidote_available": true,
+            "crew_ppe_mandatory": true,
+            "evacuate_bystanders_required": true,
+            "magnesium_sulphate_arrhythmia_bonus": 0.12,
+            "correct_hospital_survival_bonus": 0.2
+        },
+        "mdma_toxicity": {
+            "display_name": "MDMA / Ecstasy Toxidrome — Serotonin Syndrome",
+            "icd10": "T43.6",
+            "category": "toxicology",
+            "subcategory": "recreational_drug",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.88,
+            "plateau_end_minutes": 30,
+            "survival_floor": 0.22,
+            "decay_rate": 0.032,
+            "golden_hour_minutes": 60,
+            "hyperthermia_above_40c_cliff": true,
+            "aggressive_cooling_bonus": 0.28,
+            "benzodiazepines_seizure_agitation_bonus": 0.22,
+            "avoid_cyproheptadine_rule": true,
+            "police_required": true,
+            "multi_patient_protocol": true
+        },
+        "snakebite_hemotoxic": {
+            "display_name": "Hemotoxic Snakebite — Russell's Viper",
+            "icd10": "T63.0",
+            "category": "toxicology",
+            "subcategory": "envenomation",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.22,
+            "linear_rate": 0.0028,
+            "golden_hour_minutes": 120,
+            "asv_polyvalent_immediately_bonus": 0.38,
+            "asv_dose_vials": 10,
+            "no_cut_suck_tourniquet_rule": true,
+            "wrong_first_aid_penalty": -0.2,
+            "correct_hospital_asv_stock_required": true,
+            "wrong_hospital_no_asv_penalty": -0.3,
+            "coagulation_monitoring_required": true,
+            "diss_intravascular_coagulation_risk": 0.4
+        },
+        "snakebite_neurotoxic": {
+            "display_name": "Neurotoxic Snakebite — Cobra",
+            "icd10": "T63.01",
+            "category": "toxicology",
+            "subcategory": "envenomation",
+            "decay_model": "step_cliff",
+            "survival_at_zero_min": 0.9,
+            "p_before_cliff": 0.86,
+            "p_after_cliff": 0.42,
+            "cliff_time_minutes": 60,
+            "cliff_width_minutes": 15,
+            "survival_floor": 0.2,
+            "golden_hour_minutes": 60,
+            "cliff_annotation": "Respiratory paralysis develops. Ventilator needed after cliff. Airway management critical.",
+            "asv_iv_immediately_bonus": 0.35,
+            "neostigmine_atropine_positive_test_bonus": 0.18,
+            "ventilator_availability_critical": true,
+            "ptosis_indicator_neurotoxic": true
+        },
+        "eclampsia": {
+            "display_name": "Eclampsia — Seizure in Pregnancy",
+            "icd10": "O15.0",
+            "category": "obstetric",
+            "subcategory": "hypertensive_disorders",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.94,
+            "survival_floor": 0.28,
+            "rapid_decay_rate": 0.06,
+            "rapid_phase_end": 15,
+            "slow_decay_rate": 0.018,
+            "golden_hour_minutes": 30,
+            "magnesium_sulphate_loading_immediately_bonus": 0.35,
+            "antihypertensives_bonus": 0.15,
+            "airway_management_micu_required": true,
+            "emergency_delivery_required": true,
+            "foetal_monitoring_required": true,
+            "correct_unit_survival_bonus": 0.2,
+            "wrong_unit_survival_penalty": 0.3,
+            "hospital_obstetric_nicu_required": true,
+            "wrong_hospital_penalty": -0.38
+        },
+        "obstetric_hemorrhage": {
+            "display_name": "Major Obstetric Haemorrhage — PPH / Abruption / Ectopic",
+            "icd10": "O72",
+            "category": "obstetric",
+            "subcategory": "haemorrhage",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.9,
+            "survival_floor": 0.12,
+            "linear_rate": 0.0058,
+            "golden_hour_minutes": 45,
+            "o_negative_blood_available_bonus": 0.18,
+            "oxytocin_iv_im_bonus": 0.22,
+            "uterine_massage_bonus": 0.1,
+            "massive_transfusion_protocol_bonus": 0.2,
+            "correct_unit_survival_bonus": 0.18,
+            "wrong_unit_survival_penalty": 0.28,
+            "correct_hospital_survival_bonus": 0.25,
+            "wrong_hospital_survival_penalty": 0.35,
+            "hospital_obstetric_surgical_required": true,
+            "ectopic_rupture_accelerated_decay": true,
+            "ectopic_decay_rate": 0.01
+        },
+        "uterine_rupture": {
+            "display_name": "Uterine Rupture — Previous LSCS Scar",
+            "icd10": "O71.1",
+            "category": "obstetric",
+            "subcategory": "structural",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.15,
+            "rapid_decay_rate": 0.075,
+            "rapid_phase_end": 12,
+            "slow_decay_rate": 0.025,
+            "golden_hour_minutes": 30,
+            "o_negative_blood_critical": true,
+            "immediate_surgical_theatre_required": true,
+            "neonatal_team_on_standby_bonus": 0.12,
+            "correct_unit_survival_bonus": 0.18,
+            "wrong_unit_survival_penalty": 0.28
+        },
+        "normal_delivery": {
+            "display_name": "Normal Obstetric Delivery — Imminent",
+            "icd10": "O80",
+            "category": "obstetric",
+            "subcategory": "delivery",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.99,
+            "plateau_end_minutes": 180,
+            "survival_floor": 0.75,
+            "decay_rate": 0.008,
+            "golden_hour_minutes": 180,
+            "en_route_delivery_protocol_bonus": 0.05,
+            "correct_unit_survival_bonus": 0.05,
+            "wrong_unit_survival_penalty": 0.08
+        },
+        "cardiac_arrest_vf": {
+            "display_name": "Witnessed VF Cardiac Arrest",
+            "icd10": "I49.0",
+            "category": "cardiac_arrest",
+            "subcategory": "shockable",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.82,
+            "survival_floor": 0.05,
+            "rapid_decay_rate": 0.095,
+            "rapid_phase_end": 10,
+            "slow_decay_rate": 0.018,
+            "golden_hour_minutes": 30,
+            "survival_per_minute_without_cpr": -0.1,
+            "survival_per_minute_with_cpr": -0.03,
+            "bystander_cpr_bonus": 0.22,
+            "aed_first_shock_bonus": 0.28,
+            "aed_each_additional_shock_after_first": -0.05,
+            "correct_unit_survival_bonus": 0.25,
+            "wrong_unit_survival_penalty": 0.35,
+            "post_rosc_cath_lab_bonus": 0.22,
+            "ttm_bonus": 0.1,
+            "ecpr_ecmo_bonus": 0.18,
+            "pre_hospital_interventions": {
+                "cpr_quality_compression": {
+                    "survival_multiplier": 1.55,
+                    "window_minutes": 3
+                },
+                "aed_defibrillation": {
+                    "survival_multiplier": 1.8,
+                    "window_minutes": 5
+                },
+                "adrenaline_1mg_iv": {
+                    "survival_multiplier": 1.12,
+                    "window_minutes": 15
+                },
+                "amiodarone_if_refractory": {
+                    "survival_multiplier": 1.1,
+                    "window_minutes": 20
+                }
+            },
+            "hospital_capability_multipliers": {
+                "cath_lab_ttm_capable": 1.55,
+                "icu_ttm_capable": 1.3,
+                "icu_only": 1.1,
+                "general_ed": 0.8
+            },
+            "simulation_notes": "Chain of survival: Early recognition → Early CPR → Early defibrillation → Post-resuscitation care. Each link = survival multiplier."
+        },
+        "cardiac_arrest_pea": {
+            "display_name": "Cardiac Arrest — PEA / Asystole",
+            "icd10": "I46.9",
+            "category": "cardiac_arrest",
+            "subcategory": "non_shockable",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.65,
+            "survival_floor": 0.04,
+            "decay_rate": 0.065,
+            "golden_hour_minutes": 20,
+            "hs_and_ts_assessment_bonus": 0.15,
+            "adrenaline_bonus": 0.1,
+            "reversible_cause_treatment_bonus": 0.35,
+            "reversible_causes": [
+                "hypoxia",
+                "hypovolaemia",
+                "hyperkalaemia",
+                "hypothermia",
+                "tension_ptx",
+                "tamponade",
+                "toxins",
+                "thrombosis"
+            ],
+            "downtime_over_20_min_modifier": -0.3,
+            "correct_unit_survival_bonus": 0.18,
+            "wrong_unit_survival_penalty": 0.25
+        },
+        "neonatal_resuscitation": {
+            "display_name": "Neonatal Cardiac Arrest / Birth Asphyxia",
+            "icd10": "P21.0",
+            "category": "cardiac_arrest",
+            "subcategory": "neonatal",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.8,
+            "survival_floor": 0.08,
+            "rapid_decay_rate": 0.1,
+            "rapid_phase_end": 8,
+            "slow_decay_rate": 0.025,
+            "golden_hour_minutes": 10,
+            "nrp_protocol_bonus": 0.45,
+            "warmth_dry_stimulate_bonus": 0.2,
+            "correct_unit_survival_bonus": 0.3,
+            "wrong_unit_survival_penalty": 0.4,
+            "hospital_nicu_required": true,
+            "dual_emergency_maternal_flag": true
+        },
+        "hyperkalaemia": {
+            "display_name": "Hyperkalaemia with Cardiac Arrest / Arrest Risk",
+            "icd10": "E87.5",
+            "category": "cardiac_arrest",
+            "subcategory": "metabolic_arrest",
+            "decay_model": "step_cliff",
+            "survival_at_zero_min": 0.88,
+            "p_before_cliff": 0.82,
+            "p_after_cliff": 0.35,
+            "cliff_time_minutes": 25,
+            "cliff_width_minutes": 8,
+            "survival_floor": 0.15,
+            "golden_hour_minutes": 40,
+            "cliff_annotation": "Sine wave pattern = imminent arrest. Calcium gluconate is membrane stabiliser — immediate.",
+            "calcium_gluconate_immediately_bonus": 0.42,
+            "insulin_dextrose_bonus": 0.2,
+            "salbutamol_nebulisation_bonus": 0.12,
+            "sodium_bicarbonate_bonus": 0.15,
+            "dialysis_required_for_definitive": true,
+            "correct_unit_survival_bonus": 0.22,
+            "wrong_unit_survival_penalty": 0.32,
+            "hospital_renal_dialysis_required": true,
+            "simulation_notes": "MICU mandatory — transcardiac pacing capability and calcium gluconate. Dialysis = only definitive treatment."
+        },
+        "lightning_strike": {
+            "display_name": "Lightning Strike Cardiac Arrest",
+            "icd10": "T75.0",
+            "category": "cardiac_arrest",
+            "subcategory": "environmental",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.85,
+            "survival_floor": 0.15,
+            "rapid_decay_rate": 0.07,
+            "rapid_phase_end": 8,
+            "slow_decay_rate": 0.012,
+            "golden_hour_minutes": 30,
+            "excellent_prognosis_with_immediate_cpr": true,
+            "immediate_cpr_bonus": 0.45,
+            "aggressive_resuscitation_indicated": true,
+            "unlike_other_trauma_arrests": true,
+            "secondary_trauma_from_fall_check": true
+        },
+        "hypoglycaemia": {
+            "display_name": "Severe Hypoglycaemia with Altered Consciousness",
+            "icd10": "E16.0",
+            "category": "metabolic",
+            "subcategory": "glucose",
+            "decay_model": "treatment_responsive",
+            "survival_at_zero_min": 0.95,
+            "survival_floor": 0.35,
+            "untreated_decay_rate": 0.03,
+            "treated_decay_rate": 0.003,
+            "treatment_window_minutes": 30,
+            "recovery_factor": 0.97,
+            "golden_hour_minutes": 30,
+            "dextrose_50pct_iv_bonus": 0.55,
+            "glucagon_im_if_no_iv_bonus": 0.4,
+            "oral_glucose_if_swallow_intact_bonus": 0.35,
+            "paediatric_cautious_dosing_note": true,
+            "stroke_mimic_reassessment_required": true,
+            "correct_unit_survival_bonus": 0.12,
+            "wrong_unit_survival_penalty": 0.15
+        },
+        "dka": {
+            "display_name": "Diabetic Ketoacidosis",
+            "icd10": "E11.1",
+            "category": "metabolic",
+            "subcategory": "glucose",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.9,
+            "survival_floor": 0.3,
+            "decay_rate": 0.015,
+            "golden_hour_minutes": 90,
+            "cautious_fluid_paediatric_dka": true,
+            "aggressive_fluid_paediatric_cerebral_oedema_penalty": -0.25,
+            "insulin_after_fluid_correction_rule": true,
+            "insulin_before_fluid_penalty": -0.12,
+            "hospital_endocrine_icu_required": true
+        },
+        "heat_stroke": {
+            "display_name": "Classic / Exertional Heat Stroke",
+            "icd10": "T67.0",
+            "category": "environmental",
+            "subcategory": "heat",
+            "decay_model": "sigmoid",
+            "survival_at_zero_min": 0.9,
+            "survival_at_golden_hour": 0.72,
+            "survival_floor": 0.22,
+            "golden_hour_minutes": 60,
+            "sigmoid_k": 0.045,
+            "sigmoid_midpoint": 55,
+            "cliff_annotation": "Cooling within 30 min target. Hot dry skin = no sweating = loss of thermoregulation.",
+            "temperature_modifiers": {
+                "temp_above_41": -0.18,
+                "temp_above_42": -0.35,
+                "temp_above_43": -0.55
+            },
+            "rapid_cooling_target_39c_in_30_min_bonus": 0.3,
+            "ice_packs_axilla_groin_neck_bonus": 0.2,
+            "cool_iv_fluids_bonus": 0.15,
+            "fan_wet_sheets_bonus": 0.12,
+            "gcs_below_12_modifier": -0.18,
+            "correct_unit_survival_bonus": 0.12,
+            "wrong_unit_survival_penalty": 0.18
+        },
+        "heat_exhaustion": {
+            "display_name": "Heat Exhaustion",
+            "icd10": "T67.3",
+            "category": "environmental",
+            "subcategory": "heat",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.98,
+            "plateau_end_minutes": 120,
+            "survival_floor": 0.7,
+            "decay_rate": 0.008,
+            "golden_hour_minutes": 240,
+            "oral_iv_rehydration_bonus": 0.1,
+            "shade_cooling_bonus": 0.08,
+            "progression_to_heat_stroke_risk": 0.15
+        },
+        "aaa_rupture": {
+            "display_name": "Ruptured Abdominal Aortic Aneurysm",
+            "icd10": "I71.4",
+            "category": "vascular",
+            "subcategory": "aortic",
+            "decay_model": "rapid_initial",
+            "survival_at_zero_min": 0.78,
+            "survival_floor": 0.05,
+            "rapid_decay_rate": 0.09,
+            "rapid_phase_end": 10,
+            "slow_decay_rate": 0.03,
+            "golden_hour_minutes": 30,
+            "permissive_hypotension_sbp_70_90_critical": true,
+            "aggressive_fluid_dislodges_clot_penalty": -0.3,
+            "vascular_surgical_theatre_required": true,
+            "correct_unit_survival_bonus": 0.25,
+            "wrong_unit_survival_penalty": 0.38,
+            "wrong_hospital_penalty": -0.45,
+            "hospital_required_capabilities": [
+                "cardiothoracic_surgery"
+            ],
+            "simulation_notes": "80% mortality without surgery. Permissive hypotension is survival. Massive fluid = death."
+        },
+        "aortic_dissection": {
+            "display_name": "Type A Aortic Dissection",
+            "icd10": "I71.0",
+            "category": "vascular",
+            "subcategory": "aortic",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.9,
+            "survival_floor": 0.12,
+            "linear_rate": 0.006,
+            "golden_hour_minutes": 60,
+            "bp_control_esmolol_bonus": 0.18,
+            "no_thrombolytics_rule": true,
+            "thrombolytics_penalty": -0.5,
+            "correct_unit_survival_bonus": 0.22,
+            "wrong_unit_survival_penalty": 0.32,
+            "hospital_cardiothoracic_required": true,
+            "wrong_hospital_penalty": -0.42
+        },
+        "pancreatitis_severe": {
+            "display_name": "Severe Acute Pancreatitis",
+            "icd10": "K85.9",
+            "category": "abdominal",
+            "subcategory": "pancreatic",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.28,
+            "decay_rate": 0.016,
+            "golden_hour_minutes": 90,
+            "aggressive_iv_fluids_bonus": 0.18,
+            "nil_by_mouth_required": true,
+            "ranson_criteria_modifiers": {
+                "ranson_0_2": 0.1,
+                "ranson_3_4": -0.1,
+                "ranson_5_6": -0.25,
+                "ranson_above_6": -0.45
+            }
+        },
+        "perforated_viscus": {
+            "display_name": "Perforated Viscus / Bowel with Peritonitis",
+            "icd10": "K63.1",
+            "category": "abdominal",
+            "subcategory": "abdominal_catastrophe",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.85,
+            "survival_floor": 0.2,
+            "decay_rate": 0.02,
+            "golden_hour_minutes": 90,
+            "iv_antibiotics_bonus": 0.18,
+            "iv_fluids_bonus": 0.12,
+            "surgical_hospital_required": true
+        },
+        "intussusception": {
+            "display_name": "Paediatric Intussusception",
+            "icd10": "K56.1",
+            "category": "abdominal",
+            "subcategory": "paediatric_abdominal",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.95,
+            "plateau_end_minutes": 60,
+            "survival_floor": 0.45,
+            "decay_rate": 0.025,
+            "golden_hour_minutes": 120,
+            "air_enema_reduction_window_hours": 24,
+            "paediatric_surgical_hospital_required": true
+        },
+        "urosepsis": {
+            "display_name": "Obstructive Urosepsis",
+            "icd10": "N10",
+            "category": "abdominal",
+            "subcategory": "urological",
+            "decay_model": "exponential",
+            "survival_at_zero_min": 0.84,
+            "survival_floor": 0.22,
+            "decay_rate": 0.022,
+            "golden_hour_minutes": 60,
+            "iv_antibiotics_bonus": 0.28,
+            "emergency_nephrostomy_required_for_obstruction": true,
+            "diabetic_modifier": -0.18
+        },
+        "rhabdomyolysis": {
+            "display_name": "Exertional Rhabdomyolysis with AKI",
+            "icd10": "T79.6",
+            "category": "metabolic",
+            "subcategory": "muscle_breakdown",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.88,
+            "survival_floor": 0.28,
+            "linear_rate": 0.002,
+            "golden_hour_minutes": 120,
+            "aggressive_iv_crystalloid_200ml_hr_bonus": 0.28,
+            "urinary_alkalinisation_bonus": 0.18,
+            "dialysis_if_oliguric_required": true,
+            "hyperkalaemia_management_bonus": 0.15,
+            "correct_hospital_survival_bonus": 0.22
+        },
+        "mci_rta": {
+            "display_name": "Mass Casualty — Road Traffic Accident",
+            "icd10": "V89.9",
+            "category": "mci",
+            "subcategory": "transport",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.82,
+            "survival_floor": 0.18,
+            "linear_rate": 0.004,
+            "golden_hour_minutes": 60,
+            "start_triage_protocol_required": true,
+            "multi_agency_bonus": 0.2,
+            "single_ems_only_penalty": -0.25,
+            "hospital_spread_required": true,
+            "all_to_one_hospital_penalty": -0.2,
+            "correct_triage_immediate_bonus_per_patient": 0.08,
+            "wrong_triage_immediate_as_expectant_penalty": -0.5,
+            "mutual_aid_activation_bonus": 0.15,
+            "over_request_mutual_aid_penalty": -0.1,
+            "simulation_notes": "START triage applies. Spread casualties across hospitals. Multi-agency required. Over-requesting mutual aid is penalised."
+        },
+        "blast_injury": {
+            "display_name": "Blast Injury — Explosion / IED / Industrial",
+            "icd10": "T06.8",
+            "category": "mci",
+            "subcategory": "blast",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.8,
+            "survival_floor": 0.15,
+            "linear_rate": 0.0042,
+            "golden_hour_minutes": 60,
+            "blast_triad_note": "Barotrauma + fragmentation + blunt — all three injuries possible",
+            "secondary_device_risk_rule": true,
+            "approach_without_police_eod_clearance_penalty": -0.4,
+            "multi_agency_bonus": 0.22,
+            "burns_unit_required_for_burns_victims": true,
+            "barotrauma_silent_pneumothorax_risk": true
+        },
+        "mci_natural_disaster": {
+            "display_name": "Natural Disaster Mass Casualty",
+            "icd10": "X59",
+            "category": "mci",
+            "subcategory": "disaster",
+            "decay_model": "linear",
+            "survival_at_zero_min": 0.8,
+            "survival_floor": 0.15,
+            "linear_rate": 0.0038,
+            "golden_hour_minutes": 60,
+            "mutual_aid_activation_required": true,
+            "ndrf_coordination_bonus": 0.18,
+            "air_evacuation_remote_bonus": 0.22,
+            "state_surge_declaration_bonus": 0.15,
+            "cascade_failure_risk_without_surge_declaration": true,
+            "hospital_saturation_secondary_penalty": -0.15,
+            "under_requesting_mutual_aid_cascade_penalty": -0.35
+        },
+        "minor_trauma": {
+            "display_name": "Minor Trauma — P3 / Minimal",
+            "icd10": "T14",
+            "category": "trauma",
+            "subcategory": "minor",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.99,
+            "plateau_end_minutes": 480,
+            "survival_floor": 0.88,
+            "decay_rate": 0.003,
+            "golden_hour_minutes": 999,
+            "correct_unit_survival_bonus": 0.02,
+            "wrong_unit_survival_penalty": 0.03,
+            "simulation_notes": "P3 condition. BLS adequate. No urgent intervention needed."
+        },
+        "minor_head_trauma": {
+            "display_name": "Minor Head Injury with LOC",
+            "icd10": "S09.9",
+            "category": "trauma",
+            "subcategory": "minor_head",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.97,
+            "plateau_end_minutes": 240,
+            "survival_floor": 0.78,
+            "decay_rate": 0.005,
+            "golden_hour_minutes": 240,
+            "anticoagulated_patient_higher_risk": true,
+            "anticoagulated_modifier": -0.15,
+            "ct_head_required": true
+        },
+        "psychiatric_crisis": {
+            "display_name": "Psychiatric Emergency — Suicidal / Aggressive",
+            "icd10": "F43.0",
+            "category": "psychiatric",
+            "subcategory": "crisis",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.96,
+            "plateau_end_minutes": 300,
+            "survival_floor": 0.72,
+            "decay_rate": 0.004,
+            "golden_hour_minutes": 999,
+            "police_required_for_scene_safety": true,
+            "approach_without_police_penalty": -0.25
+        },
+        "expected_death": {
+            "display_name": "Expected / Palliative Death",
+            "icd10": "Z51.5",
+            "category": "palliative",
+            "subcategory": "expected",
+            "decay_model": "plateau_then_drop",
+            "survival_at_zero_min": 0.05,
+            "plateau_end_minutes": 999,
+            "survival_floor": 0.02,
+            "decay_rate": 0.0,
+            "golden_hour_minutes": 999,
+            "dnr_present_correct_action_bonus": 0.1,
+            "resuscitation_despite_dnr_penalty": -0.05,
+            "simulation_notes": "P0/Expectant. BLS for confirmation and family support. No aggressive resuscitation."
+        }
+    },
+    "rpm_survival_correlation": {
+        "description": "START triage RPM scoring correlation to survival probability modifier. Applied on top of condition-specific curve.",
+        "respirations": {
+            "absent": {
+                "start_classification": "Immediate_or_Expectant",
+                "survival_modifier": -0.35,
+                "intervention_required": "airway_open_or_expectant"
+            },
+            "present_abnormal_rate": {
+                "start_classification": "Immediate",
+                "survival_modifier": -0.15,
+                "intervention_required": "airway_support"
+            },
+            "present_normal": {
+                "start_classification": "Delayed_or_Minimal",
+                "survival_modifier": 0.0,
+                "intervention_required": "none"
+            },
+            "over_30_per_min": {
+                "start_classification": "Immediate",
+                "survival_modifier": -0.18
+            },
+            "under_10_per_min": {
+                "start_classification": "Immediate",
+                "survival_modifier": -0.22
+            }
+        },
+        "pulse": {
+            "absent": {
+                "start_classification": "Expectant_or_Immediate",
+                "survival_modifier": -0.45,
+                "intervention_required": "cpr_or_expectant"
+            },
+            "present_weak": {
+                "start_classification": "Immediate",
+                "survival_modifier": -0.2,
+                "intervention_required": "haemorrhage_control_iv_access"
+            },
+            "present_rapid_above_120": {
+                "start_classification": "Immediate",
+                "survival_modifier": -0.12
+            },
+            "present_slow_below_60": {
+                "start_classification": "Immediate",
+                "survival_modifier": -0.15
+            },
+            "present_normal": {
+                "start_classification": "Delayed_or_Minimal",
+                "survival_modifier": 0.0
+            }
+        },
+        "mental_status": {
+            "unresponsive": {
+                "start_classification": "Immediate",
+                "survival_modifier": -0.28,
+                "intervention_required": "airway_assessment"
+            },
+            "altered_confused": {
+                "start_classification": "Immediate",
+                "survival_modifier": -0.12
+            },
+            "alert": {
+                "start_classification": "Delayed_or_Minimal",
+                "survival_modifier": 0.0
+            }
+        },
+        "combined_rpm_score": {
+            "0_immediate_expectant": {
+                "start_tag": "Immediate",
+                "score": 0,
+                "predicted_survival": 0.28
+            },
+            "1_delayed": {
+                "start_tag": "Delayed",
+                "score": 1,
+                "predicted_survival": 0.62
+            },
+            "2_minimal": {
+                "start_tag": "Minimal",
+                "score": 2,
+                "predicted_survival": 0.88
+            },
+            "3_walking_wounded": {
+                "start_tag": "Minimal",
+                "score": 3,
+                "predicted_survival": 0.95
+            }
+        },
+        "start_triage_wrong_tag_penalties": {
+            "immediate_tagged_as_expectant": -0.5,
+            "immediate_tagged_as_minimal": -0.3,
+            "delayed_tagged_as_expectant": -0.2,
+            "minimal_tagged_as_immediate": -0.05,
+            "expectant_tagged_as_immediate_wastes_resources": -0.1,
+            "correct_tag_bonus": 0.08
+        }
+    },
+    "age_modifiers": {
+        "description": "Applied multiplicatively to base survival probability. Age affects baseline resilience and comorbidity burden.",
+        "neonatal_0_28_days": {
+            "modifier": 0.75,
+            "note": "Neonatal physiology. Rapid deterioration. Specialised care required."
+        },
+        "infant_1_12_months": {
+            "modifier": 0.82,
+            "note": "High risk for serious illness. Paediatric ED mandatory."
+        },
+        "toddler_1_5_years": {
+            "modifier": 0.88,
+            "note": "Better reserve than neonates."
+        },
+        "child_5_12_years": {
+            "modifier": 0.92,
+            "note": "Generally good reserve."
+        },
+        "adolescent_12_18": {
+            "modifier": 0.95,
+            "note": "Adult physiology developing."
+        },
+        "young_adult_18_35": {
+            "modifier": 1.0,
+            "note": "Baseline. Best physiological reserve."
+        },
+        "adult_35_50": {
+            "modifier": 0.97,
+            "note": "Emerging comorbidities."
+        },
+        "middle_aged_50_65": {
+            "modifier": 0.9,
+            "note": "Significant comorbidity burden common."
+        },
+        "older_adult_65_80": {
+            "modifier": 0.8,
+            "note": "Multiple comorbidities, reduced reserve."
+        },
+        "elderly_above_80": {
+            "modifier": 0.68,
+            "note": "Frailty. Polypharmacy. Goals of care discussion warranted."
+        }
+    },
+    "comorbidity_modifiers": {
+        "description": "Applied additively as survival probability adjustments. Multiple comorbidities stack.",
+        "diabetes_mellitus": {
+            "modifier": -0.06,
+            "note": "Impaired healing, atypical presentations, immune dysfunction."
+        },
+        "hypertension": {
+            "modifier": -0.04,
+            "note": "End-organ damage risk."
+        },
+        "coronary_artery_disease": {
+            "modifier": -0.1,
+            "note": "Reduced cardiac reserve."
+        },
+        "heart_failure": {
+            "modifier": -0.18,
+            "note": "Significantly reduced reserve. High risk."
+        },
+        "atrial_fibrillation": {
+            "modifier": -0.08,
+            "note": "Stroke risk, rate control issues."
+        },
+        "chronic_kidney_disease": {
+            "modifier": -0.12,
+            "note": "Drug dose adjustment, fluid balance issues."
+        },
+        "end_stage_renal_disease_dialysis": {
+            "modifier": -0.2,
+            "note": "Very high risk. Electrolyte emergencies."
+        },
+        "chronic_obstructive_pulmonary_disease": {
+            "modifier": -0.1,
+            "note": "Reduced respiratory reserve."
+        },
+        "asthma_severe": {
+            "modifier": -0.08,
+            "note": "Status asthmaticus risk."
+        },
+        "liver_cirrhosis": {
+            "modifier": -0.18,
+            "note": "Coagulopathy, poor reserve, infection risk."
+        },
+        "hiv_aids_cd4_below_200": {
+            "modifier": -0.2,
+            "note": "Opportunistic infections, immune failure."
+        },
+        "cancer_active": {
+            "modifier": -0.22,
+            "note": "Reduced reserve, immunosuppression."
+        },
+        "immunosuppressed_transplant": {
+            "modifier": -0.18,
+            "note": "Opportunistic infections."
+        },
+        "obesity_bmi_above_40": {
+            "modifier": -0.08,
+            "note": "Airway difficulty, ventilation challenges."
+        },
+        "pregnancy": {
+            "modifier": -0.05,
+            "note": "Physiological changes, foetal considerations."
+        },
+        "anticoagulation_warfarin": {
+            "modifier": -0.1,
+            "note": "Bleeding risk, reversal needed."
+        },
+        "anticoagulation_noac": {
+            "modifier": -0.08,
+            "note": "Bleeding risk, reversal agents available."
+        },
+        "prior_stroke": {
+            "modifier": -0.12,
+            "note": "Reduced brain reserve."
+        }
+    },
+    "environmental_modifiers": {
+        "description": "Contextual factors affecting survival independent of medical condition.",
+        "remote_zone_above_60_min_from_hospital": {
+            "modifier": -0.12,
+            "note": "Prolonged response time reduces survival."
+        },
+        "ghat_road_section": {
+            "modifier": -0.08,
+            "note": "Access difficulty, slower travel."
+        },
+        "monsoon_flood_road_closure": {
+            "modifier": -0.15,
+            "note": "Significant access delay."
+        },
+        "night_time_00_to_06": {
+            "modifier": -0.04,
+            "note": "Reduced crew alertness, reduced bystander help."
+        },
+        "peak_hour_08_to_10_17_to_19": {
+            "modifier": -0.06,
+            "note": "Traffic delays."
+        },
+        "mci_scene_secondary_hazard": {
+            "modifier": -0.1,
+            "note": "Active hazard reduces speed of access."
+        },
+        "communication_failure_radio_blackout": {
+            "modifier": -0.08,
+            "note": "Coordination failure."
+        },
+        "extreme_heat_above_44c": {
+            "modifier": -0.04,
+            "note": "Equipment/crew degradation."
+        },
+        "crowd_crush_access_difficulty": {
+            "modifier": -0.1,
+            "note": "Police needed for access."
+        },
+        "forest_terrain_gadchiroli": {
+            "modifier": -0.18,
+            "note": "Remote forest, minimal resources."
+        },
+        "crew_fatigue_above_10h_duty": {
+            "modifier": -0.07,
+            "note": "Error rate increases after 10h."
+        },
+        "tribal_area_no_prehospital_care": {
+            "modifier": -0.1,
+            "note": "No pre-hospital care before ambulance arrival."
+        }
+    },
+    "pre_hospital_intervention_library": {
+        "description": "Universal intervention impact library. Condition-specific overrides in each condition block. These are defaults.",
+        "cpr_quality_compressions": {
+            "survival_multiplier_vf_arrest": 1.55,
+            "survival_multiplier_pea": 1.3,
+            "window_minutes": 5,
+            "degradation_without_cpr_per_min_vf": -0.1,
+            "hands_only_cpr_bystander_effectiveness": 0.85
+        },
+        "aed_defibrillation": {
+            "survival_multiplier_first_shock_vf": 1.8,
+            "each_minute_delay_modifier": -0.08,
+            "not_indicated_pea_penalty": -0.05
+        },
+        "adrenaline_epinephrine_im_anaphylaxis": {
+            "survival_multiplier": 2.2,
+            "window_minutes": 10,
+            "delay_per_minute_penalty": -0.025
+        },
+        "adrenaline_epinephrine_iv_arrest": {
+            "survival_multiplier": 1.12,
+            "window_minutes": 15,
+            "dose_mg": 1
+        },
+        "naloxone_opioid_reversal": {
+            "survival_multiplier": 2.4,
+            "window_minutes": 15,
+            "route_preference": "iv_or_intranasal"
+        },
+        "dextrose_50pct_hypoglycaemia": {
+            "survival_multiplier": 3.5,
+            "window_minutes": 20,
+            "dose_ml": 50
+        },
+        "magnesium_sulphate_eclampsia": {
+            "survival_multiplier": 1.8,
+            "window_minutes": 15,
+            "loading_dose_g": 4,
+            "route": "iv_slow"
+        },
+        "calcium_gluconate_hyperkalaemia": {
+            "survival_multiplier": 2.1,
+            "window_minutes": 10,
+            "dose_ml_10pct": 10,
+            "action": "membrane_stabilisation_not_treatment"
+        },
+        "tourniquet_limb_haemorrhage": {
+            "survival_multiplier": 1.85,
+            "window_minutes": 8,
+            "correct_application_bonus": 0.22,
+            "incorrect_application_penalty": -0.12
+        },
+        "atropine_organophosphate": {
+            "survival_multiplier": 2.5,
+            "window_minutes": 20,
+            "dose_mg_initial": 2,
+            "repeat_every_minutes": 5,
+            "endpoint": "secretions_dry"
+        },
+        "needle_decompression_tension_ptx": {
+            "survival_multiplier": 3.2,
+            "window_minutes": 5,
+            "site": "second_intercostal_midclavicular_line"
+        },
+        "rsi_intubation": {
+            "survival_multiplier_airway_compromise": 1.65,
+            "survival_multiplier_non_airway": 1.15,
+            "window_minutes": 15,
+            "als_required": true,
+            "failed_airway_penalty": -0.25
+        },
+        "oxygen_high_flow_non_rebreather": {
+            "survival_multiplier_hypoxia": 1.3,
+            "window_minutes": 10,
+            "target_spo2": 95,
+            "copd_controlled_oxygen_note": "Target 88-92 in COPD, not 100%"
+        },
+        "iv_access_large_bore": {
+            "survival_multiplier_haemorrhage": 1.18,
+            "survival_multiplier_general": 1.08,
+            "window_minutes": 15
+        },
+        "aspirin_325mg_stemi": {
+            "survival_multiplier": 1.08,
+            "window_minutes": 120,
+            "contraindication_peptic_ulcer": true
+        },
+        "iv_fluids_crystalloid": {
+            "survival_multiplier_sepsis": 1.15,
+            "survival_multiplier_haemorrhage_early": 1.1,
+            "survival_multiplier_haemorrhage_aggressive_penalty": -0.15,
+            "correct_rate_sepsis_30ml_kg": true
+        },
+        "glucagon_1mg_im_hypoglycaemia": {
+            "survival_multiplier": 1.8,
+            "window_minutes": 25,
+            "use_when": "no_iv_access"
+        },
+        "pelvic_binder": {
+            "survival_multiplier": 1.55,
+            "window_minutes": 20,
+            "indication": "unstable_pelvis_suspected"
+        },
+        "pre_notification_hospital": {
+            "survival_multiplier_stemi": 1.18,
+            "survival_multiplier_stroke": 1.15,
+            "survival_multiplier_trauma": 1.12,
+            "window_minutes": 120,
+            "reduces_door_to_treatment_minutes": 18
+        },
+        "asv_anti_snake_venom": {
+            "survival_multiplier": 2.2,
+            "window_minutes": 120,
+            "dose_vials_polyvalent": 10,
+            "wrong_first_aid_reversed_if_early": true
+        },
+        "cooling_heat_stroke": {
+            "survival_multiplier": 1.85,
+            "window_minutes": 30,
+            "target_temp_celsius": 39,
+            "methods": [
+                "ice_packs_axilla_groin_neck",
+                "cool_iv_fluids",
+                "fan_wet_sheet"
+            ]
+        },
+        "100pct_oxygen_co_poisoning": {
+            "survival_multiplier": 1.55,
+            "window_minutes": 60,
+            "reduces_co_halflife_from": "4_5_hours",
+            "reduces_co_halflife_to": "60_90_minutes"
+        },
+        "nrp_neonatal_resuscitation": {
+            "survival_multiplier": 2.4,
+            "window_minutes": 5,
+            "steps": [
+                "warmth_dry_stimulate",
+                "airway_position",
+                "bvm_ventilation",
+                "cardiac_compressions_if_hr_below_60"
+            ]
+        }
+    },
+    "protocol_compliance_scoring": {
+        "description": "Graders check protocol adherence beyond raw outcome. Compliance adds up to +0.15 bonus per episode.",
+        "max_episode_compliance_bonus": 0.15,
+        "compliance_rules": {
+            "micu_for_stemi": {
+                "rule": "STEMI dispatch must use MICU",
+                "bonus_per_correct": 0.015,
+                "penalty_per_violation": -0.02
+            },
+            "als_for_stroke": {
+                "rule": "Stroke dispatch must use ALS minimum",
+                "bonus_per_correct": 0.012,
+                "penalty_per_violation": -0.015
+            },
+            "nearest_level1_trauma_within_30_min": {
+                "rule": "Major trauma must go to nearest Level 1 trauma centre within 30 minutes",
+                "bonus_per_correct": 0.015,
+                "penalty_per_violation": -0.025
+            },
+            "no_routing_to_diverted_hospital": {
+                "rule": "Do not route to hospital on diversion",
+                "bonus_per_correct": 0.01,
+                "penalty_per_violation": -0.03
+            },
+            "multi_agency_for_trapped_victim": {
+                "rule": "Trapped victim requires Police + Fire + EMS",
+                "bonus_per_correct": 0.015,
+                "penalty_per_violation": -0.025
+            },
+            "cath_lab_activation_for_stemi": {
+                "rule": "STEMI dispatch must trigger cath lab pre-notification",
+                "bonus_per_correct": 0.018,
+                "penalty_per_violation": -0.022
+            },
+            "stroke_unit_for_stroke": {
+                "rule": "Stroke patient must go to hospital with stroke unit",
+                "bonus_per_correct": 0.015,
+                "penalty_per_violation": -0.028
+            },
+            "burns_unit_for_major_burns": {
+                "rule": "Burns >20% BSA must go to burns unit",
+                "bonus_per_correct": 0.012,
+                "penalty_per_violation": -0.02
+            },
+            "paediatric_ed_for_paediatric_emergency": {
+                "rule": "Paediatric emergencies require paediatric ED capability",
+                "bonus_per_correct": 0.012,
+                "penalty_per_violation": -0.018
+            },
+            "noop_on_unknown_unit_penalty": {
+                "rule": "Must not noop() on unit with communication failure unless within 2 steps of contact",
+                "bonus_per_correct": 0.008,
+                "penalty_per_violation": -0.015
+            },
+            "start_triage_in_mci": {
+                "rule": "MCI with 5+ patients requires START triage protocol",
+                "bonus_per_correct": 0.02,
+                "penalty_per_violation": -0.035
+            },
+            "mutual_aid_in_surge": {
+                "rule": "Task 9 surge requires mutual aid declaration within 5 steps",
+                "bonus_per_correct": 0.02,
+                "penalty_per_violation": -0.05
+            }
+        }
+    },
+    "mci_triage_modifiers": {
+        "description": "Applied during Task 7 (MCI) and Task 9 (surge). START protocol scoring.",
+        "start_categories": {
+            "immediate_red": {
+                "definition": "Life-threatening, treatable, survivable with intervention",
+                "rpm_criteria": "Respirations present AND (RR>30 OR RR<10) OR Pulse absent (radial) OR Mental status altered",
+                "target_dispatch_priority": 1,
+                "survival_bonus_correct_tag": 0.08,
+                "survival_penalty_under_triage": -0.15,
+                "survival_penalty_over_triage_resources_wasted": -0.05
+            },
+            "delayed_yellow": {
+                "definition": "Serious but stable. Can wait 30-60 minutes.",
+                "rpm_criteria": "Respirations normal AND Pulse present AND Mental status alert — but cannot walk",
+                "target_dispatch_priority": 2,
+                "survival_bonus_correct_tag": 0.05,
+                "survival_penalty_under_triage": -0.08
+            },
+            "minimal_green": {
+                "definition": "Minor injuries. Walking wounded.",
+                "rpm_criteria": "Can walk",
+                "target_dispatch_priority": 3,
+                "survival_bonus_correct_tag": 0.03
+            },
+            "expectant_black": {
+                "definition": "Unsurvivable injuries or deceased. Resources better used elsewhere.",
+                "rpm_criteria": "No respirations after airway opening attempt OR combinations indicating unsurvivable",
+                "target_dispatch_priority": 0,
+                "survival_bonus_correct_expectant_tag": 0.05,
+                "wrong_tag_immediate_as_expectant_penalty": -0.5,
+                "simulation_notes": "HARDEST grader decision. Immediate-as-Expectant = -0.50 penalty."
+            }
+        },
+        "hospital_spread_bonus": {
+            "description": "Bonus for distributing MCI patients across multiple hospitals",
+            "2_hospitals": 0.05,
+            "3_hospitals": 0.1,
+            "4_plus_hospitals": 0.15,
+            "all_to_one_hospital_penalty": -0.2
+        },
+        "resource_conservation_bonus": {
+            "description": "Bonus for not using MICU on P3/Minimal patients",
+            "correct_unit_type_per_triage_category": 0.03,
+            "overkill_micu_on_minimal_penalty": -0.08
+        }
+    },
+    "simulation_integration": {
+        "reward_calculation": {
+            "formula": "step_reward = sum_over_active_patients(survival_probability_delta * patient_weight) + protocol_compliance_delta + diversion_penalty_if_applicable",
+            "survival_probability_delta": "P(t+1) - P(t) — negative means patient deteriorating",
+            "episode_score_formula": "episode_score = clamp(sum(step_rewards) / normalization_factor + protocol_bonus, 0.0, 1.0)",
+            "normalization_factor": "based on max theoretical reward given task difficulty"
+        },
+        "task_specific_reward_weights": {
+            "task1_single_triage": {
+                "triage_weight": 0.4,
+                "unit_type_weight": 0.3,
+                "hospital_match_weight": 0.3
+            },
+            "task2_hospital_route": {
+                "specialty_match_weight": 0.5,
+                "capacity_check_weight": 0.3,
+                "travel_time_weight": 0.2
+            },
+            "task3_unit_match": {
+                "exact_unit_match_weight": 1.0
+            },
+            "task4_multi_incident": {
+                "weighted_survival_weight": 0.7,
+                "delay_penalty_weight": 0.3
+            },
+            "task5_dynamic_rerouting": {
+                "reroute_correctness_weight": 0.5,
+                "time_saved_weight": 0.5
+            },
+            "task6_prepositioning": {
+                "avg_response_time_improvement_weight": 1.0
+            },
+            "task7_mci_start": {
+                "start_accuracy_weight": 0.45,
+                "response_weight": 0.3,
+                "hospital_spread_weight": 0.25
+            },
+            "task8_transfer_cascade": {
+                "transfer_appropriateness_weight": 0.45,
+                "timing_weight": 0.3,
+                "utilisation_weight": 0.25
+            },
+            "task9_surge": {
+                "system_survival_weight": 0.45,
+                "cascade_avoidance_weight": 0.35,
+                "mutual_aid_weight": 0.2
+            }
+        },
+        "baseline_scores": {
+            "task1": 0.61,
+            "task2": 0.72,
+            "task3": 0.68,
+            "task4": 0.44,
+            "task5": 0.38,
+            "task6": 0.42,
+            "task7": 0.29,
+            "task8": 0.24,
+            "task9": 0.17
+        },
+        "timestep_minutes": 3,
+        "max_steps_per_episode": 100,
+        "episode_end_conditions": [
+            "incident_queue_empty",
+            "max_steps_reached"
+        ],
+        "dense_rewards": true,
+        "reward_at_episode_end_only": false
+    }
+}

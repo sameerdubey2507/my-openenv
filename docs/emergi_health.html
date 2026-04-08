@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMERGI-ENV · Clinical Outcomes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #020817;
+            --bg2: #0a1628;
+            --surface: rgba(15, 31, 61, 0.6);
+            --border: rgba(59, 130, 246, 0.2);
+            --border-hover: rgba(59, 130, 246, 0.5);
+            --blue: #3b82f6;
+            --cyan: #06b6d4;
+            --green: #10b981;
+            --emerald: #059669;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --purple: #8b5cf6;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --hint: #1e293b;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.15), transparent 60%),
+                              radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.15), transparent 50%);
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        #startup-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: var(--bg); display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            font-family: var(--mono); color: var(--green);
+            animation: fadeOut 0.8s 2.2s forwards;
+            pointer-events: none;
+        }
+        .startup-pulse {
+            width: 60px; height: 60px; border: 2px solid var(--border);
+            border-radius: 50%; border-top-color: var(--green); border-bottom-color: var(--cyan);
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+        .startup-text::after { content: ''; animation: textSequence 2s linear forwards; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
+        @keyframes textSequence {
+            0% { content: 'INITIALIZING CLINICAL TELEMETRY...'; }
+            30% { content: 'SYNCING HOSPITAL DATABASES...'; }
+            60% { content: 'ANALYZING PATIENT SURVIVAL PROBABILITIES...'; }
+            85% { content: 'GENERATING LOCALITY HEATMAPS...'; }
+            100% { content: 'NEXUS ONLINE.'; color: var(--blue); }
+        }
+
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(2, 8, 23, 0.85); backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 30px; height: 65px;
+            display: flex; align-items: center; justify-content: space-between;
+            animation: slideDown 0.6s ease both;
+        }
+
+        .brand {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .brand-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--green), var(--cyan));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+        .brand-text {
+            font-weight: 800; font-size: 16px; letter-spacing: 0.5px;
+            background: linear-gradient(90deg, var(--green), var(--cyan));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .brand-sub {
+            font-family: var(--mono); font-size: 11px;
+            color: var(--muted); margin-left: 8px; border-left: 1px solid var(--hint); padding-left: 8px;
+        }
+
+        .live-indicator {
+            display: flex; align-items: center; gap: 8px;
+            font-family: var(--mono); font-size: 12px; font-weight: 600; color: #fff;
+            padding: 6px 14px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+        }
+        .live-dot {
+            width: 8px; height: 8px; background: var(--green); border-radius: 50%;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); } 70% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: none; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+        main {
+            position: relative; z-index: 10;
+            padding: 30px; max-width: 1400px; margin: 0 auto;
+            display: flex; flex-direction: column; gap: 24px;
+            animation: fadeIn 1s 2.3s both;
+        }
+
+        .title-row {
+            display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;
+        }
+        .page-title {
+            font-size: 24px; font-weight: 800;
+        }
+        .page-desc {
+            font-size: 13px; color: var(--muted); margin-top: 4px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+        }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; position: relative; overflow: hidden; backdrop-filter: blur(10px);
+            transition: 0.3s;
+        }
+        .stat-card:hover { border-color: var(--green); box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15); transform: translateY(-2px); }
+        .stat-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-val { font-size: 28px; font-weight: 800; font-family: var(--mono); color: #fff; margin: 8px 0; }
+        .stat-delta { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .delta-pos { color: var(--green); } .delta-neg { color: var(--red); }
+        .stat-bg { position: absolute; right: -10px; bottom: -10px; font-size: 60px; opacity: 0.05; }
+
+        /* Locality & Doctor Data */
+        .content-grid {
+            display: grid; grid-template-columns: 1fr 2fr; gap: 24px;
+        }
+
+        .panel {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+            backdrop-filter: blur(10px); padding: 20px; display: flex; flex-direction: column;
+        }
+        .panel-header {
+            font-size: 14px; font-weight: 700; color: var(--cyan); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;
+        }
+
+        /* Success Rate Bars */
+        .locality-row { margin-bottom: 15px; }
+        .locality-meta { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+        .loc-name { font-weight: 600; } .loc-val { font-family: var(--mono); font-weight: 700; color: var(--green); }
+        .prog-bg { width: 100%; height: 6px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
+        .prog-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--green)); border-radius: 3px; position: relative; }
+        .prog-fill::after {
+            content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite linear;
+        }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+        /* Patient Table */
+        .table-wrap { overflow-x: auto; max-height: 450px; overflow-y: auto; padding-right: 10px; }
+        .table-wrap::-webkit-scrollbar { width: 6px; }
+        .table-wrap::-webkit-scrollbar-thumb { background: var(--hint); border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+        td { padding: 14px 12px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        tr:hover td { background: rgba(59, 130, 246, 0.05); }
+        
+        .p-name { font-weight: 600; color: #fff; display: block; }
+        .p-id { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+        .doc-name { font-weight: 600; color: var(--cyan); }
+        .doc-spec { font-size: 11px; color: var(--muted); display: block; }
+        
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; border: 1px solid; display: inline-block; text-align: center; }
+        .b-critical { background: rgba(239, 68, 68, 0.1); color: var(--red); border-color: rgba(239, 68, 68, 0.3); }
+        .b-stable { background: rgba(16, 185, 129, 0.1); color: var(--green); border-color: rgba(16, 185, 129, 0.3); }
+        .b-recovery { background: rgba(59, 130, 246, 0.1); color: var(--blue); border-color: rgba(59, 130, 246, 0.3); }
+        .b-cured { background: rgba(139, 92, 246, 0.1); color: var(--purple); border-color: rgba(139, 92, 246, 0.3); }
+
+        .health-bar-container { width: 100%; height: 20px; background: rgba(0,0,0,0.5); border-radius: 4px; border: 1px solid var(--hint); display: flex; overflow: hidden; position: relative;}
+        .health-segment { height: 100%; transition: width 1s ease-in-out; }
+        .h-vital { background: var(--green); }
+        .h-risk { background: var(--amber); }
+        .h-damage { background: var(--red); }
+        .overlay-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; font-family: var(--mono); color: rgba(255,255,255,0.9); text-shadow: 0 0 2px black;}
+
+        .pulse-text { animation: pulseOpacity 1.5s infinite; }
+        @keyframes pulseOpacity { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    </style>
+</head>
+<body>
+    <div id="startup-overlay">
+        <div class="startup-pulse"></div>
+        <div class="startup-text"></div>
+    </div>
+    
+    <canvas id="bg-canvas"></canvas>
+
+    <header>
+        <div class="brand">
+            <div class="brand-icon">🏥</div>
+            <div>
+                <div class="brand-text">EMERGI-ENV</div>
+            </div>
+            <div class="brand-sub">Clinical Outcomes & Patient Demographics Node</div>
+        </div>
+        <div class="live-indicator">
+            <div class="live-dot"></div> LIVE TELEMETRY
+        </div>
+    </header>
+
+    <main>
+        <div class="title-row">
+            <div>
+                <h1 class="page-title">Regional Patient Health & Recovery Matrix</h1>
+                <p class="page-desc">Real-time surveillance of clinical trajectories, AI intervention success rates, and assigned medical personnel.</p>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-bg">📊</div>
+                <div class="stat-label">Global Success Rate</div>
+                <div class="stat-val">94.2%</div>
+                <div class="stat-delta delta-pos">▲ +2.4% vs Baseline Agent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-bg">⏳</div>
+                <div class="stat-label">Avg Golden Hr Save</div>
+                <div class="stat-val">22m 14s</div>
+                <div class="stat-delta delta-pos">▲ -4m 10s Improvement</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-bg">🫀</div>
+                <div class="stat-label">Patients Recovering</div>
+                <div class="stat-val" style="color:var(--cyan)">1,204</div>
+                <div class="stat-delta delta-pos">▲ Consistent Uptrend</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-bg">👨‍⚕️</div>
+                <div class="stat-label">Active MD Deployments</div>
+                <div class="stat-val" style="color:var(--purple)">42</div>
+                <div class="stat-delta">Across 8 Trauma Centers</div>
+            </div>
+        </div>
+
+        <div class="content-grid">
+            <!-- Locality Data -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Locality Success & Cure Rates</span>
+                    <span style="font-size:16px">🗺️</span>
+                </div>
+                
+                <div class="locality-meta"><span class="loc-name">Zone 1 (North - High Density)</span><span class="loc-val">91.5%</span></div>
+                <div class="prog-bg"><div class="prog-fill" style="width: 91.5%"></div></div>
+
+                <div class="locality-meta"><span class="loc-name">Zone 5 (East - Industrial)</span><span class="loc-val">88.2%</span></div>
+                <div class="prog-bg"><div class="prog-fill" style="width: 88.2%; background: linear-gradient(90deg, var(--blue), var(--amber))"></div></div>
+
+                <div class="locality-meta"><span class="loc-name">Zone 8 (West - Suburb)</span><span class="loc-val">97.8%</span></div>
+                <div class="prog-bg"><div class="prog-fill" style="width: 97.8%"></div></div>
+
+                <div class="locality-meta"><span class="loc-name">Zone 12 (South - Rural)</span><span class="loc-val">84.1%</span></div>
+                <div class="prog-bg"><div class="prog-fill" style="width: 84.1%; background: linear-gradient(90deg, var(--purple), var(--red))"></div></div>
+
+                <div class="locality-meta"><span class="loc-name">Zone 2 (Central - Metro)</span><span class="loc-val">95.4%</span></div>
+                <div class="prog-bg"><div class="prog-fill" style="width: 95.4%"></div></div>
+                
+                <div style="margin-top:auto; font-size:11px; color:var(--muted); line-height:1.6; padding-top:15px; border-top:1px dashed var(--border)">
+                    * Data heavily reflects the agent's ability to efficiently route Advanced Life Support (ALS) units through heavy traffic areas.
+                </div>
+            </div>
+
+            <!-- Patient Feed -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Active Patient Recovery Tracking & Physician Assignment</span>
+                    <span style="font-size:16px">🧬</span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Patient File</th>
+                                <th>Assigned Doctor</th>
+                                <th>Locality</th>
+                                <th>Current State</th>
+                                <th>Health / Recovery Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <span class="p-name">Aarav Patel</span>
+                                    <span class="p-id">ID: PT-8812 (Cardiac)</span>
+                                </td>
+                                <td>
+                                    <span class="doc-name">Dr. Sanjay Mehta</span>
+                                    <span class="doc-spec">Cardiology · H-KEM</span>
+                                </td>
+                                <td>Z2</td>
+                                <td><span class="badge b-recovery pulse-text">RECOVERING</span></td>
+                                <td>
+                                    <div class="health-bar-container">
+                                        <div class="health-segment h-vital" style="width: 65%"></div>
+                                        <div class="health-segment h-risk" style="width: 20%"></div>
+                                        <div class="health-segment h-damage" style="width: 15%"></div>
+                                        <div class="overlay-text">IMPROVING (+12%)</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span class="p-name">Priya Sharma</span>
+                                    <span class="p-id">ID: PT-8824 (Trauma)</span>
+                                </td>
+                                <td>
+                                    <span class="doc-name">Dr. Ayesha Khan</span>
+                                    <span class="doc-spec">Trauma Surgery · H-RUBY</span>
+                                </td>
+                                <td>Z5</td>
+                                <td><span class="badge b-critical">CRITICAL</span></td>
+                                <td>
+                                    <div class="health-bar-container">
+                                        <div class="health-segment h-vital" style="width: 30%"></div>
+                                        <div class="health-segment h-risk" style="width: 40%"></div>
+                                        <div class="health-segment h-damage" style="width: 30%"></div>
+                                        <div class="overlay-text">SURGERY ACTIVE</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span class="p-name">Rohan Nair</span>
+                                    <span class="p-id">ID: PT-8833 (Stroke)</span>
+                                </td>
+                                <td>
+                                    <span class="doc-name">Dr. Vikram Singh</span>
+                                    <span class="doc-spec">Neurology · H-SASS</span>
+                                </td>
+                                <td>Z1</td>
+                                <td><span class="badge b-stable">STABLE</span></td>
+                                <td>
+                                    <div class="health-bar-container">
+                                        <div class="health-segment h-vital" style="width: 85%"></div>
+                                        <div class="health-segment h-risk" style="width: 10%"></div>
+                                        <div class="health-segment h-damage" style="width: 5%"></div>
+                                        <div class="overlay-text">CURE TRAJECTORY</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span class="p-name">Neha Gupta</span>
+                                    <span class="p-id">ID: PT-8840 (Fracture)</span>
+                                </td>
+                                <td>
+                                    <span class="doc-name">Dr. R. Deshmukh</span>
+                                    <span class="doc-spec">Orthopedics · H-CMH</span>
+                                </td>
+                                <td>Z8</td>
+                                <td><span class="badge b-cured">CURED / DISCHARGE</span></td>
+                                <td>
+                                    <div class="health-bar-container">
+                                        <div class="health-segment h-vital" style="width: 100%"></div>
+                                        <div class="overlay-text">100% RECOVERED</div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr><td><span class="p-name">Kavita Iyer</span><span class="p-id">ID: PT-8841 (Cardiac)</span></td><td><span class="doc-name">Dr. Sanjay Mehta</span><span class="doc-spec">Cardiology · H-KEM</span></td><td>Z2</td><td><span class="badge b-critical pulse-text">CRITICAL</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 25%"></div><div class="health-segment h-risk" style="width: 50%"></div><div class="health-segment h-damage" style="width: 25%"></div><div class="overlay-text">RESUSCITATING</div></div></td></tr>
+                            <tr><td><span class="p-name">Amit Verma</span><span class="p-id">ID: PT-8842 (Trauma)</span></td><td><span class="doc-name">Dr. Ayesha Khan</span><span class="doc-spec">Trauma · H-RUBY</span></td><td>Z3</td><td><span class="badge b-recovery">RECOVERING</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 55%"></div><div class="health-segment h-risk" style="width: 30%"></div><div class="health-segment h-damage" style="width: 15%"></div><div class="overlay-text">POST-OP STABLE</div></div></td></tr>
+                            <tr><td><span class="p-name">Suresh Pillai</span><span class="p-id">ID: PT-8843 (Stroke)</span></td><td><span class="doc-name">Dr. Vikram Singh</span><span class="doc-spec">Neurology · H-SASS</span></td><td>Z1</td><td><span class="badge b-cured">CURED / DISCHARGE</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 100%"></div><div class="overlay-text">FULLY RECOVERED</div></div></td></tr>
+                            <tr><td><span class="p-name">Deepa Reddy</span><span class="p-id">ID: PT-8844 (Burn)</span></td><td><span class="doc-name">Dr. T. Agarwal</span><span class="doc-spec">Burn Ward · H-NOBLE</span></td><td>Z12</td><td><span class="badge b-stable">STABLE</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 45%"></div><div class="health-segment h-risk" style="width: 45%"></div><div class="health-segment h-damage" style="width: 10%"></div><div class="overlay-text">GRAFT PENDING</div></div></td></tr>
+                            <tr><td><span class="p-name">Manoj Kumar</span><span class="p-id">ID: PT-8845 (Pediatric)</span></td><td><span class="doc-name">Dr. S. Kulkarni</span><span class="doc-spec">Pediatrics · H-CMH</span></td><td>Z8</td><td><span class="badge b-recovery pulse-text">RECOVERING</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 75%"></div><div class="health-segment h-risk" style="width: 25%"></div><div class="overlay-text">IMPROVING (+20%)</div></div></td></tr>
+                            <tr><td><span class="p-name">Riya Singh</span><span class="p-id">ID: PT-8846 (Cardiac)</span></td><td><span class="doc-name">Dr. Sanjay Mehta</span><span class="doc-spec">Cardiology · H-KEM</span></td><td>Z2</td><td><span class="badge b-critical">CRITICAL</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 20%"></div><div class="health-segment h-risk" style="width: 60%"></div><div class="health-segment h-damage" style="width: 20%"></div><div class="overlay-text">AWAITING ICU</div></div></td></tr>
+                            <tr><td><span class="p-name">Arjun Das</span><span class="p-id">ID: PT-8847 (Trauma)</span></td><td><span class="doc-name">Dr. Ayesha Khan</span><span class="doc-spec">Trauma · H-RUBY</span></td><td>Z5</td><td><span class="badge b-stable">STABLE</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 60%"></div><div class="health-segment h-risk" style="width: 30%"></div><div class="overlay-text">PHYSIOTHERAPY</div></div></td></tr>
+                            <tr><td><span class="p-name">Sneha Joshi</span><span class="p-id">ID: PT-8848 (Stroke)</span></td><td><span class="doc-name">Dr. Vikram Singh</span><span class="doc-spec">Neurology · H-SASS</span></td><td>Z1</td><td><span class="badge b-recovery">RECOVERING</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 80%"></div><div class="health-segment h-risk" style="width: 20%"></div><div class="overlay-text">MOTOR SKILLS ++</div></div></td></tr>
+                            <tr><td><span class="p-name">Rahul Bose</span><span class="p-id">ID: PT-8849 (Fracture)</span></td><td><span class="doc-name">Dr. R. Deshmukh</span><span class="doc-spec">Orthopedics · H-CMH</span></td><td>Z8</td><td><span class="badge b-cured">CURED / DISCHARGE</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 100%"></div><div class="overlay-text">CAST REMOVED</div></div></td></tr>
+                            <tr><td><span class="p-name">Anjali Rao</span><span class="p-id">ID: PT-8850 (Cardiac)</span></td><td><span class="doc-name">Dr. Sanjay Mehta</span><span class="doc-spec">Cardiology · H-KEM</span></td><td>Z2</td><td><span class="badge b-stable">STABLE</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 50%"></div><div class="health-segment h-risk" style="width: 40%"></div><div class="health-segment h-damage" style="width: 10%"></div><div class="overlay-text">MONITORING</div></div></td></tr>
+                            <tr><td><span class="p-name">Vikas Dubey</span><span class="p-id">ID: PT-8851 (Trauma)</span></td><td><span class="doc-name">Dr. Ayesha Khan</span><span class="doc-spec">Trauma · H-RUBY</span></td><td>Z5</td><td><span class="badge b-critical pulse-text">CRITICAL</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 15%"></div><div class="health-segment h-risk" style="width: 55%"></div><div class="health-segment h-damage" style="width: 30%"></div><div class="overlay-text">SURGERY ACTIVE</div></div></td></tr>
+                            <tr><td><span class="p-name">Pooja Sharma</span><span class="p-id">ID: PT-8852 (Stroke)</span></td><td><span class="doc-name">Dr. Vikram Singh</span><span class="doc-spec">Neurology · H-SASS</span></td><td>Z1</td><td><span class="badge b-cured">CURED / DISCHARGE</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 100%"></div><div class="overlay-text">CLEARED</div></div></td></tr>
+                            <tr><td><span class="p-name">Karan Patel</span><span class="p-id">ID: PT-8853 (Burn)</span></td><td><span class="doc-name">Dr. T. Agarwal</span><span class="doc-spec">Burn Ward · H-NOBLE</span></td><td>Z12</td><td><span class="badge b-recovery pulse-text">RECOVERING</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 65%"></div><div class="health-segment h-risk" style="width: 25%"></div><div class="health-segment h-damage" style="width: 10%"></div><div class="overlay-text">HEALING</div></div></td></tr>
+                            <tr><td><span class="p-name">Tanya Singh</span><span class="p-id">ID: PT-8854 (Pediatric)</span></td><td><span class="doc-name">Dr. S. Kulkarni</span><span class="doc-spec">Pediatrics · H-CMH</span></td><td>Z8</td><td><span class="badge b-stable">STABLE</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 85%"></div><div class="health-segment h-risk" style="width: 15%"></div><div class="overlay-text">DISCHARGE SOON</div></div></td></tr>
+                            <tr><td><span class="p-name">Harish Iyer</span><span class="p-id">ID: PT-8855 (Cardiac)</span></td><td><span class="doc-name">Dr. Sanjay Mehta</span><span class="doc-spec">Cardiology · H-KEM</span></td><td>Z2</td><td><span class="badge b-recovery">RECOVERING</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 70%"></div><div class="health-segment h-risk" style="width: 30%"></div><div class="overlay-text">PACEMAKER STABLE</div></div></td></tr>
+                            <tr><td><span class="p-name">Sita Verma</span><span class="p-id">ID: PT-8856 (Trauma)</span></td><td><span class="doc-name">Dr. Ayesha Khan</span><span class="doc-spec">Trauma · H-RUBY</span></td><td>Z5</td><td><span class="badge b-cured">CURED / DISCHARGE</span></td><td><div class="health-bar-container"><div class="health-segment h-vital" style="width: 100%"></div><div class="overlay-text">FULLY RECOVERED</div></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extra Logistics & Prediction Nodes -->
+        <div class="content-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-top:24px;">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>AI Routing Efficiency</span>
+                    <span style="font-size:16px">🚑</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:12px">
+                    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:8px; border-left:3px solid var(--cyan)">
+                        <div style="font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:4px">AVG ETA DEVIATION</div>
+                        <div style="font-size:16px; font-weight:700; color:var(--cyan)">-1.4 Minutes</div>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:8px; border-left:3px solid var(--green)">
+                        <div style="font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:4px">TRAFFIC BYPASS RATE</div>
+                        <div style="font-size:16px; font-weight:700; color:var(--green)">78.2% Optimal</div>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:8px; border-left:3px solid var(--amber)">
+                        <div style="font-size:11px; color:var(--muted); font-family:var(--mono); margin-bottom:4px">FLEET UTILIZATION</div>
+                        <div style="font-size:16px; font-weight:700; color:var(--amber)">94% (Near Cap)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Hospital Diversion Protocols</span>
+                    <span style="font-size:16px">🏥</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:10px; font-size:12px; font-family:var(--mono)">
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px">
+                        <span style="color:var(--text)">H-KEM</span>
+                        <span style="color:var(--red)">Redirection Active (-4)</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px">
+                        <span style="color:var(--text)">H-RUBY</span>
+                        <span style="color:var(--amber)">Threshold Warning</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px">
+                        <span style="color:var(--text)">H-SASS</span>
+                        <span style="color:var(--green)">Capacity Stable</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px">
+                        <span style="color:var(--text)">H-NOBLE</span>
+                        <span style="color:var(--green)">Accepting Re-routes</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; padding-bottom:8px">
+                        <span style="color:var(--text)">H-CMH</span>
+                        <span style="color:var(--green)">14 Beds Avail</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Diagnostic Predictor Logs</span>
+                    <span style="font-size:16px">🧠</span>
+                </div>
+                <div style="font-family:var(--mono); font-size:11px; display:flex; flex-direction:column; gap:8px; overflow-y:auto; max-height:150px">
+                    <div style="color:var(--muted)">[Sys] Patient PT-8841 survival prob updated: <span style="color:var(--green)">0.84</span></div>
+                    <div style="color:var(--muted)">[AI] Pre-allocating O+ blood to H-RUBY for inbound trauma</div>
+                    <div style="color:var(--cyan)">[Log] Triage upgrade PT-8851 from P2 to P1 (Vitals drop)</div>
+                    <div style="color:var(--muted)">[AI] Re-routing AMB-12 to avoid Z5 severe congestion</div>
+                    <div style="color:var(--amber)">[Warn] Burn Unit at H-NOBLE reaching 85% capacity</div>
+                    <div style="color:var(--muted)">[Sys] Golden hour penalty applied to PT-8824 (-0.12)</div>
+                    <div style="color:var(--green)">[Log] Successful discharge PT-8840. Bed released.</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Advanced Particle Background
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const particles = [];
+        for(let i=0; i<60; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                size: Math.random() * 2 + 1,
+                color: Math.random() > 0.5 ? 'rgba(16, 185, 129, 0.5)' : 'rgba(6, 182, 212, 0.5)'
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            });
+
+            // Connect lines
+            for(let i=0; i<particles.length; i++) {
+                for(let j=i+1; j<particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if(dist < 120) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(16, 185, 129, ${0.1 * (1 - dist/120)})`;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        // Simulate live data fluctuations
+        setInterval(() => {
+            const vitals = document.querySelectorAll('.h-vital');
+            vitals.forEach(el => {
+                // Prevent 100% ones from varying
+                if(el.style.width === '100%') return;
+                let current = parseFloat(el.style.width);
+                let diff = (Math.random() - 0.2) * 5; // slight upward bias
+                let nw = Math.max(10, Math.min(95, current + diff));
+                el.style.width = nw + '%';
+            });
+        }, 3000);
+    </script>
+</body>
+</html>

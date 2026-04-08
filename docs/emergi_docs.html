@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>EMERGI-ENV · Emergency Medical Intelligence & Resource Governance</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #060d1a;
+            --surface: #0d1829;
+            --surface2: #101f33;
+            --surface3: #152540;
+            --border: #1e3050;
+            --border2: #2a4570;
+            --border3: #3a5f99;
+            --text: #ddeeff;
+            --muted: #7fa8cc;
+            --hint: #4a6f99;
+            --blue: #4da6ff;
+            --blue2: #2d8cff;
+            --blue3: #1a6fd4;
+            --blue-bg: rgba(77, 166, 255, .1);
+            --blue-glow: rgba(77, 166, 255, .25);
+            --cyan: #00d4ff;
+            --cyan-bg: rgba(0, 212, 255, .08);
+            --red: #ff5c5c;
+            --red-bg: rgba(255, 92, 92, .1);
+            --amber: #ffb347;
+            --amber-bg: rgba(255, 179, 71, .1);
+            --green: #4dff91;
+            --green-bg: rgba(77, 255, 145, .08);
+            --purple: #c084fc;
+            --purple-bg: rgba(192, 132, 252, .1);
+            --radius: 8px;
+            --radius-lg: 14px;
+            --radius-xl: 20px;
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: hidden
+        }
+
+        ::selection {
+            background: var(--blue-bg);
+            color: var(--blue)
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 3px
+        }
+
+        #bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            pointer-events: none
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(77, 166, 255, .035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(77, 166, 255, .035) 1px, transparent 1px);
+            background-size: 44px 44px;
+            mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%)
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            height: 60px;
+            background: rgba(6, 13, 26, .9);
+            backdrop-filter: blur(20px) saturate(1.4);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            gap: 16px;
+            animation: slideDown .5s ease both
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0
+            }
+
+            to {
+                transform: none;
+                opacity: 1
+            }
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            text-decoration: none
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--blue2) 0%, var(--cyan) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            animation: brandGlow 3s ease-in-out infinite
+        }
+
+        @keyframes brandGlow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 12px rgba(77, 166, 255, .4)
+            }
+
+            50% {
+                box-shadow: 0 0 28px rgba(77, 166, 255, .75)
+            }
+        }
+
+        .brand-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: .4px
+        }
+
+        .brand-sub {
+            font-size: 10px;
+            color: var(--muted);
+            display: block;
+            margin-top: -1px
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2px;
+            margin-left: auto
+        }
+
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            transition: all .2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-links a.active {
+            color: var(--blue);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        #srv-pill {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 13px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--hint);
+            transition: .3s;
+            margin-left: 8px
+        }
+
+        #srv-pill.live {
+            border-color: rgba(77, 255, 145, .35);
+            background: var(--green-bg);
+            color: var(--green)
+        }
+
+        .pring {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--hint);
+            transition: .3s;
+            flex-shrink: 0
+        }
+
+        #srv-pill.live .pring {
+            background: var(--green);
+            animation: ringPulse 1.5s infinite
+        }
+
+        @keyframes ringPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(77, 255, 145, .5)
+            }
+
+            60% {
+                box-shadow: 0 0 0 5px rgba(77, 255, 145, 0)
+            }
+        }
+
+        .page {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 36px 28px
+        }
+
+        .sec {
+            margin-bottom: 56px
+        }
+
+        .sec-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .sec-title h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text)
+        }
+
+        .sec-title span {
+            font-size: 13px;
+            color: var(--hint)
+        }
+
+        /* HERO */
+        .hero {
+            position: relative;
+            overflow: hidden;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 48px 44px;
+            margin-bottom: 36px;
+            animation: heroIn .7s ease both
+        }
+
+        @keyframes heroIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            right: -80px;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(77, 166, 255, .1) 0%, transparent 65%);
+            animation: orbFloat 8s ease-in-out infinite alternate;
+            pointer-events: none
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -80px;
+            left: 15%;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 212, 255, .06) 0%, transparent 65%);
+            animation: orbFloat 11s ease-in-out infinite alternate-reverse;
+            pointer-events: none
+        }
+
+        @keyframes orbFloat {
+            from {
+                transform: translate(0, 0) scale(1)
+            }
+
+            to {
+                transform: translate(18px, 12px) scale(1.07)
+            }
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .9px;
+            text-transform: uppercase;
+            color: var(--cyan);
+            background: var(--cyan-bg);
+            border: 1px solid rgba(0, 212, 255, .22);
+            padding: 5px 14px;
+            border-radius: 20px
+        }
+
+        .eyebrow .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--cyan);
+            animation: ringPulse 1.5s infinite
+        }
+
+        .hero h1 {
+            font-size: 36px;
+            font-weight: 800;
+            line-height: 1.22;
+            margin-bottom: 14px;
+            color: var(--text)
+        }
+
+        .hero h1 .accent {
+            background: linear-gradient(90deg, var(--blue), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .hero p {
+            font-size: 15px;
+            color: var(--muted);
+            max-width: 660px;
+            line-height: 1.75;
+            margin-bottom: 32px
+        }
+
+        .hero-kpis {
+            display: flex;
+            gap: 36px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1
+        }
+
+        .kpi .num {
+            font-size: 26px;
+            font-weight: 800;
+            font-family: var(--mono);
+            background: linear-gradient(135deg, var(--blue), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        .kpi .lbl {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .5px
+        }
+
+        /* GRIDS */
+        .g4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px
+        }
+
+        .g3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px
+        }
+
+        .g2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px
+        }
+
+        @media(max-width:1000px) {
+            .g4 {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .g3 {
+                grid-template-columns: repeat(2, 1fr)
+            }
+        }
+
+        @media(max-width:640px) {
+
+            .g4,
+            .g3,
+            .g2 {
+                grid-template-columns: 1fr
+            }
+        }
+
+        /* METRIC CARDS */
+        .mcard {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color .3s, transform .2s;
+            cursor: default
+        }
+
+        .mcard:hover {
+            border-color: var(--border3);
+            transform: translateY(-2px)
+        }
+
+        .mcard::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--blue), var(--cyan));
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform .45s ease
+        }
+
+        .mcard:hover::after {
+            transform: scaleX(1)
+        }
+
+        .mcard .val {
+            font-size: 28px;
+            font-weight: 800;
+            font-family: var(--mono);
+            color: var(--blue)
+        }
+
+        .mcard .sub {
+            font-size: 11px;
+            color: var(--hint);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-top: 2px
+        }
+
+        .mcard .note {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px
+        }
+
+        .mcard canvas {
+            margin-top: 10px;
+            width: 100% !important;
+            height: 50px !important
+        }
+
+        /* STATUS BAR */
+        .sbar {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 14px
+        }
+
+        .sbar-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .sbar-item strong {
+            color: var(--text);
+            font-family: var(--mono)
+        }
+
+        .sbar-sep {
+            width: 1px;
+            height: 16px;
+            background: var(--border)
+        }
+
+        /* CHART CARDS */
+        .ccrd {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px
+        }
+
+        .ccrd h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 3px
+        }
+
+        .ccrd p {
+            font-size: 12px;
+            color: var(--hint);
+            margin-bottom: 16px
+        }
+
+        /* TASK CARDS */
+        .tc {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all .25s;
+            animation: fadeUp .5s ease both
+        }
+
+        .tc:hover {
+            border-color: var(--border3);
+            transform: translateY(-3px);
+            box-shadow: 0 0 30px rgba(77, 166, 255, .12)
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .tc.easy {
+            border-left: 3px solid var(--green)
+        }
+
+        .tc.medium {
+            border-left: 3px solid var(--amber)
+        }
+
+        .tc.hard {
+            border-left: 3px solid var(--red)
+        }
+
+        .tc .thead {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px
+        }
+
+        .tnum {
+            min-width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 800;
+            font-family: var(--mono);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .easy .tnum {
+            background: var(--green-bg);
+            color: var(--green)
+        }
+
+        .medium .tnum {
+            background: var(--amber-bg);
+            color: var(--amber)
+        }
+
+        .hard .tnum {
+            background: var(--red-bg);
+            color: var(--red)
+        }
+
+        .ttitle {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.4
+        }
+
+        .tdesc {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.65
+        }
+
+        .tgrader {
+            font-size: 11px;
+            color: var(--hint);
+            background: var(--surface3);
+            border-radius: 6px;
+            padding: 7px 10px;
+            line-height: 1.5
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px
+        }
+
+        .chip {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 20px;
+            border: 1px solid transparent;
+            letter-spacing: .2px
+        }
+
+        .cb {
+            background: var(--blue-bg);
+            color: var(--blue);
+            border-color: rgba(77, 166, 255, .2)
+        }
+
+        .cg {
+            background: var(--green-bg);
+            color: var(--green);
+            border-color: rgba(77, 255, 145, .2)
+        }
+
+        .ca {
+            background: var(--amber-bg);
+            color: var(--amber);
+            border-color: rgba(255, 179, 71, .2)
+        }
+
+        .cr {
+            background: var(--red-bg);
+            color: var(--red);
+            border-color: rgba(255, 92, 92, .2)
+        }
+
+        .cp {
+            background: var(--purple-bg);
+            color: var(--purple);
+            border-color: rgba(192, 132, 252, .2)
+        }
+
+        .cc {
+            background: var(--cyan-bg);
+            color: var(--cyan);
+            border-color: rgba(0, 212, 255, .2)
+        }
+
+        .cgr {
+            background: var(--surface3);
+            color: var(--muted);
+            border-color: var(--border)
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 5px;
+            background: var(--surface3);
+            border-radius: 3px;
+            overflow: hidden
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1.2s cubic-bezier(.2, .8, .2, 1)
+        }
+
+        .easy .bar-fill {
+            background: linear-gradient(90deg, var(--green), #00ff88)
+        }
+
+        .medium .bar-fill {
+            background: linear-gradient(90deg, var(--amber), #ffdd00)
+        }
+
+        .hard .bar-fill {
+            background: linear-gradient(90deg, var(--red), #ff8c42)
+        }
+
+        .bval {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--muted);
+            min-width: 32px;
+            text-align: right
+        }
+
+        /* ENDPOINTS */
+        .ep-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .epa {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transition: border-color .3s, transform .2s, box-shadow .2s;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .epa:hover {
+            border-color: var(--blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(77, 166, 255, 0.1);
+        }
+
+        .epa.open {
+            border-color: var(--blue);
+            box-shadow: 0 0 24px rgba(77, 166, 255, .15);
+            background: rgba(13, 24, 41, 0.65);
+        }
+
+        .ep-hdr {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: background .2s;
+            user-select: none;
+            height: 100%;
+        }
+
+        .ep-hdr:hover {
+            background: var(--surface3);
+        }
+        
+        .epa.open .ep-hdr {
+            height: auto;
+        }
+
+        .mbadge {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: .6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: var(--mono);
+            flex-shrink: 0;
+            min-width: 48px;
+            text-align: center
+        }
+
+        .mGET {
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid rgba(77, 255, 145, .25)
+        }
+
+        .mPOST {
+            background: var(--blue-bg);
+            color: var(--blue);
+            border: 1px solid rgba(77, 166, 255, .25)
+        }
+
+        .mWS {
+            background: var(--purple-bg);
+            color: var(--purple);
+            border: 1px solid rgba(192, 132, 252, .25)
+        }
+
+        .ep-path {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--text);
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .ep-desc-txt {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .ep-chev {
+            margin-left: auto;
+            color: var(--hint);
+            font-size: 13px;
+            transition: transform .3s;
+            flex-shrink: 0
+        }
+
+        .epa.open .ep-chev {
+            transform: rotate(180deg);
+            color: var(--blue)
+        }
+
+        .ep-body {
+            display: none;
+            border-top: 1px solid rgba(30, 48, 80, 0.6);
+            background: rgba(16, 31, 51, 0.4);
+        }
+
+        .epa.open .ep-body {
+            display: block;
+            animation: bodyReveal .25s ease both
+        }
+
+        @keyframes bodyReveal {
+            from {
+                opacity: 0;
+                transform: translateY(-6px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .ep-inner {
+            padding: 20px
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px
+        }
+
+        @media(max-width:780px) {
+            .two-col {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .flbl {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--hint);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 6px
+        }
+
+        .finput,
+        .fsel,
+        .ftextarea {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            color: var(--text);
+            border-radius: var(--radius);
+            padding: 9px 12px;
+            font-size: 13px;
+            font-family: var(--font);
+            outline: none;
+            transition: .2s
+        }
+
+        .ftextarea {
+            font-family: var(--mono);
+            font-size: 12px;
+            resize: vertical;
+            min-height: 100px;
+            line-height: 1.65
+        }
+
+        .finput:focus,
+        .fsel:focus,
+        .ftextarea:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(77, 166, 255, .15)
+        }
+
+        .fsel {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%234a6f99' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 30px
+        }
+
+        .run-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 20px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all .3s cubic-bezier(0.25, 1, 0.5, 1);
+            font-family: var(--font);
+            background: linear-gradient(135deg, var(--blue2), var(--blue3));
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(45, 140, 255, .3);
+            position: relative;
+            overflow: hidden;
+            animation: btnPulse 3s infinite alternate;
+        }
+
+        @keyframes btnPulse {
+            0% { box-shadow: 0 4px 14px rgba(45, 140, 255, .3); }
+            100% { box-shadow: 0 4px 22px rgba(45, 140, 255, .6); }
+        }
+
+        .run-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transform: skewX(-25deg);
+            animation: runShine 4s infinite;
+        }
+
+        @keyframes runShine {
+            0% { left: -100%; }
+            20% { left: 200%; }
+            100% { left: 200%; }
+        }
+
+        .run-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 24px rgba(45, 140, 255, .55);
+            background: linear-gradient(135deg, var(--blue), var(--blue2));
+        }
+
+        .run-btn:active {
+            transform: scale(.95);
+        }
+
+        .run-btn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            animation: none;
+        }
+        
+        .run-btn:disabled::before {
+            display: none;
+        }
+
+        .ghost-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: var(--radius);
+            font-size: 12px;
+            cursor: pointer;
+            border: 1px solid var(--border2);
+            background: transparent;
+            color: var(--muted);
+            transition: .2s;
+            font-family: var(--font)
+        }
+
+        .ghost-btn:hover {
+            color: var(--text);
+            border-color: var(--border3);
+            background: var(--surface3)
+        }
+
+        .resp-panel {
+            margin-top: 16px
+        }
+
+        .resp-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            color: var(--muted)
+        }
+
+        .sdot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0
+        }
+
+        .s200 {
+            background: var(--green)
+        }
+
+        .s4xx {
+            background: var(--red)
+        }
+
+        .spending {
+            background: var(--amber);
+            animation: ringPulse 1s infinite
+        }
+
+        .resp-box {
+            background: rgba(6, 13, 26, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(77, 166, 255, 0.15);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+            border-radius: var(--radius);
+            padding: 14px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text);
+            max-height: 340px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.7;
+            position: relative;
+            animation: respGlow 0.8s ease-out;
+        }
+        @keyframes respGlow {
+            0% { box-shadow: inset 0 0 0 rgba(77, 166, 255, 0), 0 0 0 rgba(77, 166, 255, 0); }
+            50% { box-shadow: inset 0 0 20px rgba(77, 166, 255, 0.2), 0 0 15px rgba(77, 166, 255, 0.2); }
+            100% { box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3), 0 0 0 rgba(77, 166, 255, 0); }
+        }
+
+        .resp-placeholder {
+            color: var(--hint);
+            font-family: var(--font);
+            font-size: 13px;
+            text-align: center;
+            padding: 24px
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--hint);
+            border-radius: 5px;
+            padding: 3px 9px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: .15s
+        }
+
+        .copy-btn:hover {
+            color: var(--text);
+            border-color: var(--border3)
+        }
+
+        .resp-chart-wrap {
+            margin-top: 14px;
+            background: rgba(6, 13, 26, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(77, 166, 255, 0.15);
+            border-radius: var(--radius);
+            padding: 14px;
+            animation: respGlow 0.8s ease-out 0.2s both;
+        }
+
+        .resp-chart-wrap h4 {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--hint);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 10px
+        }
+
+        .insight-box {
+            margin-top: 12px;
+            background: rgba(77, 166, 255, .07);
+            border: 1px solid rgba(77, 166, 255, .2);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.6
+        }
+
+        .insight-box strong {
+            color: var(--blue)
+        }
+
+        .jk {
+            color: #79b8ff
+        }
+
+        .js {
+            color: #9ecbff
+        }
+
+        .jn {
+            color: #ffb347
+        }
+
+        .jb {
+            color: #c084fc
+        }
+
+        .jnull {
+            color: #4a6f99
+        }
+
+        .spin {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border: 2px solid rgba(255, 255, 255, .25);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spinR .65s linear infinite
+        }
+
+        @keyframes spinR {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        /* SCHEMA */
+        .stbl {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px
+        }
+
+        .stbl th {
+            text-align: left;
+            padding: 9px 12px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+            color: var(--hint);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .stbl td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top
+        }
+
+        .stbl tr:last-child td {
+            border-bottom: none
+        }
+
+        .stbl tr:hover td {
+            background: var(--surface2)
+        }
+
+        .fname {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--blue)
+        }
+
+        .ftype {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--purple);
+            white-space: nowrap
+        }
+
+        .fdesc {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .ablock {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 11px 14px;
+            margin-bottom: 8px
+        }
+
+        .ablock:last-child {
+            margin-bottom: 0
+        }
+
+        .aname {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--green);
+            font-weight: 700;
+            margin-bottom: 3px
+        }
+
+        .aparams {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        /* FEATURES */
+        .feat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all .2s
+        }
+
+        .feat:hover {
+            border-color: var(--border3);
+            transform: translateY(-2px);
+            box-shadow: 0 0 24px rgba(77, 166, 255, .1)
+        }
+
+        .feat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 2px
+        }
+
+        .feat h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text)
+        }
+
+        .feat p {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.65
+        }
+
+        .ws-log {
+            background: rgba(6, 13, 26, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(77, 166, 255, 0.15);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+            border-radius: var(--radius);
+            padding: 12px;
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text);
+            max-height: 180px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            animation: respGlow 0.8s ease-out;
+        }
+
+        footer {
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+            padding: 28px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--hint)
+        }
+
+        footer a {
+            color: var(--blue);
+            text-decoration: none
+        }
+
+        footer a:hover {
+            text-decoration: underline
+        }
+
+        .cyber-btn-nav {
+            background: rgba(139, 92, 246, 0.15);
+            color: #d8b4fe !important;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2);
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+        }
+        .cyber-btn-nav:hover {
+            background: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+            color: #fff !important;
+            transform: translateY(-2px);
+        }
+        @keyframes pulse-nav {
+            0% { box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2); }
+            50% { box-shadow: 0 4px 25px rgba(139, 92, 246, 0.6); }
+            100% { box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2); }
+        }
+
+        .cyber-btn-health {
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7 !important;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+        }
+        .cyber-btn-health:hover {
+            background: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            color: #fff !important;
+            transform: translateY(-2px);
+        }
+        @keyframes pulse-health {
+            0% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); }
+            50% { box-shadow: 0 4px 25px rgba(16, 185, 129, 0.6); }
+            100% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); }
+        }
+
+        .cyber-btn-auto {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d !important;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-family: var(--mono);
+            font-size: 12px;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+        }
+        .cyber-btn-auto:hover {
+            background: rgba(245, 158, 11, 0.3);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+            color: #fff !important;
+            transform: translateY(-2px);
+        }
+        @keyframes pulse-auto {
+            0% { box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2); }
+            50% { box-shadow: 0 4px 25px rgba(245, 158, 11, 0.6); }
+            100% { box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2); }
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="bg-canvas"></canvas>
+    <div class="bg-grid"></div>
+
+    <nav>
+        <a class="nav-brand" href="#top">
+            <div class="brand-icon">🚑</div>
+            <div>
+                <span class="brand-name">EMERGI-ENV</span>
+                <span class="brand-sub">v2.0.0 · OpenEnv Phase 1</span>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="#overview" class="active">Overview</a>
+            <a href="/openapi-viewer" target="_blank" class="cyber-btn-nav" style="animation: pulse-nav 2s infinite">🚀 Open API Test</a>
+            <a href="/health-dashboard" target="_blank" class="cyber-btn-health" style="animation: pulse-health 2s infinite 1s">❤️ Health Status</a>
+            <a href="/automation" target="_blank" class="cyber-btn-auto" style="animation: pulse-auto 2s infinite 0.5s">⚙️ Emergi Env Automatic</a>
+            <a href="#tasks">Tasks</a>
+            <a href="#endpoints">API Endpoints</a>
+            <a href="#features">Features</a>
+        </div>
+        <div id="srv-pill">
+            <div class="pring"></div><span id="srv-txt">Connecting…</span>
+        </div>
+    </nav>
+
+    <div class="page" id="top">
+
+        <!-- HERO -->
+        <div class="hero" id="overview">
+            <div class="eyebrow">
+                <div class="dot"></div>National AI Hackathon · HuggingFace Spaces · India 108/112 EMS
+            </div>
+            <h1>Emergency Medical Intelligence &amp;<br /><span class="accent">Resource Governance Environment</span>
+            </h1>
+            <p>A reinforcement learning environment where an AI agent learns to triage, dispatch, route, and reallocate
+                ambulances under scarcity across a Pune-inspired 12-zone city grid — maximising patient survival through
+                sequential decisions.</p>
+            <div class="hero-kpis">
+                <div class="kpi">
+                    <div class="num" data-target="50000">0</div>
+                    <div class="lbl">Calls / Day Simulated</div>
+                </div>
+                <div class="kpi">
+                    <div class="num" data-target="9">0</div>
+                    <div class="lbl">Graded Tasks</div>
+                </div>
+                <div class="kpi">
+                    <div class="num" data-target="12">0</div>
+                    <div class="lbl">City Zones</div>
+                </div>
+                <div class="kpi">
+                    <div class="num" data-target="8">0</div>
+                    <div class="lbl">Hospitals</div>
+                </div>
+                <div class="kpi">
+                    <div class="num" data-target="200">0</div>
+                    <div class="lbl">Incident Templates</div>
+                </div>
+                <div class="kpi">
+                    <div class="num" data-target="10">0</div>
+                    <div class="lbl">Sim Features</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIVE STATUS -->
+        <div class="sec">
+            <div class="sec-title">
+                <h2>Live System Status</h2>
+                <span>Auto-refreshes every 8s · <a href="/health" target="_blank" style="color:var(--blue)">GET
+                        /health</a></span>
+            </div>
+            <div class="g4">
+                <div class="mcard">
+                    <div class="val" id="m-sess">—</div>
+                    <div class="sub">Active Sessions</div>
+                    <div class="note" id="m-sess-n">—</div><canvas id="sp-sess"></canvas>
+                </div>
+                <div class="mcard">
+                    <div class="val" id="m-steps">—</div>
+                    <div class="sub">Total Steps</div>
+                    <div class="note" id="m-steps-n">—</div><canvas id="sp-steps"></canvas>
+                </div>
+                <div class="mcard">
+                    <div class="val" id="m-lat">—</div>
+                    <div class="sub">P95 Latency</div>
+                    <div class="note" id="m-lat-n">—</div><canvas id="sp-lat"></canvas>
+                </div>
+                <div class="mcard">
+                    <div class="val" id="m-up">—</div>
+                    <div class="sub">Uptime</div>
+                    <div class="note" id="m-up-n">—</div><canvas id="sp-up"></canvas>
+                </div>
+            </div>
+            <div class="sbar">
+                <div class="sbar-item">
+                    <div class="pring" style="width:6px;height:6px"></div><strong id="sb-env">Connecting…</strong>
+                </div>
+                <div class="sbar-sep"></div>
+                <div class="sbar-item">Version <strong id="sb-ver">—</strong></div>
+                <div class="sbar-sep"></div>
+                <div class="sbar-item">Resets <strong id="sb-resets">—</strong></div>
+                <div class="sbar-sep"></div>
+                <div class="sbar-item">Graded <strong id="sb-graded">—</strong></div>
+                <div class="sbar-sep"></div>
+                <div class="sbar-item">Cascade Events <strong id="sb-cascade">—</strong></div>
+                <div class="sbar-sep"></div>
+                <div class="sbar-item">Action Types <strong id="sb-actions">—</strong></div>
+            </div>
+        </div>
+
+
+        <!-- TASKS -->
+        <div class="sec" id="tasks">
+            <div class="sec-title">
+                <h2>9 Graded Tasks</h2><span>3 difficulty tiers · Dense reward every step · Scores clamped [0.0,
+                    1.0]</span>
+            </div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px">
+                <span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><span
+                        style="width:10px;height:10px;background:var(--green);border-radius:2px;display:inline-block"></span>Easy
+                    T1–T3 · Baseline 0.61–0.72</span>
+                <span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><span
+                        style="width:10px;height:10px;background:var(--amber);border-radius:2px;display:inline-block"></span>Medium
+                    T4–T6 · Baseline 0.38–0.44</span>
+                <span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><span
+                        style="width:10px;height:10px;background:var(--red);border-radius:2px;display:inline-block"></span>Hard
+                    T7–T9 · Baseline 0.17–0.29</span>
+            </div>
+            <div class="g3" id="task-grid"></div>
+        </div>
+
+        <!-- ENDPOINTS -->
+        <div class="sec" id="endpoints">
+            <div class="sec-title">
+                <h2>Interactive API Endpoints</h2>
+                <span>Click any endpoint to expand · Fill inputs · Hit Send · See live JSON response + visual</span>
+            </div>
+            <div class="ep-list" id="ep-list"></div>
+        </div>
+
+
+
+        <!-- FEATURES -->
+        <div class="sec" id="features">
+            <div class="sec-title">
+                <h2>10 Simulation Features</h2><span>Enabled per task · Complexity scales with difficulty tier</span>
+            </div>
+            <div class="g4" id="feat-grid"></div>
+        </div>
+
+    </div>
+
+    <script>
+        /* ════ PARTICLES ════ */
+        (() => {
+            const c = document.getElementById('bg-canvas'), ctx = c.getContext('2d');
+            let W, H;
+            const resize = () => { W = c.width = innerWidth; H = c.height = innerHeight };
+            resize(); addEventListener('resize', resize);
+            const pts = [...Array(55)].map(() => ({ x: Math.random() * 1920, y: Math.random() * 1080, vx: (Math.random() - .5) * .28, vy: (Math.random() - .5) * .28, r: Math.random() * 1.4 + .5, a: Math.random() }));
+            const draw = () => {
+                ctx.clearRect(0, 0, W, H);
+                pts.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; if (p.x < 0) p.x = W; if (p.x > W) p.x = 0; if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = `rgba(77,166,255,${p.a * .35})`; ctx.fill();
+                });
+                pts.forEach((p, i) => {
+                    for (let j = i + 1; j < pts.length; j++) {
+                        const q = pts[j], d = Math.hypot(p.x - q.x, p.y - q.y);
+                        if (d < 110) { ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.strokeStyle = `rgba(77,166,255,${.055 * (1 - d / 110)})`; ctx.lineWidth = .5; ctx.stroke(); }
+                    }
+                });
+                requestAnimationFrame(draw);
+            }; draw();
+        })();
+
+        /* ════ DATA ════ */
+        const TASKS = [
+            { id: "task1_single_triage", num: "T1", title: "Single Call Triage & Dispatch", desc: "Agent reads one symptom description, classifies severity (P1/P2/P3), selects correct ambulance type, routes to appropriate hospital.", tier: "easy", baseline: .61, chips: [["golden_hour", "cb"], ["protocol", "cp"]], grader: "Triage class 40% · Unit type 30% · Hospital match 30%" },
+            { id: "task2_hospital_route", num: "T2", title: "Hospital Route Selection", desc: "Agent picks best hospital given patient symptoms, location, and hospital network state including live diversion flags.", tier: "easy", baseline: .72, chips: [["golden_hour", "cb"], ["diversion", "ca"], ["protocol", "cp"]], grader: "Specialty 50% · Capacity 30% · Travel time 20%" },
+            { id: "task3_unit_type", num: "T3", title: "Unit Type Matching", desc: "Pure medical knowledge — agent selects BLS, ALS, or MICU for a given clinical scenario. Binary exact match grader.", tier: "easy", baseline: .68, chips: [["protocol", "cp"]], grader: "Binary exact match → 0.0 or 1.0" },
+            { id: "task4_multi_incident", num: "T4", title: "Multi-Incident Queue", desc: "5–8 simultaneous calls, only 3 ambulances available. Agent prioritises dispatch to maximise weighted survival score across all patients.", tier: "medium", baseline: .44, chips: [["golden_hour", "cb"], ["crew_fatigue", "cgr"], ["protocol", "cp"]], grader: "Weighted survival score + delay penalties" },
+            { id: "task5_dynamic_rerouting", num: "T5", title: "Dynamic Rerouting", desc: "Mid-episode traffic updates and hospital diversion flags force agent to reroute active units in real time.", tier: "medium", baseline: .38, chips: [["traffic", "ca"], ["diversion", "ca"], ["crew_fatigue", "cgr"]], grader: "Reroute correctness 50% · Net time saved 50%" },
+            { id: "task6_prepositioning", num: "T6", title: "Fleet Pre-Positioning", desc: "No active incidents — agent repositions fleet using demand forecast heatmap to minimise future response times. Delayed reward only.", tier: "medium", baseline: .42, chips: [["demand_forecast", "cc"], ["traffic", "ca"]], grader: "Avg response time vs random baseline" },
+            { id: "task7_mci_start", num: "T7", title: "Mass Casualty Incident (MCI)", desc: "20–40 simultaneous victims. Agent applies START triage (RPM scoring → Immediate/Delayed/Minimal/Expectant), dispatches correctly, spreads across hospitals. Wrong Immediate→Expectant tag: −0.5 penalty.", tier: "hard", baseline: .29, chips: [["START", "cr"], ["golden_hour", "cb"], ["comms", "cr"], ["multi_agency", "cb"], ["mutual_aid", "cb"]], grader: "START accuracy × Response × Hospital spread" },
+            { id: "task8_transfer_cascade", num: "T8", title: "Inter-Hospital Transfer Cascade", desc: "ICU patients need specialist care. Agent manages transfer chains under bed utilisation constraints and communication failures.", tier: "hard", baseline: .24, chips: [["golden_hour", "cb"], ["comms", "cr"], ["crew_fatigue", "cgr"], ["diversion", "ca"]], grader: "Appropriateness 40% · Timing 30% · Utilisation 30%" },
+            { id: "task9_surge", num: "T9", title: "City-Wide Surge", desc: "3 simultaneous MCIs, hospital saturation, comms failures. Agent must request mutual aid and declare surge to avoid cascade collapse. Designed to score <0.3 even for GPT-4.", tier: "hard", baseline: .17, chips: [["START", "cr"], ["mutual_aid", "cb"], ["diversion", "ca"], ["cascade", "cr"], ["demand", "cc"]], grader: "System survival 40% · Cascade avoidance 30% · Mutual aid 30%" },
+        ];
+
+        const FEATS = [
+            { icon: "🫀", bg: "var(--red-bg)", title: "Golden Hour Survival Curves", desc: "Per-condition survival probability decay. STEMI drops steeply at 90 min, polytrauma is linear. Reward integrates over the curve, not binary dispatched/not." },
+            { icon: "🚦", bg: "var(--amber-bg)", title: "START Triage Protocol", desc: "Full RPM scoring: Respirations, Pulse, Mental status → Immediate/Delayed/Minimal/Expectant. Deterministic ground truth per victim for exact grading." },
+            { icon: "🚗", bg: "var(--blue-bg)", title: "Time-Varying Traffic", desc: "OD matrix updates every 3 steps. Peak hours (8–10am, 5–7pm) add 30–60% penalty. Active incidents spawn secondary slowdowns." },
+            { icon: "🏥", bg: "var(--purple-bg)", title: "Hospital Diversion", desc: "Hospitals declare diversion when ER load exceeds 90%. Routing to diverted hospital triggers −0.3 penalty and forced redirect delay." },
+            { icon: "😴", bg: "var(--amber-bg)", title: "Crew Fatigue Modelling", desc: "Crews accumulate hours-on-duty. After 10h, response quality degrades. Crew swap available — spare crew takes 8 min to deploy." },
+            { icon: "🤝", bg: "var(--green-bg)", title: "Multi-Agency Coordination", desc: "Trapped victims require Police (scene safety) + Fire (extrication) + EMS (treatment). Single EMS dispatch on trapped victim is penalised." },
+            { icon: "📻", bg: "var(--red-bg)", title: "Communication Failures", desc: "Radio fails with p=0.12 per step per unit in Tasks 7–9. Observation shows last-known position + timestamp. noop on unknown unit: penalty." },
+            { icon: "📊", bg: "var(--blue-bg)", title: "Demand Forecast", desc: "Zone-level incident heatmap, 12-hour look-ahead with ±20% noise. Used by pre-positioning task for fleet optimisation." },
+            { icon: "📋", bg: "var(--purple-bg)", title: "Protocol Compliance", desc: "Grader checks EMS rules: MICU for STEMI? Nearest trauma centre within 30 min? Up to +0.15 bonus per episode for full compliance." },
+            { icon: "🚑", bg: "var(--cyan-bg)", title: "Mutual Aid System", desc: "Request ambulances from neighbouring zones with 12-min delay. Over-requesting: −0.1 penalty. Under-requesting in Task 9 causes cascade failure." },
+        ];
+
+        const ACTION_TEMPLATES = {
+            dispatch: { action_type: "dispatch", unit_id: "AMB-001", incident_id: "INC-001", hospital_id: "HOSP-001" },
+            reroute: { action_type: "reroute", unit_id: "AMB-002", new_hospital_id: "HOSP-003", reason: "diversion" },
+            tag: { action_type: "tag", victim_id: "VIC-001", triage_tag: "Immediate" },
+            transfer: { action_type: "transfer", patient_id: "PAT-001", from_hospital: "HOSP-001", to_hospital: "HOSP-004" },
+            request_mutual_aid: { action_type: "request_mutual_aid", from_zone: "Z-03", unit_count: 2, priority: "P1" },
+            reposition: { action_type: "reposition", unit_id: "AMB-003", target_zone: "Z-07" },
+            noop: { action_type: "noop" },
+        };
+
+        /* ════ RENDER TASKS ════ */
+        function renderTasks() {
+            document.getElementById('task-grid').innerHTML = TASKS.map((t, i) => `
+    <div class="tc ${t.tier}" style="animation-delay:${i * .065}s">
+      <div class="thead">
+        <div class="tnum">${t.num}</div>
+        <div>
+          <div class="ttitle">${t.title}</div>
+          <div style="margin-top:4px"><span class="chip ${t.tier === 'easy' ? 'cg' : t.tier === 'medium' ? 'ca' : 'cr'}">${t.tier.toUpperCase()}</span></div>
+        </div>
+      </div>
+      <div class="tdesc">${t.desc}</div>
+      <div class="tgrader"><strong style="color:var(--hint)">Grader:</strong> ${t.grader}</div>
+      <div class="chips">${t.chips.map(([l, c]) => `<span class="chip ${c}">${l.replace(/_/g, ' ')}</span>`).join('')}</div>
+      <div class="bar-row">
+        <span style="font-size:10px;color:var(--hint)">Baseline</span>
+        <div class="bar-track"><div class="bar-fill" style="width:0" data-w="${t.baseline * 100}%"></div></div>
+        <span class="bval">${t.baseline.toFixed(2)}</span>
+      </div>
+    </div>`).join('');
+            setTimeout(() => document.querySelectorAll('.bar-fill').forEach(b => b.style.width = b.dataset.w), 250);
+        }
+
+        /* ════ RENDER FEATURES ════ */
+        function renderFeatures() {
+            document.getElementById('feat-grid').innerHTML = FEATS.map(f => `
+    <div class="feat">
+      <div class="feat-icon" style="background:${f.bg}">${f.icon}</div>
+      <h4>${f.title}</h4><p>${f.desc}</p>
+    </div>`).join('');
+        }
+
+        /* ════ RENDER ACTIONS ════ */
+        function renderActions() {
+            const acts = [
+                { name: 'dispatch', p: 'unit_id: str, incident_id: str, hospital_id: str' },
+                { name: 'reroute', p: 'unit_id: str, new_hospital_id: str, reason: str' },
+                { name: 'tag', p: 'victim_id: str, triage_tag: "Immediate"|"Delayed"|"Minimal"|"Expectant"' },
+                { name: 'transfer', p: 'patient_id: str, from_hospital: str, to_hospital: str' },
+                { name: 'request_mutual_aid', p: 'from_zone: str, unit_count: int, priority: str' },
+                { name: 'reposition', p: 'unit_id: str, target_zone: str' },
+                { name: 'noop', p: '(no additional parameters)' },
+            ];
+            const dst = document.getElementById('action-blocks');
+            if (dst) dst.innerHTML = acts.map(a => `<div class="ablock"><div class="aname">${a.name}</div><div class="aparams">${a.p}</div></div>`).join('');
+        }
+
+        /* ════ JSON COLOR ════ */
+        function colorJSON(v) {
+            if (typeof v !== 'string') v = JSON.stringify(v, null, 2);
+            return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/("(\\u[\dA-Fa-f]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+\.?\d*([eE][+-]?\d+)?)/g, m => {
+                    if (/^"/.test(m)) { return /:$/.test(m) ? `<span class="jk">${m}</span>` : `<span class="js">${m}</span>`; }
+                    if (/true|false/.test(m)) return `<span class="jb">${m}</span>`;
+                    if (/null/.test(m)) return `<span class="jnull">${m}</span>`;
+                    return `<span class="jn">${m}</span>`;
+                });
+        }
+        function gv(id) { return (document.getElementById(id) || { value: '' }).value }
+
+        /* ════ ENDPOINT DEFINITIONS ════ */
+        const EPS = [
+            {
+                method: 'POST', path: '/reset', desc: 'Reinitialise episode state. Returns first observation. Required before any /step call.',
+                form: `<div class="two-col">
+      <div><div class="flbl">Task ID</div><select class="fsel" id="er-task">${TASKS.map(t => `<option value="${t.id}">${t.id}</option>`).join('')}</select></div>
+      <div><div class="flbl">Seed (optional)</div><input class="finput" id="er-seed" type="number" placeholder="42"/></div>
+    </div>
+    <div style="margin-top:12px"><div class="flbl">Session ID</div><input class="finput" id="er-sess" value="default" style="max-width:220px"/></div>`,
+                run() { const b = { task_id: gv('er-task'), session_id: gv('er-sess') || 'default' }; const s = gv('er-seed'); if (s) b.seed = parseInt(s); return { method: 'POST', url: '/reset', body: b }; },
+                insight: 'Returns first observation including incident_queue, fleet_status, hospital_network, and traffic_snapshot.',
+                chartFn: 'rcReset',
+            },
+            {
+                method: 'POST', path: '/step', desc: 'Send one action. Returns {observation, reward, done, info}. Dense reward is computed every 3 sim-minutes.',
+                form: `<div class="two-col">
+      <div><div class="flbl">Action Type</div><select class="fsel" id="es-atype" onchange="updateStepBody()">${Object.keys(ACTION_TEMPLATES).map(k => `<option>${k}</option>`).join('')}</select></div>
+      <div><div class="flbl">Session ID</div><input class="finput" id="es-sess" value="default"/></div>
+    </div>
+    <div style="margin-top:12px"><div class="flbl">Action JSON Body</div><textarea class="ftextarea" id="es-body"></textarea></div>`,
+                run() { let b; try { b = JSON.parse(gv('es-body')); } catch { alert('Invalid JSON in action body'); return null; } b.session_id = gv('es-sess') || 'default'; return { method: 'POST', url: '/step', body: b }; },
+                insight: 'Returns reward (float in [0,1]), done (bool), and updated observation. Reward is dense — partial progress signal every step.',
+                chartFn: 'rcStep',
+            },
+            {
+                method: 'GET', path: '/state', desc: 'Full internal state including hidden ground truth. For debugging — not available to agent during training.',
+                form: `<div><div class="flbl">Session ID</div><input class="finput" id="est-sess" value="default" style="max-width:220px"/></div>`,
+                run() { return { method: 'GET', url: `/state?session_id=${gv('est-sess') || 'default'}` }; },
+                insight: 'Includes ground-truth triage tags, hidden survival probabilities, crew fatigue levels, and all simulation internals.',
+                chartFn: null,
+            },
+            {
+                method: 'GET', path: '/tasks', desc: 'List all 9 task definitions with difficulty tags, baseline scores, and grader component weights.',
+                form: `<div style="color:var(--hint);font-size:13px">No parameters required — returns all 9 task definitions.</div>`,
+                run() { return { method: 'GET', url: '/tasks' }; },
+                insight: 'Returns task metadata: difficulty, baseline_score, grader_weights, and which simulation features are enabled per task.',
+                chartFn: 'rcTasks',
+            },
+            {
+                method: 'POST', path: '/grade', desc: 'Run the grader pipeline. Returns per-task episode scores in [0.0, 1.0] with component breakdowns.',
+                form: `<div class="two-col">
+      <div><div class="flbl">Session ID</div><input class="finput" id="eg-sess" value="default"/></div>
+      <div><div class="flbl">Force Complete</div><select class="fsel" id="eg-force"><option value="false">false</option><option value="true">true</option></select></div>
+    </div>`,
+                run() { return { method: 'POST', url: '/grade', body: { session_id: gv('eg-sess') || 'default', force_complete: gv('eg-force') === 'true' } }; },
+                insight: 'Each task returns component scores (triage_score, routing_score, etc.) that sum to episode_score.',
+                chartFn: 'rcGrade',
+            },
+            {
+                method: 'GET', path: '/health', desc: 'Server health, uptime, session count, latency percentiles, and request metrics.',
+                form: `<div style="color:var(--hint);font-size:13px">No parameters — returns full server health snapshot.</div>`,
+                run() { return { method: 'GET', url: '/health' }; },
+                insight: 'Polled every 8s by this dashboard. Returns uptime_seconds, total_steps, p95_request_latency_ms, total_cascade_events.',
+                chartFn: null,
+            },
+            {
+                method: 'GET', path: '/leaderboard', desc: 'Top-K episode scores by task, ranked by best score descending.',
+                form: `<div><div class="flbl">Task ID (leave blank for all tasks)</div><select class="fsel" id="elb-task" style="max-width:300px"><option value="">All Tasks</option>${TASKS.map(t => `<option value="${t.id}">${t.id}</option>`).join('')}</select></div>`,
+                run() { const t = gv('elb-task'); return { method: 'GET', url: t ? `/leaderboard?task_id=${t}` : '/leaderboard' }; },
+                insight: 'Returns top-10 entries per task with rank, score, beats_baseline flag, and task_difficulty.',
+                chartFn: 'rcLeaderboard',
+            },
+            {
+                method: 'GET', path: '/sessions', desc: 'List all active sessions and their current task, step count, and last activity timestamp.',
+                form: `<div style="color:var(--hint);font-size:13px">No parameters — returns all active session records.</div>`,
+                run() { return { method: 'GET', url: '/sessions' }; },
+                insight: 'Sessions expire after 1 hour inactivity. Max 50 concurrent sessions per server instance.',
+                chartFn: null,
+            },
+            {
+                method: 'WS', path: '/ws/{session_id}', desc: 'WebSocket stream — real-time step events pushed to client as they happen.',
+                form: `<div><div class="flbl">Session ID</div><input class="finput" id="ews-sess" value="default" style="max-width:200px"/></div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="run-btn" onclick="wsConnect()">Connect WS</button>
+      <button class="ghost-btn" onclick="wsDisconnect()">Disconnect</button>
+      <button class="ghost-btn" onclick="document.getElementById('ws-log-el').textContent=''">Clear</button>
+    </div>
+    <div class="flbl" style="margin-top:14px">WebSocket Log</div>
+    <div class="ws-log" id="ws-log-el">Waiting for connection…</div>`,
+                run: null, noRunBtn: true,
+                insight: 'Each message contains {event, step, reward, done, observation_summary}. Connect after /reset to stream live step data.',
+                chartFn: null,
+            },
+            {
+                method: 'GET', path: '/docs', desc: 'Swagger UI — interactive OpenAPI 3.1 documentation for all endpoints.',
+                form: `<div style="color:var(--hint);font-size:13px">Opens Swagger UI in a new tab.</div>`,
+                run() { window.open('/docs', '_blank'); return null; }, runLabel: 'Open Swagger UI →',
+                insight: 'Auto-generated from FastAPI annotations. Every request model, response schema, and enum value is documented.',
+                chartFn: null,
+            },
+            {
+                method: 'GET', path: '/redoc', desc: 'ReDoc — alternative OpenAPI docs with collapsible schema explorer and search.',
+                form: `<div style="color:var(--hint);font-size:13px">Opens ReDoc in a new tab.</div>`,
+                run() { window.open('/redoc', '_blank'); return null; }, runLabel: 'Open ReDoc →',
+                insight: 'Three-panel layout: navigation, docs, and schema viewer — ideal for exploring nested Pydantic models.',
+                chartFn: null,
+            },
+        ];
+
+        /* ════ RENDER ENDPOINTS ════ */
+        function renderEndpoints() {
+            const list = document.getElementById('ep-list');
+            list.innerHTML = '';
+            EPS.forEach((ep, i) => {
+                const el = document.createElement('div');
+                el.className = 'epa'; el.id = `epa${i}`;
+                const mC = `m${ep.method}`;
+                const runBtn = ep.noRunBtn ? '' : `<button class="run-btn" id="erb${i}" onclick="runEp(${i})"><span id="esp${i}"></span>${ep.runLabel || '▶ Send Request'}</button>`;
+                const copyBtn = ep.noRunBtn ? '' : `<button class="ghost-btn" onclick="copyResp(${i})">Copy JSON</button>`;
+                el.innerHTML = `
+      <div class="ep-hdr" onclick="toggleEp(${i})">
+        <div style="display:flex; align-items:center; width:100%; gap:12px;">
+            <span class="mbadge ${mC}">${ep.method}</span>
+            <span class="ep-path" style="flex:1;">${ep.path}</span>
+            <span class="ep-chev">▼</span>
+        </div>
+        <span class="ep-desc-txt">${ep.desc}</span>
+      </div>
+      <div class="ep-body" id="epb${i}">
+        <div class="ep-inner">
+          ${ep.form}
+          <div style="display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap">
+            ${runBtn}${copyBtn}
+          </div>
+          <div class="insight-box"><strong>ℹ</strong> ${ep.insight}</div>
+          <div class="resp-panel" id="erp${i}" style="display:none">
+            <div class="resp-meta">
+              <div class="sdot" id="esd${i}"></div>
+              <span id="ess${i}"></span>
+              <span id="est${i}" style="margin-left:6px;color:var(--hint)"></span>
+            </div>
+            <div style="position:relative">
+              <div class="resp-box" id="eo${i}"></div>
+              <button class="copy-btn" onclick="copyRespBox(${i})">copy</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+                list.appendChild(el);
+            });
+            setTimeout(updateStepBody, 0);
+        }
+
+        function toggleEp(i) { document.getElementById(`epa${i}`).classList.toggle('open') }
+
+        function updateStepBody() {
+            const t = gv('es-atype');
+            const el = document.getElementById('es-body');
+            if (el) el.value = JSON.stringify(ACTION_TEMPLATES[t] || { action_type: t }, null, 2);
+        }
+
+        async function runEp(i) {
+            const ep = EPS[i];
+            if (!ep.run) return;
+            const spec = ep.run(); if (spec === null) return;
+            const btn = document.getElementById(`erb${i}`);
+            const sp = document.getElementById(`esp${i}`);
+            if (btn) { btn.disabled = true; sp.innerHTML = '<div class="spin"></div>'; }
+            const t0 = Date.now();
+            const opts = { method: spec.method, headers: { 'Content-Type': 'application/json' } };
+            if (spec.body) opts.body = JSON.stringify(spec.body);
+            try {
+                const r = await fetch(spec.url, opts);
+                const ms = Date.now() - t0;
+                let data; try { data = await r.json(); } catch { data = await r.text(); }
+                const rp = document.getElementById(`erp${i}`); rp.style.display = 'block';
+                document.getElementById(`esd${i}`).className = 'sdot ' + (r.ok ? 's200' : 's4xx');
+                document.getElementById(`ess${i}`).textContent = `HTTP ${r.status} ${r.statusText}`;
+                document.getElementById(`est${i}`).textContent = `${ms}ms`;
+                document.getElementById(`eo${i}`).innerHTML = colorJSON(data);
+            } catch (e) {
+                const rp = document.getElementById(`erp${i}`); rp.style.display = 'block';
+                document.getElementById(`esd${i}`).className = 'sdot s4xx';
+                document.getElementById(`ess${i}`).textContent = 'Network Error';
+                document.getElementById(`est${i}`).textContent = `${Date.now() - t0}ms`;
+                document.getElementById(`eo${i}`).innerHTML = `<span style="color:var(--red)">${e}</span>`;
+            } finally { if (btn) { btn.disabled = false; sp.innerHTML = ''; } }
+        }
+
+        function copyResp(i) {
+            const t = (document.getElementById(`eo${i}`) || {}).innerText || '';
+            navigator.clipboard.writeText(t).then(() => {
+                const b = document.querySelector(`#epa${i} .ghost-btn`);
+                if (b) { const old = b.textContent; b.textContent = 'Copied ✓'; setTimeout(() => b.textContent = old, 1800); }
+            });
+        }
+        function copyRespBox(i) {
+            const t = (document.getElementById(`eo${i}`) || {}).innerText || '';
+            navigator.clipboard.writeText(t);
+        }
+
+
+
+        /* ════ WEBSOCKET ════ */
+        let _ws = null;
+        function wsLog(msg) { const el = document.getElementById('ws-log-el'); if (!el) return; el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.textContent.slice(0, 3000); }
+        function wsConnect() {
+            if (_ws && _ws.readyState === WebSocket.OPEN) { wsLog('Already connected'); return; }
+            const sid = gv('ews-sess') || 'default';
+            const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+            _ws = new WebSocket(`${proto}://${location.host}/ws/${sid}`);
+            _ws.onopen = () => wsLog(`✓ Connected /ws/${sid}`);
+            _ws.onmessage = e => wsLog(`← ${e.data}`);
+            _ws.onerror = () => wsLog('✗ Error');
+            _ws.onclose = () => wsLog('✗ Disconnected');
+        }
+        function wsDisconnect() { if (_ws) _ws.close(); }
+
+        /* ════ SPARKLINES ════ */
+        const spData = { sess: [], steps: [], lat: [], up: [] };
+        function buildSpark(id, data, color) {
+            const ctx = document.getElementById(id); if (!ctx) return;
+            if (CI[id]) CI[id].destroy();
+            CI[id] = new Chart(ctx, { type: 'line', data: { labels: data.map((_, i) => i), datasets: [{ data, borderColor: color, backgroundColor: color.replace('rgb', 'rgba').replace(')', ',0.1)'), borderWidth: 1.5, pointRadius: 0, fill: true, tension: .4 }] }, options: { responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: { duration: 300 } } });
+        }
+
+        /* ════ HEALTH POLL ════ */
+        async function pollHealth() {
+            try {
+                const r = await fetch('/health'); const d = await r.json();
+                const pill = document.getElementById('srv-pill'); pill.classList.add('live');
+                document.getElementById('srv-txt').textContent = 'Online';
+                const snap = d.snapshot || d;
+                const sess = snap.total_resets ?? snap.active_sessions ?? 0;
+                const steps = snap.total_steps ?? 0;
+                const lat = snap.p95_request_latency_ms ?? snap.avg_request_latency_ms ?? 0;
+                const up = snap.uptime_seconds ?? 0;
+                document.getElementById('m-sess').textContent = sess;
+                document.getElementById('m-steps').textContent = steps;
+                document.getElementById('m-lat').textContent = lat ? lat + 'ms' : '<1ms';
+                const h = Math.floor(up / 3600), m = Math.floor((up % 3600) / 60), s = Math.floor(up % 60);
+                document.getElementById('m-up').textContent = h > 0 ? `${h}h${m}m` : m > 0 ? `${m}m${s}s` : `${s}s`;
+                document.getElementById('m-sess-n').textContent = 'episodes started';
+                document.getElementById('m-steps-n').textContent = 'actions processed';
+                document.getElementById('m-lat-n').textContent = 'p95 latency';
+                document.getElementById('m-up-n').textContent = 'server uptime';
+                document.getElementById('sb-env').textContent = '● EMERGI-ENV Running';
+                document.getElementById('sb-env').style.color = 'var(--green)';
+                document.getElementById('sb-ver').textContent = d.env_version ?? d.version ?? '2.0.0';
+                document.getElementById('sb-resets').textContent = snap.total_resets ?? '0';
+                document.getElementById('sb-graded').textContent = snap.total_graded_episodes ?? '0';
+                document.getElementById('sb-cascade').textContent = snap.total_cascade_events ?? '0';
+                document.getElementById('sb-actions').textContent = snap.action_type_counts ? Object.values(snap.action_type_counts).reduce((a, b) => a + b, 0) : '—';
+                spData.sess.push(sess); spData.steps.push(steps); spData.lat.push(lat); spData.up.push(up);
+                if (spData.sess.length > 20) Object.values(spData).forEach(a => a.shift());
+                buildSpark('sp-sess', spData.sess, 'rgb(77,166,255)');
+                buildSpark('sp-steps', spData.steps, 'rgb(0,212,255)');
+                buildSpark('sp-lat', spData.lat, 'rgb(255,179,71)');
+                buildSpark('sp-up', spData.up, 'rgb(77,255,145)');
+            } catch {
+                document.getElementById('srv-pill').classList.remove('live');
+                document.getElementById('srv-txt').textContent = 'Offline';
+                document.getElementById('sb-env').textContent = '✕ Server Unreachable';
+                document.getElementById('sb-env').style.color = 'var(--red)';
+            }
+        }
+
+        /* ════ COUNTER ANIMATION ════ */
+        function animateCounters() {
+            document.querySelectorAll('[data-target]').forEach(el => {
+                const target = parseInt(el.dataset.target);
+                const dur = 1800; const t0 = performance.now();
+                const tick = now => {
+                    const p = Math.min(1, (now - t0) / dur);
+                    const ease = 1 - Math.pow(1 - p, 3);
+                    const v = Math.round(ease * target);
+                    el.textContent = target >= 1000 ? v.toLocaleString() + '+' : `${v}`;
+                    if (p < 1) requestAnimationFrame(tick);
+                }; requestAnimationFrame(tick);
+            });
+        }
+
+        /* ════ NAV HIGHLIGHT ════ */
+        const NAV_IDS = ['overview', 'tasks', 'endpoints', 'features'];
+        window.addEventListener('scroll', () => {
+            let cur = 'overview';
+            NAV_IDS.forEach(id => { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top < 90) cur = id; });
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.toggle('active', a.getAttribute('href').slice(1) === cur));
+        }, { passive: true });
+
+        /* ════ INIT ════ */
+        renderTasks();
+        renderFeatures();
+        renderActions();
+        renderEndpoints();
+        animateCounters();
+        pollHealth();
+        setInterval(pollHealth, 8000);
+    </script>
+</body>
+
+</html>

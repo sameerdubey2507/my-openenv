@@ -1,0 +1,1970 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "coverage": "Maharashtra State, India — All 36 Districts, 6 Administrative Divisions",
+    "total_zones": 36,
+    "coordinate_system": "WGS84",
+    "grid_resolution_km": 15,
+    "population_total": 126200000,
+    "area_sq_km": 307713,
+    "ems_network": "Maharashtra 108/112 Emergency Services",
+    "active_ambulances_state": 3200,
+    "daily_call_volume_avg": 52000
+  },
+  "divisions": [
+    {
+      "id": "DIV_KONKAN",
+      "name": "Konkan Division",
+      "headquarters": "Mumbai",
+      "districts_count": 8
+    },
+    {
+      "id": "DIV_NASHIK",
+      "name": "Nashik Division",
+      "headquarters": "Nashik",
+      "districts_count": 5
+    },
+    {
+      "id": "DIV_PUNE",
+      "name": "Pune Division",
+      "headquarters": "Pune",
+      "districts_count": 5
+    },
+    {
+      "id": "DIV_AURANGABAD",
+      "name": "Aurangabad Division",
+      "headquarters": "Aurangabad",
+      "districts_count": 8
+    },
+    {
+      "id": "DIV_AMRAVATI",
+      "name": "Amravati Division",
+      "headquarters": "Amravati",
+      "districts_count": 5
+    },
+    {
+      "id": "DIV_NAGPUR",
+      "name": "Nagpur Division",
+      "headquarters": "Nagpur",
+      "districts_count": 6
+    }
+  ],
+  "zones": [
+    {
+      "zone_id": "Z01",
+      "name": "Mumbai City",
+      "district": "Mumbai City",
+      "division": "DIV_KONKAN",
+      "zone_type": "metro_core",
+      "sub_zone_type": "island_city",
+      "lat": 18.9388,
+      "lon": 72.8354,
+      "area_sq_km": 157,
+      "population": 3085411,
+      "population_density_per_sqkm": 19652,
+      "urbanisation_pct": 100,
+      "adjacent_zones": ["Z02", "Z03"],
+      "road_network": {
+        "major_highways": ["NH48", "NH66", "Western Express Highway", "Eastern Express Highway"],
+        "road_quality_score": 0.82,
+        "avg_speed_kmh": 18,
+        "peak_congestion_multiplier": 2.8,
+        "bottleneck_points": ["Sion-Panvel Highway", "JVLR Junction", "Bandra-Kurla Complex", "Andheri Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 180,
+        "bls_units": 90,
+        "als_units": 60,
+        "micu_units": 30,
+        "response_time_target_min": 8,
+        "avg_historical_response_min": 11.2
+      },
+      "risk_profile": {
+        "call_volume_per_day": 4200,
+        "cardiac_arrest_rate_per_100k": 18.4,
+        "trauma_rate_per_100k": 42.1,
+        "road_accident_rate_per_100k": 31.2,
+        "industrial_hazard_risk": "high",
+        "flood_risk": "very_high",
+        "mass_casualty_history": ["2006 train bombings", "2005 flood", "2021 building collapse"]
+      },
+      "geography": {
+        "coastal": true,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.3
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.12,
+        "06-12": 0.28,
+        "12-18": 0.32,
+        "18-24": 0.28
+      }
+    },
+    {
+      "zone_id": "Z02",
+      "name": "Mumbai Suburban",
+      "district": "Mumbai Suburban",
+      "division": "DIV_KONKAN",
+      "zone_type": "metro_suburban",
+      "sub_zone_type": "dense_urban",
+      "lat": 19.0760,
+      "lon": 72.8777,
+      "area_sq_km": 446,
+      "population": 9356962,
+      "population_density_per_sqkm": 20981,
+      "urbanisation_pct": 100,
+      "adjacent_zones": ["Z01", "Z03", "Z04"],
+      "road_network": {
+        "major_highways": ["NH48", "Western Express Highway", "JVLR", "SV Road"],
+        "road_quality_score": 0.75,
+        "avg_speed_kmh": 22,
+        "peak_congestion_multiplier": 2.5,
+        "bottleneck_points": ["Dahisar Naka", "Ghatkopar Junction", "Mulund Check Naka", "Vikhroli"]
+      },
+      "ems_resources": {
+        "base_ambulances": 220,
+        "bls_units": 110,
+        "als_units": 72,
+        "micu_units": 38,
+        "response_time_target_min": 10,
+        "avg_historical_response_min": 13.5
+      },
+      "risk_profile": {
+        "call_volume_per_day": 5800,
+        "cardiac_arrest_rate_per_100k": 16.2,
+        "trauma_rate_per_100k": 38.7,
+        "road_accident_rate_per_100k": 29.4,
+        "industrial_hazard_risk": "medium",
+        "flood_risk": "high",
+        "mass_casualty_history": ["2017 Elphinstone stampede", "2008 CST shooting"]
+      },
+      "geography": {
+        "coastal": true,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.25
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.10,
+        "06-12": 0.30,
+        "12-18": 0.33,
+        "18-24": 0.27
+      }
+    },
+    {
+      "zone_id": "Z03",
+      "name": "Thane",
+      "district": "Thane",
+      "division": "DIV_KONKAN",
+      "zone_type": "metro_satellite",
+      "sub_zone_type": "mixed_urban_industrial",
+      "lat": 19.2183,
+      "lon": 72.9781,
+      "area_sq_km": 4214,
+      "population": 11060148,
+      "population_density_per_sqkm": 2625,
+      "urbanisation_pct": 79,
+      "adjacent_zones": ["Z01", "Z02", "Z04", "Z05"],
+      "road_network": {
+        "major_highways": ["NH48", "NH160", "Agra Road", "Ghodbunder Road"],
+        "road_quality_score": 0.70,
+        "avg_speed_kmh": 28,
+        "peak_congestion_multiplier": 2.1,
+        "bottleneck_points": ["Thane Station", "Ghodbunder Road Junction", "Bhiwandi Bypass", "Kalyan Flyover"]
+      },
+      "ems_resources": {
+        "base_ambulances": 195,
+        "bls_units": 100,
+        "als_units": 63,
+        "micu_units": 32,
+        "response_time_target_min": 12,
+        "avg_historical_response_min": 15.8
+      },
+      "risk_profile": {
+        "call_volume_per_day": 4800,
+        "cardiac_arrest_rate_per_100k": 14.8,
+        "trauma_rate_per_100k": 35.2,
+        "road_accident_rate_per_100k": 33.6,
+        "industrial_hazard_risk": "very_high",
+        "flood_risk": "high",
+        "mass_casualty_history": ["2002 Kalyan chemical factory fire", "Bhiwandi building collapse 2020"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.3
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.11,
+        "06-12": 0.29,
+        "12-18": 0.32,
+        "18-24": 0.28
+      }
+    },
+    {
+      "zone_id": "Z04",
+      "name": "Raigad",
+      "district": "Raigad",
+      "division": "DIV_KONKAN",
+      "zone_type": "semi_urban_coastal",
+      "sub_zone_type": "industrial_port",
+      "lat": 18.5158,
+      "lon": 73.1298,
+      "area_sq_km": 7152,
+      "population": 2635394,
+      "population_density_per_sqkm": 368,
+      "urbanisation_pct": 41,
+      "adjacent_zones": ["Z01", "Z03", "Z08", "Z05"],
+      "road_network": {
+        "major_highways": ["NH66", "Mumbai-Pune Expressway"],
+        "road_quality_score": 0.65,
+        "avg_speed_kmh": 42,
+        "peak_congestion_multiplier": 1.5,
+        "bottleneck_points": ["Khopoli Ghat", "Pen Junction", "Alibag Ferry Point", "Rasayani MIDC"]
+      },
+      "ems_resources": {
+        "base_ambulances": 68,
+        "bls_units": 38,
+        "als_units": 20,
+        "micu_units": 10,
+        "response_time_target_min": 18,
+        "avg_historical_response_min": 22.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 680,
+        "cardiac_arrest_rate_per_100k": 12.1,
+        "trauma_rate_per_100k": 28.4,
+        "road_accident_rate_per_100k": 38.2,
+        "industrial_hazard_risk": "very_high",
+        "flood_risk": "medium",
+        "mass_casualty_history": ["2022 ONGC gas leak", "Rasayani chemical plant incident 2019"]
+      },
+      "geography": {
+        "coastal": true,
+        "hilly": true,
+        "flood_prone": false,
+        "terrain_difficulty": 0.55
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.15,
+        "06-12": 0.28,
+        "12-18": 0.30,
+        "18-24": 0.27
+      }
+    },
+    {
+      "zone_id": "Z05",
+      "name": "Pune City",
+      "district": "Pune",
+      "division": "DIV_PUNE",
+      "zone_type": "metro_core",
+      "sub_zone_type": "education_it_hub",
+      "lat": 18.5204,
+      "lon": 73.8567,
+      "area_sq_km": 4261,
+      "population": 9429408,
+      "population_density_per_sqkm": 2212,
+      "urbanisation_pct": 91,
+      "adjacent_zones": ["Z04", "Z06", "Z08", "Z03"],
+      "road_network": {
+        "major_highways": ["NH48", "NH65", "NH753F", "Pune-Nashik Highway", "Pune-Solapur Highway"],
+        "road_quality_score": 0.72,
+        "avg_speed_kmh": 26,
+        "peak_congestion_multiplier": 2.2,
+        "bottleneck_points": ["Katraj Ghats", "Shivajinagar Junction", "Hadapsar", "Wakad Bridge", "Kothrud Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 210,
+        "bls_units": 105,
+        "als_units": 68,
+        "micu_units": 37,
+        "response_time_target_min": 10,
+        "avg_historical_response_min": 13.1
+      },
+      "risk_profile": {
+        "call_volume_per_day": 5200,
+        "cardiac_arrest_rate_per_100k": 15.6,
+        "trauma_rate_per_100k": 36.8,
+        "road_accident_rate_per_100k": 28.9,
+        "industrial_hazard_risk": "medium",
+        "flood_risk": "medium",
+        "mass_casualty_history": ["2010 German Bakery blast", "2019 Pune floods", "2021 Loni bus accident"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": true,
+        "flood_prone": true,
+        "terrain_difficulty": 0.4
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.09,
+        "06-12": 0.28,
+        "12-18": 0.34,
+        "18-24": 0.29
+      }
+    },
+    {
+      "zone_id": "Z06",
+      "name": "Solapur",
+      "district": "Solapur",
+      "division": "DIV_PUNE",
+      "zone_type": "tier2_city",
+      "sub_zone_type": "textile_industrial",
+      "lat": 17.6599,
+      "lon": 75.9064,
+      "area_sq_km": 14895,
+      "population": 4317756,
+      "population_density_per_sqkm": 290,
+      "urbanisation_pct": 53,
+      "adjacent_zones": ["Z05", "Z07", "Z17"],
+      "road_network": {
+        "major_highways": ["NH65", "NH548", "Pune-Hyderabad Highway"],
+        "road_quality_score": 0.62,
+        "avg_speed_kmh": 48,
+        "peak_congestion_multiplier": 1.6,
+        "bottleneck_points": ["Solapur City Centre", "Hotgi Road Junction", "Bijapur Road Crossing"]
+      },
+      "ems_resources": {
+        "base_ambulances": 88,
+        "bls_units": 50,
+        "als_units": 28,
+        "micu_units": 10,
+        "response_time_target_min": 15,
+        "avg_historical_response_min": 18.7
+      },
+      "risk_profile": {
+        "call_volume_per_day": 1100,
+        "cardiac_arrest_rate_per_100k": 13.2,
+        "trauma_rate_per_100k": 27.8,
+        "road_accident_rate_per_100k": 35.4,
+        "industrial_hazard_risk": "medium",
+        "flood_risk": "low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.2
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.10,
+        "06-12": 0.28,
+        "12-18": 0.33,
+        "18-24": 0.29
+      }
+    },
+    {
+      "zone_id": "Z07",
+      "name": "Kolhapur",
+      "district": "Kolhapur",
+      "division": "DIV_PUNE",
+      "zone_type": "tier2_city",
+      "sub_zone_type": "agri_processing",
+      "lat": 16.7050,
+      "lon": 74.2433,
+      "area_sq_km": 7685,
+      "population": 3876001,
+      "population_density_per_sqkm": 504,
+      "urbanisation_pct": 45,
+      "adjacent_zones": ["Z06", "Z07a", "Z08"],
+      "road_network": {
+        "major_highways": ["NH48", "NH166"],
+        "road_quality_score": 0.60,
+        "avg_speed_kmh": 46,
+        "peak_congestion_multiplier": 1.4,
+        "bottleneck_points": ["Kolhapur City Junction", "Panhala Road", "Kagal MIDC"]
+      },
+      "ems_resources": {
+        "base_ambulances": 72,
+        "bls_units": 40,
+        "als_units": 24,
+        "micu_units": 8,
+        "response_time_target_min": 16,
+        "avg_historical_response_min": 20.3
+      },
+      "risk_profile": {
+        "call_volume_per_day": 920,
+        "cardiac_arrest_rate_per_100k": 11.8,
+        "trauma_rate_per_100k": 24.6,
+        "road_accident_rate_per_100k": 30.1,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "very_high",
+        "mass_casualty_history": ["2019 Kolhapur flood MCI"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": true,
+        "flood_prone": true,
+        "terrain_difficulty": 0.5
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.11,
+        "06-12": 0.27,
+        "12-18": 0.32,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z08",
+      "name": "Satara",
+      "district": "Satara",
+      "division": "DIV_PUNE",
+      "zone_type": "semi_rural",
+      "sub_zone_type": "agricultural",
+      "lat": 17.6805,
+      "lon": 74.0183,
+      "area_sq_km": 10480,
+      "population": 3003741,
+      "population_density_per_sqkm": 287,
+      "urbanisation_pct": 28,
+      "adjacent_zones": ["Z05", "Z07", "Z04", "Z06"],
+      "road_network": {
+        "major_highways": ["NH48", "NH166"],
+        "road_quality_score": 0.55,
+        "avg_speed_kmh": 52,
+        "peak_congestion_multiplier": 1.2,
+        "bottleneck_points": ["Satara City", "Karad Junction", "Panchgani Ghat"]
+      },
+      "ems_resources": {
+        "base_ambulances": 58,
+        "bls_units": 34,
+        "als_units": 18,
+        "micu_units": 6,
+        "response_time_target_min": 20,
+        "avg_historical_response_min": 24.8
+      },
+      "risk_profile": {
+        "call_volume_per_day": 740,
+        "cardiac_arrest_rate_per_100k": 11.2,
+        "trauma_rate_per_100k": 22.4,
+        "road_accident_rate_per_100k": 42.3,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "high",
+        "mass_casualty_history": ["2021 Mahabaleshwar bus accident"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": true,
+        "flood_prone": true,
+        "terrain_difficulty": 0.65
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.26,
+        "12-18": 0.30,
+        "18-24": 0.31
+      }
+    },
+    {
+      "zone_id": "Z09",
+      "name": "Nashik",
+      "district": "Nashik",
+      "division": "DIV_NASHIK",
+      "zone_type": "metro_tier2",
+      "sub_zone_type": "wine_industrial",
+      "lat": 19.9975,
+      "lon": 73.7898,
+      "area_sq_km": 15582,
+      "population": 6107187,
+      "population_density_per_sqkm": 392,
+      "urbanisation_pct": 62,
+      "adjacent_zones": ["Z02", "Z10", "Z11", "Z12"],
+      "road_network": {
+        "major_highways": ["NH160", "NH753G", "Pune-Nashik Highway", "Nashik-Aurangabad Highway"],
+        "road_quality_score": 0.68,
+        "avg_speed_kmh": 38,
+        "peak_congestion_multiplier": 1.8,
+        "bottleneck_points": ["Nashik Road Junction", "College Road", "Satpur MIDC", "Igatpuri Ghat"]
+      },
+      "ems_resources": {
+        "base_ambulances": 105,
+        "bls_units": 58,
+        "als_units": 34,
+        "micu_units": 13,
+        "response_time_target_min": 13,
+        "avg_historical_response_min": 16.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 1650,
+        "cardiac_arrest_rate_per_100k": 13.8,
+        "trauma_rate_per_100k": 30.2,
+        "road_accident_rate_per_100k": 36.7,
+        "industrial_hazard_risk": "high",
+        "flood_risk": "medium",
+        "mass_casualty_history": ["Kumbh Mela stampede risks", "2018 Nashik industrial fire"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": true,
+        "flood_prone": false,
+        "terrain_difficulty": 0.45
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.10,
+        "06-12": 0.28,
+        "12-18": 0.33,
+        "18-24": 0.29
+      }
+    },
+    {
+      "zone_id": "Z10",
+      "name": "Dhule",
+      "district": "Dhule",
+      "division": "DIV_NASHIK",
+      "zone_type": "tier3_city",
+      "sub_zone_type": "agricultural_border",
+      "lat": 20.9042,
+      "lon": 74.7749,
+      "area_sq_km": 7783,
+      "population": 2048781,
+      "population_density_per_sqkm": 263,
+      "urbanisation_pct": 37,
+      "adjacent_zones": ["Z09", "Z11", "Z22"],
+      "road_network": {
+        "major_highways": ["NH52", "NH753G"],
+        "road_quality_score": 0.52,
+        "avg_speed_kmh": 55,
+        "peak_congestion_multiplier": 1.3,
+        "bottleneck_points": ["Dhule City", "Shirpur Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 48,
+        "bls_units": 28,
+        "als_units": 15,
+        "micu_units": 5,
+        "response_time_target_min": 22,
+        "avg_historical_response_min": 28.1
+      },
+      "risk_profile": {
+        "call_volume_per_day": 520,
+        "cardiac_arrest_rate_per_100k": 10.4,
+        "trauma_rate_per_100k": 20.8,
+        "road_accident_rate_per_100k": 44.2,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "medium",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.2
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.12,
+        "06-12": 0.27,
+        "12-18": 0.31,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z11",
+      "name": "Jalgaon",
+      "district": "Jalgaon",
+      "division": "DIV_NASHIK",
+      "zone_type": "tier2_city",
+      "sub_zone_type": "banana_cotton_belt",
+      "lat": 21.0077,
+      "lon": 75.5626,
+      "area_sq_km": 11765,
+      "population": 4224442,
+      "population_density_per_sqkm": 359,
+      "urbanisation_pct": 42,
+      "adjacent_zones": ["Z10", "Z09", "Z12", "Z21", "Z22"],
+      "road_network": {
+        "major_highways": ["NH53", "NH752D", "Jalgaon-Pune Highway"],
+        "road_quality_score": 0.58,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.4,
+        "bottleneck_points": ["Jalgaon City Centre", "Bhusawal Junction", "Chalisgaon"]
+      },
+      "ems_resources": {
+        "base_ambulances": 82,
+        "bls_units": 46,
+        "als_units": 26,
+        "micu_units": 10,
+        "response_time_target_min": 18,
+        "avg_historical_response_min": 22.6
+      },
+      "risk_profile": {
+        "call_volume_per_day": 1050,
+        "cardiac_arrest_rate_per_100k": 11.6,
+        "trauma_rate_per_100k": 25.4,
+        "road_accident_rate_per_100k": 39.8,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "medium",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.25
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.11,
+        "06-12": 0.28,
+        "12-18": 0.32,
+        "18-24": 0.29
+      }
+    },
+    {
+      "zone_id": "Z12",
+      "name": "Nandurbar",
+      "district": "Nandurbar",
+      "division": "DIV_NASHIK",
+      "zone_type": "tribal_rural",
+      "sub_zone_type": "adivasi_forest",
+      "lat": 21.3660,
+      "lon": 74.2430,
+      "area_sq_km": 5955,
+      "population": 1648295,
+      "population_density_per_sqkm": 277,
+      "urbanisation_pct": 23,
+      "adjacent_zones": ["Z11", "Z10"],
+      "road_network": {
+        "major_highways": ["NH52"],
+        "road_quality_score": 0.38,
+        "avg_speed_kmh": 38,
+        "peak_congestion_multiplier": 1.1,
+        "bottleneck_points": ["Shahada Junction", "Taloda Ferry Cross"]
+      },
+      "ems_resources": {
+        "base_ambulances": 32,
+        "bls_units": 20,
+        "als_units": 9,
+        "micu_units": 3,
+        "response_time_target_min": 32,
+        "avg_historical_response_min": 41.2
+      },
+      "risk_profile": {
+        "call_volume_per_day": 320,
+        "cardiac_arrest_rate_per_100k": 9.8,
+        "trauma_rate_per_100k": 18.2,
+        "road_accident_rate_per_100k": 28.4,
+        "industrial_hazard_risk": "very_low",
+        "flood_risk": "high",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": true,
+        "flood_prone": true,
+        "terrain_difficulty": 0.75
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.26,
+        "12-18": 0.30,
+        "18-24": 0.31
+      }
+    },
+    {
+      "zone_id": "Z13",
+      "name": "Ahmednagar",
+      "district": "Ahmednagar",
+      "division": "DIV_NASHIK",
+      "zone_type": "tier2_city",
+      "sub_zone_type": "military_agri",
+      "lat": 19.0948,
+      "lon": 74.7480,
+      "area_sq_km": 17048,
+      "population": 4543159,
+      "population_density_per_sqkm": 266,
+      "urbanisation_pct": 39,
+      "adjacent_zones": ["Z09", "Z05", "Z14", "Z18"],
+      "road_network": {
+        "major_highways": ["NH60", "NH753C"],
+        "road_quality_score": 0.60,
+        "avg_speed_kmh": 48,
+        "peak_congestion_multiplier": 1.4,
+        "bottleneck_points": ["Ahmednagar City", "Shrirampur Junction", "Kopargaon"]
+      },
+      "ems_resources": {
+        "base_ambulances": 78,
+        "bls_units": 44,
+        "als_units": 25,
+        "micu_units": 9,
+        "response_time_target_min": 20,
+        "avg_historical_response_min": 25.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 1050,
+        "cardiac_arrest_rate_per_100k": 11.4,
+        "trauma_rate_per_100k": 23.8,
+        "road_accident_rate_per_100k": 41.2,
+        "industrial_hazard_risk": "medium",
+        "flood_risk": "low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.25
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.11,
+        "06-12": 0.28,
+        "12-18": 0.32,
+        "18-24": 0.29
+      }
+    },
+    {
+      "zone_id": "Z14",
+      "name": "Aurangabad (Chhatrapati Sambhajinagar)",
+      "district": "Aurangabad",
+      "division": "DIV_AURANGABAD",
+      "zone_type": "metro_tier2",
+      "sub_zone_type": "heritage_industrial",
+      "lat": 19.8762,
+      "lon": 75.3433,
+      "area_sq_km": 10107,
+      "population": 3695928,
+      "population_density_per_sqkm": 366,
+      "urbanisation_pct": 55,
+      "adjacent_zones": ["Z13", "Z15", "Z17", "Z18"],
+      "road_network": {
+        "major_highways": ["NH52", "NH65", "NH160", "Aurangabad-Pune Expressway"],
+        "road_quality_score": 0.65,
+        "avg_speed_kmh": 42,
+        "peak_congestion_multiplier": 1.7,
+        "bottleneck_points": ["Aurangabad City Centre", "MIDC Waluj", "Chikalthana Airport Road", "Jalna Road"]
+      },
+      "ems_resources": {
+        "base_ambulances": 88,
+        "bls_units": 50,
+        "als_units": 28,
+        "micu_units": 10,
+        "response_time_target_min": 14,
+        "avg_historical_response_min": 17.8
+      },
+      "risk_profile": {
+        "call_volume_per_day": 1250,
+        "cardiac_arrest_rate_per_100k": 13.2,
+        "trauma_rate_per_100k": 28.6,
+        "road_accident_rate_per_100k": 33.4,
+        "industrial_hazard_risk": "high",
+        "flood_risk": "low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.3
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.10,
+        "06-12": 0.28,
+        "12-18": 0.34,
+        "18-24": 0.28
+      }
+    },
+    {
+      "zone_id": "Z15",
+      "name": "Jalna",
+      "district": "Jalna",
+      "division": "DIV_AURANGABAD",
+      "zone_type": "tier3_city",
+      "sub_zone_type": "seed_capital",
+      "lat": 19.8347,
+      "lon": 75.8816,
+      "area_sq_km": 7718,
+      "population": 1959046,
+      "population_density_per_sqkm": 254,
+      "urbanisation_pct": 30,
+      "adjacent_zones": ["Z14", "Z16", "Z21"],
+      "road_network": {
+        "major_highways": ["NH52", "NH753H"],
+        "road_quality_score": 0.50,
+        "avg_speed_kmh": 52,
+        "peak_congestion_multiplier": 1.2,
+        "bottleneck_points": ["Jalna City", "Ambad Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 42,
+        "bls_units": 25,
+        "als_units": 13,
+        "micu_units": 4,
+        "response_time_target_min": 24,
+        "avg_historical_response_min": 30.1
+      },
+      "risk_profile": {
+        "call_volume_per_day": 470,
+        "cardiac_arrest_rate_per_100k": 10.8,
+        "trauma_rate_per_100k": 20.4,
+        "road_accident_rate_per_100k": 37.8,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.15
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.12,
+        "06-12": 0.27,
+        "12-18": 0.31,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z16",
+      "name": "Beed",
+      "district": "Beed",
+      "division": "DIV_AURANGABAD",
+      "zone_type": "rural",
+      "sub_zone_type": "sugarcane_drought_prone",
+      "lat": 18.9890,
+      "lon": 75.7601,
+      "area_sq_km": 10693,
+      "population": 2585962,
+      "population_density_per_sqkm": 242,
+      "urbanisation_pct": 25,
+      "adjacent_zones": ["Z15", "Z14", "Z17", "Z06"],
+      "road_network": {
+        "major_highways": ["NH548B"],
+        "road_quality_score": 0.45,
+        "avg_speed_kmh": 48,
+        "peak_congestion_multiplier": 1.1,
+        "bottleneck_points": ["Beed City", "Kaij Junction", "Georai"]
+      },
+      "ems_resources": {
+        "base_ambulances": 48,
+        "bls_units": 28,
+        "als_units": 15,
+        "micu_units": 5,
+        "response_time_target_min": 26,
+        "avg_historical_response_min": 33.8
+      },
+      "risk_profile": {
+        "call_volume_per_day": 580,
+        "cardiac_arrest_rate_per_100k": 10.2,
+        "trauma_rate_per_100k": 19.8,
+        "road_accident_rate_per_100k": 40.2,
+        "industrial_hazard_risk": "very_low",
+        "flood_risk": "very_low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.15
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.27,
+        "12-18": 0.30,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z17",
+      "name": "Latur",
+      "district": "Latur",
+      "division": "DIV_AURANGABAD",
+      "zone_type": "tier3_city",
+      "sub_zone_type": "seismic_zone_historical",
+      "lat": 18.4088,
+      "lon": 76.5604,
+      "area_sq_km": 7157,
+      "population": 2455543,
+      "population_density_per_sqkm": 343,
+      "urbanisation_pct": 38,
+      "adjacent_zones": ["Z16", "Z14", "Z06", "Z18"],
+      "road_network": {
+        "major_highways": ["NH361", "NH65"],
+        "road_quality_score": 0.55,
+        "avg_speed_kmh": 52,
+        "peak_congestion_multiplier": 1.3,
+        "bottleneck_points": ["Latur City", "Udgir Junction", "Nilanga"]
+      },
+      "ems_resources": {
+        "base_ambulances": 52,
+        "bls_units": 30,
+        "als_units": 16,
+        "micu_units": 6,
+        "response_time_target_min": 22,
+        "avg_historical_response_min": 27.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 620,
+        "cardiac_arrest_rate_per_100k": 11.0,
+        "trauma_rate_per_100k": 22.4,
+        "road_accident_rate_per_100k": 36.8,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "low",
+        "mass_casualty_history": ["1993 Killari earthquake MCI"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.2,
+        "seismic_zone": "III"
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.12,
+        "06-12": 0.27,
+        "12-18": 0.31,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z18",
+      "name": "Osmanabad (Dharashiv)",
+      "district": "Osmanabad",
+      "division": "DIV_AURANGABAD",
+      "zone_type": "rural",
+      "sub_zone_type": "border_agricultural",
+      "lat": 18.1765,
+      "lon": 76.0420,
+      "area_sq_km": 7569,
+      "population": 1657576,
+      "population_density_per_sqkm": 219,
+      "urbanisation_pct": 27,
+      "adjacent_zones": ["Z17", "Z16", "Z14", "Z13"],
+      "road_network": {
+        "major_highways": ["NH65", "NH361"],
+        "road_quality_score": 0.48,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.1,
+        "bottleneck_points": ["Osmanabad City", "Tuljapur Road"]
+      },
+      "ems_resources": {
+        "base_ambulances": 38,
+        "bls_units": 22,
+        "als_units": 12,
+        "micu_units": 4,
+        "response_time_target_min": 28,
+        "avg_historical_response_min": 35.6
+      },
+      "risk_profile": {
+        "call_volume_per_day": 420,
+        "cardiac_arrest_rate_per_100k": 10.6,
+        "trauma_rate_per_100k": 21.2,
+        "road_accident_rate_per_100k": 38.4,
+        "industrial_hazard_risk": "very_low",
+        "flood_risk": "low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.2
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.27,
+        "12-18": 0.30,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z19",
+      "name": "Nanded",
+      "district": "Nanded",
+      "division": "DIV_AURANGABAD",
+      "zone_type": "tier3_city",
+      "sub_zone_type": "religious_pilgrimage",
+      "lat": 19.1383,
+      "lon": 77.2210,
+      "area_sq_km": 10528,
+      "population": 3356566,
+      "population_density_per_sqkm": 319,
+      "urbanisation_pct": 36,
+      "adjacent_zones": ["Z17", "Z20"],
+      "road_network": {
+        "major_highways": ["NH361", "NH65"],
+        "road_quality_score": 0.52,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.4,
+        "bottleneck_points": ["Nanded City", "Gurudwara Road", "Hazur Sahib Approach"]
+      },
+      "ems_resources": {
+        "base_ambulances": 62,
+        "bls_units": 36,
+        "als_units": 19,
+        "micu_units": 7,
+        "response_time_target_min": 20,
+        "avg_historical_response_min": 26.2
+      },
+      "risk_profile": {
+        "call_volume_per_day": 820,
+        "cardiac_arrest_rate_per_100k": 11.4,
+        "trauma_rate_per_100k": 22.8,
+        "road_accident_rate_per_100k": 34.2,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "medium",
+        "mass_casualty_history": ["Pilgrim crowd surge events"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.2
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.11,
+        "06-12": 0.27,
+        "12-18": 0.32,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z20",
+      "name": "Hingoli",
+      "district": "Hingoli",
+      "division": "DIV_AURANGABAD",
+      "zone_type": "rural",
+      "sub_zone_type": "agricultural",
+      "lat": 19.7165,
+      "lon": 77.1496,
+      "area_sq_km": 4526,
+      "population": 1177345,
+      "population_density_per_sqkm": 260,
+      "urbanisation_pct": 22,
+      "adjacent_zones": ["Z19", "Z21", "Z15"],
+      "road_network": {
+        "major_highways": ["NH361"],
+        "road_quality_score": 0.42,
+        "avg_speed_kmh": 46,
+        "peak_congestion_multiplier": 1.1,
+        "bottleneck_points": ["Hingoli City", "Kalamnuri Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 28,
+        "bls_units": 17,
+        "als_units": 8,
+        "micu_units": 3,
+        "response_time_target_min": 30,
+        "avg_historical_response_min": 38.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 290,
+        "cardiac_arrest_rate_per_100k": 9.8,
+        "trauma_rate_per_100k": 18.4,
+        "road_accident_rate_per_100k": 35.2,
+        "industrial_hazard_risk": "very_low",
+        "flood_risk": "medium",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.15
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.14,
+        "06-12": 0.26,
+        "12-18": 0.30,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z21",
+      "name": "Parbhani",
+      "district": "Parbhani",
+      "division": "DIV_AURANGABAD",
+      "zone_type": "tier3_city",
+      "sub_zone_type": "cotton_belt",
+      "lat": 19.2704,
+      "lon": 76.7742,
+      "area_sq_km": 6511,
+      "population": 1835982,
+      "population_density_per_sqkm": 282,
+      "urbanisation_pct": 32,
+      "adjacent_zones": ["Z20", "Z15", "Z11", "Z22"],
+      "road_network": {
+        "major_highways": ["NH752D"],
+        "road_quality_score": 0.48,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.2,
+        "bottleneck_points": ["Parbhani City", "Jintur Road", "Manwath Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 38,
+        "bls_units": 22,
+        "als_units": 12,
+        "micu_units": 4,
+        "response_time_target_min": 26,
+        "avg_historical_response_min": 33.2
+      },
+      "risk_profile": {
+        "call_volume_per_day": 450,
+        "cardiac_arrest_rate_per_100k": 10.6,
+        "trauma_rate_per_100k": 21.8,
+        "road_accident_rate_per_100k": 36.4,
+        "industrial_hazard_risk": "very_low",
+        "flood_risk": "low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.15
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.27,
+        "12-18": 0.30,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z22",
+      "name": "Buldhana",
+      "district": "Buldhana",
+      "division": "DIV_AMRAVATI",
+      "zone_type": "rural",
+      "sub_zone_type": "lonar_agricultural",
+      "lat": 20.5292,
+      "lon": 76.1840,
+      "area_sq_km": 11508,
+      "population": 2586258,
+      "population_density_per_sqkm": 225,
+      "urbanisation_pct": 28,
+      "adjacent_zones": ["Z11", "Z21", "Z10", "Z23"],
+      "road_network": {
+        "major_highways": ["NH53", "NH752F"],
+        "road_quality_score": 0.50,
+        "avg_speed_kmh": 52,
+        "peak_congestion_multiplier": 1.2,
+        "bottleneck_points": ["Buldhana City", "Malkapur Junction", "Khamgaon"]
+      },
+      "ems_resources": {
+        "base_ambulances": 52,
+        "bls_units": 30,
+        "als_units": 16,
+        "micu_units": 6,
+        "response_time_target_min": 24,
+        "avg_historical_response_min": 30.8
+      },
+      "risk_profile": {
+        "call_volume_per_day": 610,
+        "cardiac_arrest_rate_per_100k": 10.4,
+        "trauma_rate_per_100k": 20.2,
+        "road_accident_rate_per_100k": 42.8,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.2
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.12,
+        "06-12": 0.27,
+        "12-18": 0.31,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z23",
+      "name": "Amravati",
+      "district": "Amravati",
+      "division": "DIV_AMRAVATI",
+      "zone_type": "tier2_city",
+      "sub_zone_type": "educational_commercial",
+      "lat": 20.9374,
+      "lon": 77.7796,
+      "area_sq_km": 12235,
+      "population": 2888445,
+      "population_density_per_sqkm": 236,
+      "urbanisation_pct": 46,
+      "adjacent_zones": ["Z22", "Z24", "Z25", "Z26"],
+      "road_network": {
+        "major_highways": ["NH53", "NH361"],
+        "road_quality_score": 0.60,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.5,
+        "bottleneck_points": ["Amravati City", "Badnera Junction", "Achalpur Road", "Chandurbazar"]
+      },
+      "ems_resources": {
+        "base_ambulances": 65,
+        "bls_units": 37,
+        "als_units": 20,
+        "micu_units": 8,
+        "response_time_target_min": 18,
+        "avg_historical_response_min": 22.8
+      },
+      "risk_profile": {
+        "call_volume_per_day": 780,
+        "cardiac_arrest_rate_per_100k": 12.2,
+        "trauma_rate_per_100k": 25.6,
+        "road_accident_rate_per_100k": 38.4,
+        "industrial_hazard_risk": "medium",
+        "flood_risk": "medium",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.2
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.11,
+        "06-12": 0.27,
+        "12-18": 0.32,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z24",
+      "name": "Akola",
+      "district": "Akola",
+      "division": "DIV_AMRAVATI",
+      "zone_type": "tier3_city",
+      "sub_zone_type": "cotton_soybean",
+      "lat": 20.7002,
+      "lon": 77.0082,
+      "area_sq_km": 5672,
+      "population": 1818617,
+      "population_density_per_sqkm": 320,
+      "urbanisation_pct": 44,
+      "adjacent_zones": ["Z23", "Z22", "Z25"],
+      "road_network": {
+        "major_highways": ["NH53", "NH752F"],
+        "road_quality_score": 0.58,
+        "avg_speed_kmh": 52,
+        "peak_congestion_multiplier": 1.4,
+        "bottleneck_points": ["Akola City Centre", "Akot Road", "Murtizapur Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 42,
+        "bls_units": 25,
+        "als_units": 13,
+        "micu_units": 4,
+        "response_time_target_min": 22,
+        "avg_historical_response_min": 27.6
+      },
+      "risk_profile": {
+        "call_volume_per_day": 490,
+        "cardiac_arrest_rate_per_100k": 11.0,
+        "trauma_rate_per_100k": 22.4,
+        "road_accident_rate_per_100k": 40.2,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.15
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.12,
+        "06-12": 0.27,
+        "12-18": 0.31,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z25",
+      "name": "Washim",
+      "district": "Washim",
+      "division": "DIV_AMRAVATI",
+      "zone_type": "rural",
+      "sub_zone_type": "agricultural",
+      "lat": 20.1120,
+      "lon": 77.1478,
+      "area_sq_km": 5153,
+      "population": 1197160,
+      "population_density_per_sqkm": 232,
+      "urbanisation_pct": 24,
+      "adjacent_zones": ["Z24", "Z23", "Z21", "Z26"],
+      "road_network": {
+        "major_highways": ["NH752F"],
+        "road_quality_score": 0.42,
+        "avg_speed_kmh": 48,
+        "peak_congestion_multiplier": 1.1,
+        "bottleneck_points": ["Washim City", "Malegaon Kd Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 26,
+        "bls_units": 16,
+        "als_units": 8,
+        "micu_units": 2,
+        "response_time_target_min": 32,
+        "avg_historical_response_min": 40.2
+      },
+      "risk_profile": {
+        "call_volume_per_day": 280,
+        "cardiac_arrest_rate_per_100k": 9.8,
+        "trauma_rate_per_100k": 18.2,
+        "road_accident_rate_per_100k": 36.4,
+        "industrial_hazard_risk": "very_low",
+        "flood_risk": "low",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.15
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.26,
+        "12-18": 0.30,
+        "18-24": 0.31
+      }
+    },
+    {
+      "zone_id": "Z26",
+      "name": "Yavatmal",
+      "district": "Yavatmal",
+      "division": "DIV_AMRAVATI",
+      "zone_type": "rural",
+      "sub_zone_type": "cotton_farmer_crisis",
+      "lat": 20.3888,
+      "lon": 78.1204,
+      "area_sq_km": 13582,
+      "population": 2772348,
+      "population_density_per_sqkm": 204,
+      "urbanisation_pct": 25,
+      "adjacent_zones": ["Z25", "Z23", "Z28", "Z27"],
+      "road_network": {
+        "major_highways": ["NH361"],
+        "road_quality_score": 0.45,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.2,
+        "bottleneck_points": ["Yavatmal City", "Wani Junction", "Pusad Road"]
+      },
+      "ems_resources": {
+        "base_ambulances": 52,
+        "bls_units": 30,
+        "als_units": 16,
+        "micu_units": 6,
+        "response_time_target_min": 26,
+        "avg_historical_response_min": 34.6
+      },
+      "risk_profile": {
+        "call_volume_per_day": 620,
+        "cardiac_arrest_rate_per_100k": 11.2,
+        "trauma_rate_per_100k": 21.4,
+        "road_accident_rate_per_100k": 38.6,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "low",
+        "mass_casualty_history": ["Pesticide poisoning mass incidents"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": false,
+        "terrain_difficulty": 0.2
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.26,
+        "12-18": 0.30,
+        "18-24": 0.31
+      }
+    },
+    {
+      "zone_id": "Z27",
+      "name": "Nagpur City",
+      "district": "Nagpur",
+      "division": "DIV_NAGPUR",
+      "zone_type": "metro_tier2",
+      "sub_zone_type": "zero_mile_capital",
+      "lat": 21.1458,
+      "lon": 79.0882,
+      "area_sq_km": 9892,
+      "population": 4653570,
+      "population_density_per_sqkm": 470,
+      "urbanisation_pct": 73,
+      "adjacent_zones": ["Z26", "Z28", "Z29", "Z30"],
+      "road_network": {
+        "major_highways": ["NH44", "NH53", "NH547B", "MIHAN SEZ Road"],
+        "road_quality_score": 0.72,
+        "avg_speed_kmh": 38,
+        "peak_congestion_multiplier": 1.9,
+        "bottleneck_points": ["Nagpur Zero Mile", "Wardha Road", "Amravati Road", "Kamptee Road", "MIHAN Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 125,
+        "bls_units": 65,
+        "als_units": 42,
+        "micu_units": 18,
+        "response_time_target_min": 12,
+        "avg_historical_response_min": 15.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 1850,
+        "cardiac_arrest_rate_per_100k": 14.8,
+        "trauma_rate_per_100k": 32.4,
+        "road_accident_rate_per_100k": 34.8,
+        "industrial_hazard_risk": "high",
+        "flood_risk": "medium",
+        "mass_casualty_history": ["2004 Nagpur textile mill fire"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.25
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.10,
+        "06-12": 0.28,
+        "12-18": 0.34,
+        "18-24": 0.28
+      }
+    },
+    {
+      "zone_id": "Z28",
+      "name": "Wardha",
+      "district": "Wardha",
+      "division": "DIV_NAGPUR",
+      "zone_type": "tier3_city",
+      "sub_zone_type": "gandhi_heritage_cotton",
+      "lat": 20.7453,
+      "lon": 78.6022,
+      "area_sq_km": 6309,
+      "population": 1299031,
+      "population_density_per_sqkm": 206,
+      "urbanisation_pct": 32,
+      "adjacent_zones": ["Z27", "Z23", "Z26", "Z29"],
+      "road_network": {
+        "major_highways": ["NH361", "NH53"],
+        "road_quality_score": 0.55,
+        "avg_speed_kmh": 52,
+        "peak_congestion_multiplier": 1.2,
+        "bottleneck_points": ["Wardha City", "Pulgaon Junction", "Hinganghat"]
+      },
+      "ems_resources": {
+        "base_ambulances": 32,
+        "bls_units": 19,
+        "als_units": 10,
+        "micu_units": 3,
+        "response_time_target_min": 26,
+        "avg_historical_response_min": 32.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 330,
+        "cardiac_arrest_rate_per_100k": 10.2,
+        "trauma_rate_per_100k": 20.6,
+        "road_accident_rate_per_100k": 40.8,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "medium",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.2
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.26,
+        "12-18": 0.31,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z29",
+      "name": "Chandrapur",
+      "district": "Chandrapur",
+      "division": "DIV_NAGPUR",
+      "zone_type": "industrial_town",
+      "sub_zone_type": "coal_power_tiger",
+      "lat": 19.9615,
+      "lon": 79.2961,
+      "area_sq_km": 11443,
+      "population": 2194262,
+      "population_density_per_sqkm": 192,
+      "urbanisation_pct": 38,
+      "adjacent_zones": ["Z27", "Z28", "Z30"],
+      "road_network": {
+        "major_highways": ["NH930", "NH361"],
+        "road_quality_score": 0.52,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.3,
+        "bottleneck_points": ["Chandrapur City", "MAHAGENCO Plant Road", "Ballarpur Industries"]
+      },
+      "ems_resources": {
+        "base_ambulances": 48,
+        "bls_units": 28,
+        "als_units": 15,
+        "micu_units": 5,
+        "response_time_target_min": 22,
+        "avg_historical_response_min": 28.6
+      },
+      "risk_profile": {
+        "call_volume_per_day": 560,
+        "cardiac_arrest_rate_per_100k": 12.4,
+        "trauma_rate_per_100k": 24.8,
+        "road_accident_rate_per_100k": 36.2,
+        "industrial_hazard_risk": "very_high",
+        "flood_risk": "medium",
+        "mass_casualty_history": ["MAHAGENCO plant incidents", "Coal mine accidents"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": true,
+        "flood_prone": true,
+        "terrain_difficulty": 0.35,
+        "forest_terrain": true
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.14,
+        "06-12": 0.27,
+        "12-18": 0.30,
+        "18-24": 0.29
+      }
+    },
+    {
+      "zone_id": "Z30",
+      "name": "Gadchiroli",
+      "district": "Gadchiroli",
+      "division": "DIV_NAGPUR",
+      "zone_type": "tribal_forest",
+      "sub_zone_type": "naxal_affected_forest",
+      "lat": 20.1809,
+      "lon": 80.0086,
+      "area_sq_km": 14412,
+      "population": 1072942,
+      "population_density_per_sqkm": 74,
+      "urbanisation_pct": 10,
+      "adjacent_zones": ["Z29", "Z27"],
+      "road_network": {
+        "major_highways": ["NH930"],
+        "road_quality_score": 0.28,
+        "avg_speed_kmh": 28,
+        "peak_congestion_multiplier": 1.0,
+        "bottleneck_points": ["Gadchiroli Town", "Chamorshi Junction", "Desaiganj"],
+        "seasonal_road_closures": true
+      },
+      "ems_resources": {
+        "base_ambulances": 22,
+        "bls_units": 14,
+        "als_units": 6,
+        "micu_units": 2,
+        "response_time_target_min": 45,
+        "avg_historical_response_min": 62.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 180,
+        "cardiac_arrest_rate_per_100k": 9.2,
+        "trauma_rate_per_100k": 28.4,
+        "road_accident_rate_per_100k": 22.4,
+        "industrial_hazard_risk": "very_low",
+        "flood_risk": "very_high",
+        "mass_casualty_history": ["Insurgency-related trauma events"],
+        "security_concerns": true
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": true,
+        "flood_prone": true,
+        "terrain_difficulty": 0.9,
+        "forest_terrain": true,
+        "remote_access": true
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.16,
+        "06-12": 0.25,
+        "12-18": 0.30,
+        "18-24": 0.29
+      }
+    },
+    {
+      "zone_id": "Z31",
+      "name": "Gondia",
+      "district": "Gondia",
+      "division": "DIV_NAGPUR",
+      "zone_type": "rural",
+      "sub_zone_type": "rice_bowl_forest",
+      "lat": 21.4624,
+      "lon": 80.1954,
+      "area_sq_km": 5431,
+      "population": 1322507,
+      "population_density_per_sqkm": 244,
+      "urbanisation_pct": 24,
+      "adjacent_zones": ["Z27", "Z32"],
+      "road_network": {
+        "major_highways": ["NH44E", "NH353F"],
+        "road_quality_score": 0.50,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.1,
+        "bottleneck_points": ["Gondia City", "Tirora Junction", "Deori"]
+      },
+      "ems_resources": {
+        "base_ambulances": 30,
+        "bls_units": 18,
+        "als_units": 9,
+        "micu_units": 3,
+        "response_time_target_min": 28,
+        "avg_historical_response_min": 36.2
+      },
+      "risk_profile": {
+        "call_volume_per_day": 320,
+        "cardiac_arrest_rate_per_100k": 10.0,
+        "trauma_rate_per_100k": 19.8,
+        "road_accident_rate_per_100k": 32.6,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "high",
+        "mass_casualty_history": []
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": true,
+        "flood_prone": true,
+        "terrain_difficulty": 0.4,
+        "forest_terrain": true
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.26,
+        "12-18": 0.30,
+        "18-24": 0.31
+      }
+    },
+    {
+      "zone_id": "Z32",
+      "name": "Bhandara",
+      "district": "Bhandara",
+      "division": "DIV_NAGPUR",
+      "zone_type": "rural",
+      "sub_zone_type": "rice_irrigation",
+      "lat": 21.1667,
+      "lon": 79.6500,
+      "area_sq_km": 3717,
+      "population": 1198810,
+      "population_density_per_sqkm": 322,
+      "urbanisation_pct": 22,
+      "adjacent_zones": ["Z27", "Z31", "Z29"],
+      "road_network": {
+        "major_highways": ["NH53"],
+        "road_quality_score": 0.52,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.1,
+        "bottleneck_points": ["Bhandara City", "Tumsar Junction"]
+      },
+      "ems_resources": {
+        "base_ambulances": 28,
+        "bls_units": 17,
+        "als_units": 8,
+        "micu_units": 3,
+        "response_time_target_min": 28,
+        "avg_historical_response_min": 35.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 300,
+        "cardiac_arrest_rate_per_100k": 9.8,
+        "trauma_rate_per_100k": 18.6,
+        "road_accident_rate_per_100k": 30.4,
+        "industrial_hazard_risk": "low",
+        "flood_risk": "high",
+        "mass_casualty_history": ["2021 Bhandara hospital fire"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.25
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.13,
+        "06-12": 0.26,
+        "12-18": 0.30,
+        "18-24": 0.31
+      }
+    },
+    {
+      "zone_id": "Z33",
+      "name": "Sindhudurg",
+      "district": "Sindhudurg",
+      "division": "DIV_KONKAN",
+      "zone_type": "coastal_rural",
+      "sub_zone_type": "konkan_coastal_tourism",
+      "lat": 16.3497,
+      "lon": 73.6631,
+      "area_sq_km": 5207,
+      "population": 848868,
+      "population_density_per_sqkm": 163,
+      "urbanisation_pct": 18,
+      "adjacent_zones": ["Z07", "Z34"],
+      "road_network": {
+        "major_highways": ["NH66"],
+        "road_quality_score": 0.55,
+        "avg_speed_kmh": 38,
+        "peak_congestion_multiplier": 1.3,
+        "bottleneck_points": ["Kankavli", "Sawantwadi", "Kudal Junction"],
+        "ghat_sections": true
+      },
+      "ems_resources": {
+        "base_ambulances": 22,
+        "bls_units": 14,
+        "als_units": 6,
+        "micu_units": 2,
+        "response_time_target_min": 30,
+        "avg_historical_response_min": 38.6
+      },
+      "risk_profile": {
+        "call_volume_per_day": 220,
+        "cardiac_arrest_rate_per_100k": 9.4,
+        "trauma_rate_per_100k": 16.8,
+        "road_accident_rate_per_100k": 26.4,
+        "industrial_hazard_risk": "very_low",
+        "flood_risk": "very_high",
+        "mass_casualty_history": ["Cyclone-related MCIs", "Tourist accident clusters"]
+      },
+      "geography": {
+        "coastal": true,
+        "hilly": true,
+        "flood_prone": true,
+        "terrain_difficulty": 0.6,
+        "ghat_roads": true
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.14,
+        "06-12": 0.25,
+        "12-18": 0.31,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z34",
+      "name": "Ratnagiri",
+      "district": "Ratnagiri",
+      "division": "DIV_KONKAN",
+      "zone_type": "coastal_semi_urban",
+      "sub_zone_type": "konkan_industrial_coastal",
+      "lat": 17.0021,
+      "lon": 73.3158,
+      "area_sq_km": 8208,
+      "population": 1696777,
+      "population_density_per_sqkm": 207,
+      "urbanisation_pct": 25,
+      "adjacent_zones": ["Z33", "Z07", "Z08", "Z04"],
+      "road_network": {
+        "major_highways": ["NH66", "NH166D"],
+        "road_quality_score": 0.52,
+        "avg_speed_kmh": 36,
+        "peak_congestion_multiplier": 1.3,
+        "bottleneck_points": ["Ratnagiri City", "Chiplun", "Khed Junction"],
+        "ghat_sections": true
+      },
+      "ems_resources": {
+        "base_ambulances": 38,
+        "bls_units": 22,
+        "als_units": 12,
+        "micu_units": 4,
+        "response_time_target_min": 28,
+        "avg_historical_response_min": 36.8
+      },
+      "risk_profile": {
+        "call_volume_per_day": 420,
+        "cardiac_arrest_rate_per_100k": 10.0,
+        "trauma_rate_per_100k": 18.6,
+        "road_accident_rate_per_100k": 32.8,
+        "industrial_hazard_risk": "high",
+        "flood_risk": "very_high",
+        "mass_casualty_history": ["JNPT related incidents", "2021 Ratnagiri floods"]
+      },
+      "geography": {
+        "coastal": true,
+        "hilly": true,
+        "flood_prone": true,
+        "terrain_difficulty": 0.6,
+        "ghat_roads": true
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.14,
+        "06-12": 0.25,
+        "12-18": 0.31,
+        "18-24": 0.30
+      }
+    },
+    {
+      "zone_id": "Z35",
+      "name": "Palghar",
+      "district": "Palghar",
+      "division": "DIV_KONKAN",
+      "zone_type": "metro_peri_urban",
+      "sub_zone_type": "tribal_coastal_industrial",
+      "lat": 19.6967,
+      "lon": 72.7697,
+      "area_sq_km": 5344,
+      "population": 2990116,
+      "population_density_per_sqkm": 560,
+      "urbanisation_pct": 52,
+      "adjacent_zones": ["Z02", "Z03", "Z34"],
+      "road_network": {
+        "major_highways": ["NH48", "NH66"],
+        "road_quality_score": 0.62,
+        "avg_speed_kmh": 44,
+        "peak_congestion_multiplier": 1.7,
+        "bottleneck_points": ["Virar Junction", "Vasai Bridge", "Manor Junction", "Tarapur MIDC"]
+      },
+      "ems_resources": {
+        "base_ambulances": 72,
+        "bls_units": 40,
+        "als_units": 24,
+        "micu_units": 8,
+        "response_time_target_min": 16,
+        "avg_historical_response_min": 20.4
+      },
+      "risk_profile": {
+        "call_volume_per_day": 850,
+        "cardiac_arrest_rate_per_100k": 12.8,
+        "trauma_rate_per_100k": 26.4,
+        "road_accident_rate_per_100k": 34.6,
+        "industrial_hazard_risk": "very_high",
+        "flood_risk": "high",
+        "mass_casualty_history": ["Tarapur nuclear plant proximity", "2020 Palghar mob violence"]
+      },
+      "geography": {
+        "coastal": true,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.3,
+        "nuclear_zone_proximity": true
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.11,
+        "06-12": 0.28,
+        "12-18": 0.32,
+        "18-24": 0.29
+      }
+    },
+    {
+      "zone_id": "Z36",
+      "name": "Sangli",
+      "district": "Sangli",
+      "division": "DIV_PUNE",
+      "zone_type": "tier2_city",
+      "sub_zone_type": "grape_sugar_belt",
+      "lat": 16.8524,
+      "lon": 74.5815,
+      "area_sq_km": 8572,
+      "population": 2822143,
+      "population_density_per_sqkm": 329,
+      "urbanisation_pct": 43,
+      "adjacent_zones": ["Z07", "Z06", "Z08"],
+      "road_network": {
+        "major_highways": ["NH48", "NH166E"],
+        "road_quality_score": 0.60,
+        "avg_speed_kmh": 50,
+        "peak_congestion_multiplier": 1.4,
+        "bottleneck_points": ["Sangli City", "Miraj Junction", "Islampur Road", "Kupwad MIDC"]
+      },
+      "ems_resources": {
+        "base_ambulances": 62,
+        "bls_units": 35,
+        "als_units": 20,
+        "micu_units": 7,
+        "response_time_target_min": 18,
+        "avg_historical_response_min": 22.8
+      },
+      "risk_profile": {
+        "call_volume_per_day": 720,
+        "cardiac_arrest_rate_per_100k": 11.6,
+        "trauma_rate_per_100k": 24.2,
+        "road_accident_rate_per_100k": 32.8,
+        "industrial_hazard_risk": "medium",
+        "flood_risk": "very_high",
+        "mass_casualty_history": ["2019 Sangli Floods MCI — 100k displaced", "2021 Kolhapur-Sangli dual flood"]
+      },
+      "geography": {
+        "coastal": false,
+        "hilly": false,
+        "flood_prone": true,
+        "terrain_difficulty": 0.25
+      },
+      "demand_heatmap_weights": {
+        "00-06": 0.11,
+        "06-12": 0.27,
+        "12-18": 0.33,
+        "18-24": 0.29
+      }
+    }
+  ],
+  "zone_adjacency_matrix": {
+    "Z01": ["Z02", "Z03"],
+    "Z02": ["Z01", "Z03", "Z04"],
+    "Z03": ["Z01", "Z02", "Z04", "Z05", "Z35"],
+    "Z04": ["Z02", "Z03", "Z05", "Z08"],
+    "Z05": ["Z04", "Z06", "Z08", "Z09", "Z13"],
+    "Z06": ["Z05", "Z07", "Z16", "Z17"],
+    "Z07": ["Z06", "Z08", "Z33", "Z34", "Z36"],
+    "Z08": ["Z04", "Z05", "Z07", "Z34"],
+    "Z09": ["Z02", "Z05", "Z10", "Z11", "Z13"],
+    "Z10": ["Z09", "Z11", "Z12", "Z22"],
+    "Z11": ["Z09", "Z10", "Z12", "Z15", "Z21", "Z22"],
+    "Z12": ["Z10", "Z11"],
+    "Z13": ["Z05", "Z09", "Z14", "Z18"],
+    "Z14": ["Z13", "Z15", "Z17", "Z18"],
+    "Z15": ["Z11", "Z14", "Z16", "Z20", "Z21"],
+    "Z16": ["Z06", "Z14", "Z15", "Z17"],
+    "Z17": ["Z06", "Z14", "Z16", "Z18", "Z19"],
+    "Z18": ["Z13", "Z14", "Z17"],
+    "Z19": ["Z17", "Z20"],
+    "Z20": ["Z15", "Z19", "Z21", "Z26"],
+    "Z21": ["Z11", "Z15", "Z20", "Z22", "Z25"],
+    "Z22": ["Z10", "Z11", "Z21", "Z23", "Z24"],
+    "Z23": ["Z22", "Z24", "Z25", "Z26", "Z27", "Z28"],
+    "Z24": ["Z22", "Z23", "Z25"],
+    "Z25": ["Z21", "Z23", "Z24", "Z26"],
+    "Z26": ["Z20", "Z23", "Z25", "Z28"],
+    "Z27": ["Z26", "Z28", "Z29", "Z30", "Z31", "Z32"],
+    "Z28": ["Z23", "Z26", "Z27", "Z29"],
+    "Z29": ["Z27", "Z28", "Z30", "Z32"],
+    "Z30": ["Z27", "Z29"],
+    "Z31": ["Z27", "Z32"],
+    "Z32": ["Z27", "Z29", "Z31"],
+    "Z33": ["Z07", "Z34"],
+    "Z34": ["Z04", "Z07", "Z08", "Z33"],
+    "Z35": ["Z02", "Z03"],
+    "Z36": ["Z06", "Z07", "Z08"]
+  },
+  "inter_zone_travel_times_minutes": {
+    "Z01_Z02": 25,
+    "Z01_Z03": 45,
+    "Z02_Z03": 38,
+    "Z02_Z04": 72,
+    "Z03_Z04": 65,
+    "Z03_Z05": 120,
+    "Z04_Z05": 85,
+    "Z04_Z08": 95,
+    "Z05_Z06": 240,
+    "Z05_Z08": 140,
+    "Z05_Z09": 185,
+    "Z05_Z13": 200,
+    "Z06_Z07": 150,
+    "Z07_Z08": 110,
+    "Z09_Z10": 165,
+    "Z09_Z11": 210,
+    "Z09_Z13": 180,
+    "Z14_Z27": 390,
+    "Z27_Z29": 240
+  },
+  "simulation_grid": {
+    "primary_simulation_zone": "Z05",
+    "simulation_mode": "maharashtra_state",
+    "active_zones_per_episode": 12,
+    "zone_selection_strategy": "risk_weighted",
+    "inter_zone_coordination": true,
+    "state_control_centre": "Pune EMRI Control Room",
+    "backup_centres": ["Mumbai EMRI", "Nagpur EMRI", "Aurangabad EMRI"]
+  }
+}

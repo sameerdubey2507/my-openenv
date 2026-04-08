@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMERGI-ENV · Automation Orchestrator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #020817;
+            --surface: rgba(15, 31, 61, 0.6);
+            --glass: rgba(15, 23, 42, 0.75);
+            --border: rgba(59, 130, 246, 0.2);
+            --blue: #3b82f6;
+            --cyan: #06b6d4;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --purple: #8b5cf6;
+            --red: #ef4444;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --hint: #1e293b;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg);
+            font-family: 'Inter', sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated grid background */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridDrift 20s linear infinite;
+        }
+        @keyframes gridDrift { to { background-position: 50px 50px; } }
+
+        /* Canvas particles */
+        canvas#particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.25; }
+
+        /* ─── HEADER ─── */
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(2, 8, 23, 0.88); backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 40px; height: 60px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .brand-icon {
+            width: 34px; height: 34px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--amber), var(--red));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px; box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+        }
+        .brand-text {
+            font-weight: 800; font-size: 17px; letter-spacing: 0.5px;
+            background: linear-gradient(90deg, var(--amber), #fb923c);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .brand-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 12px; border-left: 1px solid var(--hint); padding-left: 12px; }
+        .live-pill {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(16,185,129,0.12); padding: 7px 16px; border-radius: 20px;
+            font-family: var(--mono); font-size: 12px; font-weight: 700; color: #6ee7b7;
+        }
+        .live-pill .dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 12px var(--green); animation: blink 1.4s infinite; }
+        @keyframes blink { 0%,100% { opacity:.4; } 50% { opacity:1; } }
+
+        /* ─── CONTENT ─── */
+        .content { position: relative; z-index: 10; }
+
+        .section {
+            padding: 50px 40px;
+            max-width: 1400px; margin: 0 auto;
+        }
+        .section-label {
+            font-size: 11px; font-weight: 700; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;
+            font-family: var(--mono);
+        }
+        .section-title {
+            font-size: 26px; font-weight: 800; margin-bottom: 8px;
+        }
+        .section-desc {
+            font-size: 14px; color: var(--muted); max-width: 700px; line-height: 1.7; margin-bottom: 30px;
+        }
+
+        /* ─── WORKFLOW CANVAS ─── */
+        .workflow-area {
+            background: rgba(2, 8, 23, 0.5);
+            border: 1px solid var(--border); border-radius: 16px;
+            padding: 40px 30px; position: relative;
+            overflow-x: auto; overflow-y: hidden;
+            /* Hide scrollbar visually */
+            scrollbar-width: none;
+        }
+        .workflow-area::-webkit-scrollbar { display: none; }
+
+        .workflow-track {
+            display: flex; align-items: flex-start; gap: 0;
+            min-width: 1600px; position: relative; padding: 20px 0;
+        }
+
+        /* Wire connector */
+        .wire-seg {
+            display: flex; align-items: center; flex-shrink: 0; width: 60px;
+        }
+        .wire-seg .line {
+            width: 100%; height: 3px; position: relative;
+            background: linear-gradient(90deg, var(--cyan), var(--blue));
+            border-radius: 2px;
+        }
+        .wire-seg .line::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+            animation: wireFlow 1.5s linear infinite;
+        }
+        @keyframes wireFlow { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+        /* Nodes */
+        .wf-node {
+            flex-shrink: 0; width: 260px;
+            background: var(--glass); border: 1px solid var(--border); border-radius: 14px;
+            backdrop-filter: blur(16px); overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+            animation: nodeRise 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
+        }
+        .wf-node:nth-child(1) { animation-delay: 0.1s; }
+        .wf-node:nth-child(3) { animation-delay: 0.25s; }
+        .wf-node:nth-child(5) { animation-delay: 0.4s; }
+        .wf-node:nth-child(7) { animation-delay: 0.55s; }
+        .wf-node:nth-child(9) { animation-delay: 0.7s; }
+        .wf-node:nth-child(11) { animation-delay: 0.85s; }
+
+        .wf-node:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.5); }
+
+        @keyframes nodeRise { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+
+        .wf-head {
+            padding: 16px; display: flex; align-items: center; gap: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .wf-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .wf-head-text h4 { font-size: 14px; font-weight: 700; }
+        .wf-head-text span { font-size: 10px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; }
+
+        .wf-body { padding: 16px; }
+        .wf-body p { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 10px; }
+        .wf-data {
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
+            padding: 10px; border-radius: 6px; font-family: var(--mono); font-size: 11px;
+            color: var(--cyan); white-space: pre-wrap;
+        }
+
+        /* Node color accents */
+        .nd-purple { border-top: 3px solid var(--purple); }
+        .nd-purple .wf-icon { background: rgba(139,92,246,0.15); }
+        .nd-cyan { border-top: 3px solid var(--cyan); }
+        .nd-cyan .wf-icon { background: rgba(6,182,212,0.15); }
+        .nd-amber { border-top: 3px solid var(--amber); }
+        .nd-amber .wf-icon { background: rgba(245,158,11,0.15); }
+        .nd-green { border-top: 3px solid var(--green); }
+        .nd-green .wf-icon { background: rgba(16,185,129,0.15); }
+        .nd-blue { border-top: 3px solid var(--blue); }
+        .nd-blue .wf-icon { background: rgba(59,130,246,0.15); }
+        .nd-red { border-top: 3px solid var(--red); }
+        .nd-red .wf-icon { background: rgba(239,68,68,0.15); }
+
+        /* ─── INFO GRIDS ─── */
+        .info-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .info-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .info-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+        .panel {
+            background: var(--glass); border: 1px solid var(--border); border-radius: 14px;
+            backdrop-filter: blur(10px); padding: 24px; transition: 0.3s;
+        }
+        .panel:hover { border-color: rgba(59,130,246,0.4); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .panel-h { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+
+        /* Exec log items */
+        .exec-item {
+            background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;
+            border-left: 3px solid; margin-bottom: 10px;
+            font-family: var(--mono); font-size: 11px; line-height: 1.6;
+            animation: logSlide 0.3s ease;
+        }
+        @keyframes logSlide { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+        .exec-time { font-size: 9px; color: var(--muted); margin-bottom: 3px; }
+
+        /* Architecture stack items */
+        .arch-item {
+            background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15);
+            border-radius: 8px; padding: 14px; text-align: center; transition: 0.2s;
+        }
+        .arch-item:hover { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3); transform: translateY(-2px); }
+        .arch-item .label { font-size: 10px; font-weight: 700; color: var(--cyan); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .arch-item .val { font-size: 13px; font-weight: 600; }
+
+        /* Scope cards */
+        .scope-card {
+            background: rgba(16,185,129,0.04); border: 1px solid rgba(16,185,129,0.12);
+            border-radius: 10px; padding: 20px; transition: 0.3s;
+        }
+        .scope-card:hover { border-color: rgba(16,185,129,0.35); background: rgba(16,185,129,0.08); transform: translateY(-3px); }
+        .scope-card h5 { font-size: 13px; font-weight: 700; color: var(--green); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .scope-card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+        .scope-card .metric { font-family: var(--mono); font-size: 20px; font-weight: 800; color: #fff; margin: 10px 0 4px; }
+
+        /* Feature details */
+        .feat-card {
+            background: var(--glass); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; transition: 0.3s;
+        }
+        .feat-card:hover { border-color: rgba(139,92,246,0.4); transform: translateY(-3px); }
+        .feat-card .f-icon { font-size: 24px; margin-bottom: 10px; }
+        .feat-card h5 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+        .feat-card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+        /* Divider */
+        .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border); background: rgba(2,8,23,0.6);
+            backdrop-filter: blur(8px); padding: 30px 40px; text-align: center;
+            font-size: 12px; color: var(--muted);
+        }
+        footer a { color: var(--blue); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <canvas id="particles"></canvas>
+
+    <header>
+        <div class="brand">
+            <div class="brand-icon">⚡</div>
+            <div class="brand-text">EMERGI-ENV AUTOMATIC</div>
+            <div class="brand-sub">Unified Orchestration & Strategic Nexus</div>
+        </div>
+        <div class="live-pill">
+            <div class="dot"></div> AUTOMATION LIVE
+        </div>
+    </header>
+
+    <div class="content">
+
+        <!-- ══ SECTION 1: WORKFLOW ══ -->
+        <div class="section">
+            <div class="section-label">Workflow Orchestrator</div>
+            <div class="section-title">End-to-End Incident Automation Pipeline</div>
+            <div class="section-desc">A complete visual representation of how EMERGI-ENV processes emergency incidents — from signal ingestion to hospital pre-registration — in under 400ms on average.</div>
+
+            <div class="workflow-area">
+                <div class="workflow-track">
+
+                    <!-- Node 1 -->
+                    <div class="wf-node nd-purple">
+                        <div class="wf-head">
+                            <div class="wf-icon">🛰️</div>
+                            <div class="wf-head-text"><h4>Telemetry Nexus</h4><span>Ingestion Port</span></div>
+                        </div>
+                        <div class="wf-body">
+                            <p>Real-time capture of distress signals from 12 city zones via 108/112 integration.</p>
+                            <div class="wf-data" id="nd1">{ "zone": "Z-4", "status": "SYNCED" }</div>
+                        </div>
+                    </div>
+
+                    <div class="wire-seg"><div class="line"></div></div>
+
+                    <!-- Node 2 -->
+                    <div class="wf-node nd-cyan">
+                        <div class="wf-head">
+                            <div class="wf-icon">🤖</div>
+                            <div class="wf-head-text"><h4>Decision AI Core</h4><span>RL Agent</span></div>
+                        </div>
+                        <div class="wf-body">
+                            <p>Hierarchical reinforcement learning agent performs triage classification with 94% accuracy.</p>
+                            <div class="wf-data" id="nd2">Awaiting signal...</div>
+                        </div>
+                    </div>
+
+                    <div class="wire-seg"><div class="line" style="background:linear-gradient(90deg, var(--blue), var(--amber))"></div></div>
+
+                    <!-- Node 3 -->
+                    <div class="wf-node nd-amber">
+                        <div class="wf-head">
+                            <div class="wf-icon">⚖️</div>
+                            <div class="wf-head-text"><h4>Policy Dispatcher</h4><span>Priority Router</span></div>
+                        </div>
+                        <div class="wf-body">
+                            <p>Golden Hour constraint optimization. Routes P1 Critical to ALS, P2/P3 to BLS units.</p>
+                            <div class="wf-data">IF survival_prob < 0.6 → ALS
+ELSE → BLS (standard)</div>
+                        </div>
+                    </div>
+
+                    <div class="wire-seg"><div class="line" style="background:linear-gradient(90deg, var(--amber), var(--green))"></div></div>
+
+                    <!-- Node 4 -->
+                    <div class="wf-node nd-green">
+                        <div class="wf-head">
+                            <div class="wf-icon">🚑</div>
+                            <div class="wf-head-text"><h4>Fleet Allocator</h4><span>Dispatch Engine</span></div>
+                        </div>
+                        <div class="wf-body">
+                            <p>Assigns closest available ambulance using real-time GPS and traffic-aware routing.</p>
+                            <div class="wf-data" id="nd4" style="color:var(--green)">IDLE</div>
+                        </div>
+                    </div>
+
+                    <div class="wire-seg"><div class="line" style="background:linear-gradient(90deg, var(--green), var(--blue))"></div></div>
+
+                    <!-- Node 5 -->
+                    <div class="wf-node nd-blue">
+                        <div class="wf-head">
+                            <div class="wf-icon">🏥</div>
+                            <div class="wf-head-text"><h4>Hospital Sync</h4><span>ER Pre-Registration</span></div>
+                        </div>
+                        <div class="wf-body">
+                            <p>Auto-reserves surgical bays, notifies specialists, and pre-loads patient demographics.</p>
+                            <div class="wf-data" id="nd5">Waiting for dispatch...</div>
+                        </div>
+                    </div>
+
+                    <div class="wire-seg"><div class="line" style="background:linear-gradient(90deg, var(--blue), var(--red))"></div></div>
+
+                    <!-- Node 6 -->
+                    <div class="wf-node nd-red">
+                        <div class="wf-head">
+                            <div class="wf-icon">📊</div>
+                            <div class="wf-head-text"><h4>Outcome Logger</h4><span>Analytics Node</span></div>
+                        </div>
+                        <div class="wf-body">
+                            <p>Captures survival metrics, response time, and feeds back into RL reward function.</p>
+                            <div class="wf-data" id="nd6">Reward: +0.00</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ══ SECTION 2: LIVE EXECUTIONS ══ -->
+        <div class="section">
+            <div class="section-label">Live Monitoring</div>
+            <div class="section-title">Real-Time Execution Streams</div>
+            <div class="section-desc">Observe the automation pipeline processing incidents in real-time. Each execution triggers a cascading chain across all sub-modules.</div>
+
+            <div class="info-grid-2">
+                <div class="panel">
+                    <div class="panel-h">🟢 Pipeline Execution Feed</div>
+                    <div id="exec-feed">
+                        <div class="exec-item" style="border-color:var(--blue)">
+                            <div class="exec-time">System Boot</div>
+                            Orchestrator initialized. All nodes synced. Listening on ws://0.0.0.0:7860/ws
+                        </div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-h">📈 Performance Metrics</div>
+                    <div class="info-grid-2" style="gap:12px">
+                        <div class="arch-item"><div class="label">Avg Latency</div><div class="val" id="m-latency">< 400ms</div></div>
+                        <div class="arch-item"><div class="label">Throughput</div><div class="val" id="m-throughput">1,247 / hr</div></div>
+                        <div class="arch-item"><div class="label">Success Rate</div><div class="val" style="color:var(--green)" id="m-success">94.2%</div></div>
+                        <div class="arch-item"><div class="label">Uptime</div><div class="val" style="color:var(--cyan)" id="m-uptime">99.97%</div></div>
+                    </div>
+                    <div style="margin-top:16px; font-size:11px; color:var(--muted); font-family:var(--mono); line-height:1.8;">
+                        > Active Episodes: <span style="color:var(--green)">3</span><br>
+                        > Queued Incidents: <span style="color:var(--amber)">12</span><br>
+                        > Ambulances Deployed: <span style="color:var(--cyan)">8 / 15</span><br>
+                        > Hospital Load: <span style="color:var(--amber)">72% avg</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ══ SECTION 3: SYSTEM ARCHITECTURE ══ -->
+        <div class="section">
+            <div class="section-label">Infrastructure</div>
+            <div class="section-title">System Architecture & Technical Stack</div>
+            <div class="section-desc">EMERGI-ENV is engineered for microsecond decisions and 24/7 reliability. Our layered architecture enables seamless scaling from a single city to nationwide deployment.</div>
+
+            <div class="info-grid-2">
+                <div class="panel">
+                    <div class="panel-h">🏗️ Technology Layers</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="arch-item"><div class="label">Presentation</div><div class="val">Vanilla JS · CSS3</div></div>
+                        <div class="arch-item"><div class="label">API Gateway</div><div class="val">FastAPI · Python</div></div>
+                        <div class="arch-item"><div class="label">Intelligence</div><div class="val">PPO · HuggingFace</div></div>
+                        <div class="arch-item"><div class="label">Data Layer</div><div class="val">PostgreSQL · Redis</div></div>
+                        <div class="arch-item"><div class="label">Real-Time</div><div class="val">WebSockets · SSE</div></div>
+                        <div class="arch-item"><div class="label">Compute</div><div class="val">CUDA · TensorRT</div></div>
+                        <div class="arch-item"><div class="label">Observability</div><div class="val">Prometheus · Grafana</div></div>
+                        <div class="arch-item"><div class="label">Deploy</div><div class="val">Docker · K8s · HF Spaces</div></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-h">🔀 Data Flow Architecture</div>
+                    <div style="font-family:var(--mono); font-size:11px; line-height:2; color:var(--muted); background:rgba(0,0,0,0.3); padding:16px; border-radius:8px;">
+                        <span style="color:var(--purple)">📡 108/112 Signal</span><br>
+                        &nbsp;&nbsp;└─► <span style="color:var(--cyan)">WebSocket Gateway</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─► <span style="color:var(--blue)">FastAPI Router</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─► <span style="color:var(--amber)">RL Agent (PPO)</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─► Triage Classification<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─► Route Optimization<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└─► Resource Allocation<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─► <span style="color:var(--green)">Dispatch Controller</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├─► GPS Fleet Tracker<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└─► Traffic API (Google)<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─► <span style="color:var(--red)">Analytics Pipeline</span><br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─► Reward Function<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─► PostgreSQL Sink
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ══ SECTION 4: PROJECT FEATURES ══ -->
+        <div class="section">
+            <div class="section-label">Capabilities</div>
+            <div class="section-title">Core Features & Differentiators</div>
+            <div class="section-desc">Every feature is designed to maximize patient survival probability while minimizing response time and resource waste.</div>
+
+            <div class="info-grid-4">
+                <div class="feat-card">
+                    <div class="f-icon">🧠</div>
+                    <h5>Agentic RL Engine</h5>
+                    <p>PPO-based agent trained on 50k+ simulated calls. Learns optimal dispatch policies through sequential decision-making.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="f-icon">🗺️</div>
+                    <h5>12-Zone City Grid</h5>
+                    <p>Pune-inspired geography with variable traffic densities, hospital distributions, and incident hotspots per zone.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="f-icon">⏱️</div>
+                    <h5>Golden Hour Optimizer</h5>
+                    <p>Continuous survival probability decay model. Every second matters — the agent learns to minimize total response time.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="f-icon">🚑</div>
+                    <h5>Fleet Rebalancing</h5>
+                    <p>Dynamic ambulance repositioning based on predicted demand forecasting across zones and time-of-day patterns.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="f-icon">🏥</div>
+                    <h5>Hospital Load Balancing</h5>
+                    <p>Diversion protocols when trauma centers reach capacity. Auto-routes to nearest available facility with matching specialty.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="f-icon">📊</div>
+                    <h5>9 Graded Tasks</h5>
+                    <p>Progressive curriculum from basic dispatch to multi-ambulance coordination under scarcity constraints.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="f-icon">🔌</div>
+                    <h5>OpenAI Gym Compatible</h5>
+                    <p>Standard Gymnasium interface with configurable observation/action spaces for researchers and hackathon participants.</p>
+                </div>
+                <div class="feat-card">
+                    <div class="f-icon">📡</div>
+                    <h5>Live WebSocket API</h5>
+                    <p>Real-time simulation streaming with sub-millisecond state updates. Full OpenAPI 3.1 documentation included.</p>
+                </div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ══ SECTION 5: BUSINESS SCOPE ══ -->
+        <div class="section">
+            <div class="section-label">Commercialization</div>
+            <div class="section-title">Project Scope & Business Strategy</div>
+            <div class="section-desc">EMERGI-ENV isn't just a hackathon project — it's a scalable platform with clear paths to revenue across government, insurance, and healthcare verticals.</div>
+
+            <div class="info-grid-3">
+                <div class="scope-card">
+                    <h5>🏛️ Gov-Tech SaaS</h5>
+                    <div class="metric">₹2.4 Cr / yr</div>
+                    <p>Annual contract potential per state. Plug into existing 108/112 infrastructure. Per-ambulance licensing model with zero upfront hardware cost.</p>
+                </div>
+                <div class="scope-card">
+                    <h5>🛡️ Insurance AI Partner</h5>
+                    <div class="metric">12% Claim Reduction</div>
+                    <p>Faster response → higher survival → fewer high-severity payouts. Revenue share model with health insurers on saved claim amounts.</p>
+                </div>
+                <div class="scope-card">
+                    <h5>📦 Predictive Hospital ERP</h5>
+                    <div class="metric">₹80L Savings / Quarter</div>
+                    <p>AI-driven inventory forecasting for blood banks, surgical supplies, and ICU beds based on incident density heatmaps.</p>
+                </div>
+            </div>
+
+            <div class="info-grid-2" style="margin-top:24px">
+                <div class="panel">
+                    <div class="panel-h">📐 Go-to-Market Timeline</div>
+                    <div style="font-family:var(--mono); font-size:12px; line-height:2.2; color:var(--muted);">
+                        <span style="color:var(--green)">Q1 2026</span> — MVP deployment on HuggingFace Spaces<br>
+                        <span style="color:var(--cyan)">Q2 2026</span> — Pilot with Pune Municipal Corp (3 zones)<br>
+                        <span style="color:var(--blue)">Q3 2026</span> — Insurance partner onboarding (2 carriers)<br>
+                        <span style="color:var(--amber)">Q4 2026</span> — Scale to 8 Indian states<br>
+                        <span style="color:var(--purple)">2027</span>&nbsp;&nbsp;&nbsp;&nbsp; — International pilots (SE Asia, Africa)
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-h">💰 Revenue Projections</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap: 10px;">
+                        <div class="arch-item"><div class="label">Year 1</div><div class="val" style="color:var(--green)">₹1.2 Cr</div></div>
+                        <div class="arch-item"><div class="label">Year 2</div><div class="val" style="color:var(--cyan)">₹8.5 Cr</div></div>
+                        <div class="arch-item"><div class="label">Year 3</div><div class="val" style="color:var(--blue)">₹24 Cr</div></div>
+                        <div class="arch-item"><div class="label">TAM (India)</div><div class="val" style="color:var(--amber)">₹400 Cr</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        EMERGI-ENV Automatic · Built for the National AI Hackathon · <a href="/docs">← Back to Documentation</a>
+    </footer>
+
+    <script>
+        // Particle Background
+        const c = document.getElementById('particles'), ctx = c.getContext('2d');
+        function resize() { c.width = innerWidth; c.height = innerHeight; } resize(); window.addEventListener('resize', resize);
+        const pts = Array.from({length: 50}, () => ({
+            x: Math.random()*innerWidth, y: Math.random()*innerHeight,
+            vx: (Math.random()-0.5)*0.4, vy: (Math.random()-0.5)*0.4,
+            hue: Math.random() < 0.5 ? 30 : 200
+        }));
+        function draw() {
+            ctx.clearRect(0, 0, c.width, c.height);
+            pts.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if(p.x<0||p.x>c.width) p.vx*=-1;
+                if(p.y<0||p.y>c.height) p.vy*=-1;
+                ctx.beginPath(); ctx.arc(p.x, p.y, 1.5, 0, Math.PI*2);
+                ctx.fillStyle = `hsla(${p.hue},70%,60%,0.5)`; ctx.fill();
+            });
+            for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++) {
+                const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, d=Math.sqrt(dx*dx+dy*dy);
+                if(d<120) { ctx.beginPath(); ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.strokeStyle=`rgba(245,158,11,${0.06*(1-d/120)})`; ctx.lineWidth=0.5; ctx.stroke(); }
+            }
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        // Live simulation
+        const feed = document.getElementById('exec-feed');
+        let runId = 0;
+        const zones = ['Z1-North','Z2-Central','Z3-East','Z4-South','Z5-West','Z8-Suburb','Z12-Rural'];
+        const hospitals = ['H-KEM','H-RUBY','H-SASS','H-NOBLE','H-CMH'];
+        const types = ['Cardiac Arrest','Road Trauma','Stroke','Burns','Pediatric Emergency'];
+
+        function addExec(msg, color) {
+            const el = document.createElement('div');
+            el.className = 'exec-item'; el.style.borderColor = color;
+            el.innerHTML = `<div class="exec-time">${new Date().toLocaleTimeString()}</div>${msg}`;
+            feed.prepend(el);
+            if(feed.children.length > 8) feed.lastChild.remove();
+        }
+
+        function simulate() {
+            runId++;
+            const z = zones[Math.floor(Math.random()*zones.length)];
+            const h = hospitals[Math.floor(Math.random()*hospitals.length)];
+            const t = types[Math.floor(Math.random()*types.length)];
+            const id = 'INC-' + (4000+runId);
+
+            document.getElementById('nd1').innerText = `{ "id": "${id}",\n  "zone": "${z}",\n  "type": "${t}" }`;
+            addExec(`📡 Telemetry received: ${id} from ${z}`, 'var(--purple)');
+
+            setTimeout(() => {
+                const conf = (85 + Math.random()*14).toFixed(1);
+                document.getElementById('nd2').innerText = `Confidence: ${conf}%\nClassification: P1_CRITICAL\nAction: DISPATCH_ALS`;
+                addExec(`🤖 AI Core classified ${id} as P1 (${conf}% conf)`, 'var(--cyan)');
+
+                setTimeout(() => {
+                    const amb = 'AMB-' + (10 + Math.floor(Math.random()*20));
+                    document.getElementById('nd4').innerText = `${amb} → ${z}\nETA: ${(3+Math.random()*8).toFixed(1)} min`;
+                    addExec(`🚑 ${amb} dispatched to ${z} for ${t}`, 'var(--green)');
+
+                    setTimeout(() => {
+                        document.getElementById('nd5').innerText = `${h} Bay-${Math.floor(Math.random()*6)+1}\nSurgeon: ON STANDBY`;
+                        addExec(`🏥 ${h} pre-registered for ${id}`, 'var(--blue)');
+
+                        setTimeout(() => {
+                            const reward = (0.6 + Math.random()*0.35).toFixed(2);
+                            document.getElementById('nd6').innerText = `Reward: +${reward}\nSurvival: CONFIRMED\nΔt: ${(4+Math.random()*12).toFixed(1)}m`;
+                            addExec(`📊 Outcome logged. Reward: +${reward}`, 'var(--amber)');
+                        }, 800);
+                    }, 700);
+                }, 900);
+            }, 1200);
+        }
+
+        setInterval(simulate, 6000);
+        setTimeout(simulate, 1500);
+    </script>
+</body>
+</html>

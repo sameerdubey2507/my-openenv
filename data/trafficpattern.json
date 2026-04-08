@@ -1,0 +1,6349 @@
+{
+    "metadata": {
+        "version": "3.0",
+        "description": "Production-grade 24-hour time-varying traffic model for Maharashtra 108/112 EMS simulation — all 36 districts, 6 administrative divisions",
+        "zones": 36,
+        "time_slots": 24,
+        "total_bottlenecks": 54,
+        "total_ems_corridors": 18,
+        "total_staging_posts": 72,
+        "total_signal_override_nodes": 48,
+        "base_speed_kmh": 60,
+        "ems_priority_speed_multiplier": 1.35,
+        "coordinate_system": "WGS84",
+        "data_source": "Calibrated from Maharashtra Traffic Police Annual Report 2024 + EMRI 108 Dispatch Logs + NHAI Traffic Census + IMD Weather Data",
+        "calibration_note": "Travel times are operational EMS times including dispatch + en-route + scene access. Actual ambulance odometer distances are 8-12% longer than crow-fly due to road network curvature.",
+        "simulation_unit": "minutes",
+        "reward_integration_note": "Traffic state updates every 3 simulation steps. Agent observation includes current OD matrix slice, active slowdowns, diversion flags, and demand forecast."
+    },
+    "simulation_parameters": {
+        "update_frequency_steps": 3,
+        "traffic_event_probability_per_step": 0.08,
+        "incident_secondary_slowdown_radius_km": 5.0,
+        "secondary_slowdown_multiplier": 1.4,
+        "secondary_slowdown_duration_steps": 6,
+        "monsoon_road_closure_probability": 0.04,
+        "accident_clearance_time_min": 45,
+        "ems_priority_bypass_traffic_pct": 0.65,
+        "max_concurrent_incidents_per_zone": 3,
+        "noise_injection_std_pct": 0.08,
+        "od_matrix_recompute_on_major_incident": true,
+        "green_corridor_activation_delay_min": 3,
+        "mutual_aid_response_delay_min": 12
+    },
+    "global_hour_multipliers": {
+        "note": "Applied on top of zone-specific profiles. Peak morning 7-9h, peak evening 17-19h.",
+        "00": 0.55,
+        "01": 0.48,
+        "02": 0.44,
+        "03": 0.42,
+        "04": 0.45,
+        "05": 0.58,
+        "06": 0.82,
+        "07": 1.38,
+        "08": 1.72,
+        "09": 1.85,
+        "10": 1.55,
+        "11": 1.28,
+        "12": 1.32,
+        "13": 1.25,
+        "14": 1.18,
+        "15": 1.22,
+        "16": 1.48,
+        "17": 1.88,
+        "18": 1.95,
+        "19": 1.78,
+        "20": 1.42,
+        "21": 1.15,
+        "22": 0.88,
+        "23": 0.68,
+        "peak_morning_hours": [
+            7,
+            8,
+            9
+        ],
+        "peak_evening_hours": [
+            17,
+            18,
+            19
+        ],
+        "peak_morning_multiplier_max": 1.85,
+        "peak_evening_multiplier_max": 1.95,
+        "night_minimum_multiplier": 0.42
+    },
+    "day_of_week_multipliers": {
+        "monday": {
+            "multiplier": 1.08,
+            "note": "School + office peak"
+        },
+        "tuesday": {
+            "multiplier": 1.05,
+            "note": "Standard workday"
+        },
+        "wednesday": {
+            "multiplier": 1.05,
+            "note": "Standard workday"
+        },
+        "thursday": {
+            "multiplier": 1.06,
+            "note": "Slightly elevated"
+        },
+        "friday": {
+            "multiplier": 1.12,
+            "note": "End-of-week peak, early departures"
+        },
+        "saturday": {
+            "multiplier": 0.92,
+            "note": "Reduced office traffic, market increase"
+        },
+        "sunday": {
+            "multiplier": 0.78,
+            "note": "Leisure traffic pattern"
+        },
+        "public_holiday": {
+            "multiplier": 0.72,
+            "note": "Minimal commuter traffic"
+        },
+        "election_day": {
+            "multiplier": 0.65,
+            "note": "Reduced movement, clear corridors"
+        },
+        "bandh_declared": {
+            "multiplier": 0.40,
+            "note": "Most roads clear, some barricades"
+        },
+        "market_day_rural": {
+            "multiplier": 1.15,
+            "note": "Applied to rural zones on Thursday/Saturday"
+        }
+    },
+    "seasonal_multipliers": {
+        "summer": {
+            "months": [
+                3,
+                4,
+                5
+            ],
+            "label": "March–May",
+            "base_multiplier": 0.95,
+            "heat_event_additional": 0.08,
+            "heat_wave_road_damage_probability": 0.02,
+            "notes": "Reduced traffic overall but heat events increase EMS demand. Road tar softening slows heavy vehicles.",
+            "zone_specific_overrides": {
+                "Z27": {
+                    "multiplier": 1.05,
+                    "reason": "Nagpur extreme heat, reduced outdoor activity concentrates in AC zones"
+                },
+                "Z23": {
+                    "multiplier": 1.03,
+                    "reason": "Amravati heat belt"
+                },
+                "Z29": {
+                    "multiplier": 1.04,
+                    "reason": "Chandrapur industrial heat island"
+                }
+            }
+        },
+        "monsoon": {
+            "months": [
+                6,
+                7,
+                8,
+                9
+            ],
+            "label": "June–September",
+            "base_multiplier": 1.28,
+            "heavy_rain_additional": 0.42,
+            "waterlogging_multiplier": 1.85,
+            "ghat_closure_probability_per_step": 0.15,
+            "river_bridge_closure_probability": 0.08,
+            "unpaved_road_impassable_probability": 0.35,
+            "notes": "Most critical season. Mumbai–Pune axis and all coastal zones severely affected. Ghat sections frequently closed.",
+            "zone_specific_overrides": {
+                "Z01": {
+                    "multiplier": 1.55,
+                    "reason": "Mumbai island flooding, CST–Andheri corridor"
+                },
+                "Z02": {
+                    "multiplier": 1.48,
+                    "reason": "Suburban flooding, creek overflow"
+                },
+                "Z03": {
+                    "multiplier": 1.42,
+                    "reason": "Thane creek and Ulhas river zones"
+                },
+                "Z33": {
+                    "multiplier": 1.65,
+                    "reason": "Sindhudurg extreme rainfall, ghat closures"
+                },
+                "Z34": {
+                    "multiplier": 1.60,
+                    "reason": "Ratnagiri coastal flooding"
+                },
+                "Z07": {
+                    "multiplier": 1.58,
+                    "reason": "Kolhapur flood plain"
+                },
+                "Z36": {
+                    "multiplier": 1.55,
+                    "reason": "Sangli Krishna river flooding"
+                },
+                "Z30": {
+                    "multiplier": 1.50,
+                    "reason": "Gadchiroli forest roads, seasonal closures"
+                },
+                "Z12": {
+                    "multiplier": 1.45,
+                    "reason": "Nandurbar tribal roads"
+                },
+                "Z35": {
+                    "multiplier": 1.40,
+                    "reason": "Palghar coastal flooding"
+                }
+            }
+        },
+        "post_monsoon": {
+            "months": [
+                10,
+                11
+            ],
+            "label": "October–November",
+            "base_multiplier": 1.05,
+            "road_repair_slowdown_probability": 0.12,
+            "notes": "Roads under repair, potholes. Festival season increases traffic density.",
+            "zone_specific_overrides": {
+                "Z01": {
+                    "multiplier": 1.10,
+                    "reason": "Ganesh Chaturthi aftermath, road restoration"
+                },
+                "Z02": {
+                    "multiplier": 1.08,
+                    "reason": "Same"
+                },
+                "Z05": {
+                    "multiplier": 1.06,
+                    "reason": "Pune festival season"
+                }
+            }
+        },
+        "winter": {
+            "months": [
+                12,
+                1,
+                2
+            ],
+            "label": "December–February",
+            "base_multiplier": 0.98,
+            "fog_event_multiplier": 1.35,
+            "fog_visibility_reduction_probability": 0.08,
+            "cold_start_delay_min": 2,
+            "notes": "Generally good roads. Fog affects Vidarbha and Marathwada at night/early morning.",
+            "zone_specific_overrides": {
+                "Z27": {
+                    "multiplier": 1.08,
+                    "reason": "Nagpur winter fog, zero-mile junction"
+                },
+                "Z23": {
+                    "multiplier": 1.06,
+                    "reason": "Amravati fog events"
+                },
+                "Z14": {
+                    "multiplier": 1.05,
+                    "reason": "Aurangabad plateau fog"
+                },
+                "Z26": {
+                    "multiplier": 1.07,
+                    "reason": "Yavatmal cotton belt fog"
+                }
+            }
+        }
+    },
+    "zone_traffic_profiles": {
+        "note": "Per-zone traffic characteristics used to weight global multipliers. Each zone has a base_congestion_level, road_quality, ems_priority_effectiveness, and hourly_traffic_index.",
+        "Z01": {
+            "zone_name": "Mumbai City",
+            "zone_type": "metro_core",
+            "base_congestion_level": "extreme",
+            "road_quality_score": 0.82,
+            "lane_capacity_factor": 1.0,
+            "ems_priority_effectiveness": 0.68,
+            "signal_override_nodes": 18,
+            "avg_intersection_delay_sec": 45,
+            "one_way_street_density": "high",
+            "pedestrian_interference_factor": 1.35,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.15,
+                "08": 0.22,
+                "09": 0.18,
+                "17": 0.20,
+                "18": 0.25,
+                "19": 0.18
+            },
+            "annual_road_incident_rate_per_km": 8.4,
+            "flood_zones_pct_area": 0.28,
+            "ems_staging_posts": [
+                "SP_Z01_A",
+                "SP_Z01_B",
+                "SP_Z01_C",
+                "SP_Z01_D"
+            ]
+        },
+        "Z02": {
+            "zone_name": "Mumbai Suburban",
+            "zone_type": "metro_suburban",
+            "base_congestion_level": "very_high",
+            "road_quality_score": 0.75,
+            "lane_capacity_factor": 1.1,
+            "ems_priority_effectiveness": 0.72,
+            "signal_override_nodes": 22,
+            "avg_intersection_delay_sec": 38,
+            "one_way_street_density": "medium",
+            "pedestrian_interference_factor": 1.28,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.18,
+                "08": 0.20,
+                "09": 0.15,
+                "17": 0.22,
+                "18": 0.26,
+                "19": 0.16
+            },
+            "annual_road_incident_rate_per_km": 7.1,
+            "flood_zones_pct_area": 0.22,
+            "ems_staging_posts": [
+                "SP_Z02_A",
+                "SP_Z02_B",
+                "SP_Z02_C"
+            ]
+        },
+        "Z03": {
+            "zone_name": "Thane",
+            "zone_type": "metro_satellite",
+            "base_congestion_level": "high",
+            "road_quality_score": 0.70,
+            "lane_capacity_factor": 1.2,
+            "ems_priority_effectiveness": 0.78,
+            "signal_override_nodes": 16,
+            "avg_intersection_delay_sec": 32,
+            "one_way_street_density": "low",
+            "pedestrian_interference_factor": 1.15,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.12,
+                "08": 0.16,
+                "09": 0.12,
+                "17": 0.16,
+                "18": 0.20,
+                "19": 0.14
+            },
+            "annual_road_incident_rate_per_km": 6.2,
+            "flood_zones_pct_area": 0.18,
+            "ems_staging_posts": [
+                "SP_Z03_A",
+                "SP_Z03_B",
+                "SP_Z03_C"
+            ]
+        },
+        "Z04": {
+            "zone_name": "Raigad",
+            "zone_type": "semi_urban_coastal",
+            "base_congestion_level": "moderate",
+            "road_quality_score": 0.65,
+            "lane_capacity_factor": 1.4,
+            "ems_priority_effectiveness": 0.85,
+            "signal_override_nodes": 4,
+            "avg_intersection_delay_sec": 18,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.95,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.06,
+                "08": 0.10,
+                "09": 0.08,
+                "17": 0.10,
+                "18": 0.12,
+                "19": 0.08
+            },
+            "annual_road_incident_rate_per_km": 9.8,
+            "flood_zones_pct_area": 0.12,
+            "ghat_sections_km": 45,
+            "ems_staging_posts": [
+                "SP_Z04_A",
+                "SP_Z04_B"
+            ]
+        },
+        "Z05": {
+            "zone_name": "Pune City",
+            "zone_type": "metro_core",
+            "base_congestion_level": "high",
+            "road_quality_score": 0.72,
+            "lane_capacity_factor": 1.15,
+            "ems_priority_effectiveness": 0.75,
+            "signal_override_nodes": 20,
+            "avg_intersection_delay_sec": 35,
+            "one_way_street_density": "medium",
+            "pedestrian_interference_factor": 1.20,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.10,
+                "08": 0.18,
+                "09": 0.15,
+                "17": 0.18,
+                "18": 0.22,
+                "19": 0.15
+            },
+            "annual_road_incident_rate_per_km": 6.8,
+            "flood_zones_pct_area": 0.08,
+            "ems_staging_posts": [
+                "SP_Z05_A",
+                "SP_Z05_B",
+                "SP_Z05_C",
+                "SP_Z05_D"
+            ]
+        },
+        "Z06": {
+            "zone_name": "Solapur",
+            "zone_type": "tier2_city",
+            "base_congestion_level": "moderate",
+            "road_quality_score": 0.62,
+            "lane_capacity_factor": 1.5,
+            "ems_priority_effectiveness": 0.86,
+            "signal_override_nodes": 6,
+            "avg_intersection_delay_sec": 22,
+            "one_way_street_density": "low",
+            "pedestrian_interference_factor": 1.05,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.05,
+                "08": 0.08,
+                "09": 0.06,
+                "17": 0.08,
+                "18": 0.10,
+                "19": 0.06
+            },
+            "annual_road_incident_rate_per_km": 7.4,
+            "flood_zones_pct_area": 0.03,
+            "ems_staging_posts": [
+                "SP_Z06_A",
+                "SP_Z06_B"
+            ]
+        },
+        "Z07": {
+            "zone_name": "Kolhapur",
+            "zone_type": "tier2_city",
+            "base_congestion_level": "moderate",
+            "road_quality_score": 0.60,
+            "lane_capacity_factor": 1.5,
+            "ems_priority_effectiveness": 0.84,
+            "signal_override_nodes": 5,
+            "avg_intersection_delay_sec": 24,
+            "one_way_street_density": "low",
+            "pedestrian_interference_factor": 1.08,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.04,
+                "08": 0.07,
+                "09": 0.05,
+                "17": 0.07,
+                "18": 0.09,
+                "19": 0.05
+            },
+            "annual_road_incident_rate_per_km": 6.8,
+            "flood_zones_pct_area": 0.22,
+            "ems_staging_posts": [
+                "SP_Z07_A",
+                "SP_Z07_B"
+            ]
+        },
+        "Z08": {
+            "zone_name": "Satara",
+            "zone_type": "semi_rural",
+            "base_congestion_level": "low",
+            "road_quality_score": 0.55,
+            "lane_capacity_factor": 1.8,
+            "ems_priority_effectiveness": 0.90,
+            "signal_override_nodes": 2,
+            "avg_intersection_delay_sec": 12,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.88,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.03,
+                "08": 0.05,
+                "09": 0.03,
+                "17": 0.05,
+                "18": 0.06,
+                "19": 0.03
+            },
+            "annual_road_incident_rate_per_km": 10.2,
+            "flood_zones_pct_area": 0.15,
+            "ghat_sections_km": 85,
+            "ems_staging_posts": [
+                "SP_Z08_A",
+                "SP_Z08_B"
+            ]
+        },
+        "Z09": {
+            "zone_name": "Nashik",
+            "zone_type": "metro_tier2",
+            "base_congestion_level": "moderate_high",
+            "road_quality_score": 0.68,
+            "lane_capacity_factor": 1.35,
+            "ems_priority_effectiveness": 0.80,
+            "signal_override_nodes": 10,
+            "avg_intersection_delay_sec": 28,
+            "one_way_street_density": "low",
+            "pedestrian_interference_factor": 1.10,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.08,
+                "08": 0.12,
+                "09": 0.09,
+                "17": 0.12,
+                "18": 0.14,
+                "19": 0.09
+            },
+            "annual_road_incident_rate_per_km": 7.8,
+            "flood_zones_pct_area": 0.06,
+            "ems_staging_posts": [
+                "SP_Z09_A",
+                "SP_Z09_B",
+                "SP_Z09_C"
+            ]
+        },
+        "Z10": {
+            "zone_name": "Dhule",
+            "zone_type": "tier3_city",
+            "base_congestion_level": "low_moderate",
+            "road_quality_score": 0.52,
+            "lane_capacity_factor": 1.8,
+            "ems_priority_effectiveness": 0.88,
+            "signal_override_nodes": 3,
+            "avg_intersection_delay_sec": 16,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.92,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.03,
+                "08": 0.05,
+                "09": 0.03,
+                "17": 0.05,
+                "18": 0.06,
+                "19": 0.03
+            },
+            "annual_road_incident_rate_per_km": 11.4,
+            "flood_zones_pct_area": 0.04,
+            "ems_staging_posts": [
+                "SP_Z10_A",
+                "SP_Z10_B"
+            ]
+        },
+        "Z11": {
+            "zone_name": "Jalgaon",
+            "zone_type": "tier2_city",
+            "base_congestion_level": "moderate",
+            "road_quality_score": 0.58,
+            "lane_capacity_factor": 1.6,
+            "ems_priority_effectiveness": 0.85,
+            "signal_override_nodes": 5,
+            "avg_intersection_delay_sec": 20,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.98,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.04,
+                "08": 0.07,
+                "09": 0.05,
+                "17": 0.06,
+                "18": 0.08,
+                "19": 0.04
+            },
+            "annual_road_incident_rate_per_km": 10.2,
+            "flood_zones_pct_area": 0.10,
+            "ems_staging_posts": [
+                "SP_Z11_A",
+                "SP_Z11_B"
+            ]
+        },
+        "Z12": {
+            "zone_name": "Nandurbar",
+            "zone_type": "tribal_rural",
+            "base_congestion_level": "very_low",
+            "road_quality_score": 0.38,
+            "lane_capacity_factor": 2.5,
+            "ems_priority_effectiveness": 0.95,
+            "signal_override_nodes": 0,
+            "avg_intersection_delay_sec": 5,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.75,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 7.8,
+            "flood_zones_pct_area": 0.28,
+            "unpaved_road_pct": 0.48,
+            "ferry_crossings": 2,
+            "ems_staging_posts": [
+                "SP_Z12_A"
+            ]
+        },
+        "Z13": {
+            "zone_name": "Ahmednagar",
+            "zone_type": "tier2_city",
+            "base_congestion_level": "low_moderate",
+            "road_quality_score": 0.60,
+            "lane_capacity_factor": 1.7,
+            "ems_priority_effectiveness": 0.87,
+            "signal_override_nodes": 4,
+            "avg_intersection_delay_sec": 18,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.95,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.03,
+                "08": 0.05,
+                "09": 0.04,
+                "17": 0.05,
+                "18": 0.07,
+                "19": 0.04
+            },
+            "annual_road_incident_rate_per_km": 10.6,
+            "flood_zones_pct_area": 0.04,
+            "military_cantonment_restriction": true,
+            "ems_staging_posts": [
+                "SP_Z13_A",
+                "SP_Z13_B"
+            ]
+        },
+        "Z14": {
+            "zone_name": "Aurangabad (Chhatrapati Sambhajinagar)",
+            "zone_type": "metro_tier2",
+            "base_congestion_level": "moderate",
+            "road_quality_score": 0.65,
+            "lane_capacity_factor": 1.45,
+            "ems_priority_effectiveness": 0.83,
+            "signal_override_nodes": 8,
+            "avg_intersection_delay_sec": 26,
+            "one_way_street_density": "low",
+            "pedestrian_interference_factor": 1.05,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.06,
+                "08": 0.10,
+                "09": 0.08,
+                "17": 0.10,
+                "18": 0.12,
+                "19": 0.07
+            },
+            "annual_road_incident_rate_per_km": 8.4,
+            "flood_zones_pct_area": 0.02,
+            "heritage_zone_speed_limit": 30,
+            "ems_staging_posts": [
+                "SP_Z14_A",
+                "SP_Z14_B",
+                "SP_Z14_C"
+            ]
+        },
+        "Z15": {
+            "zone_name": "Jalna",
+            "zone_type": "tier3_city",
+            "base_congestion_level": "low",
+            "road_quality_score": 0.50,
+            "lane_capacity_factor": 1.9,
+            "ems_priority_effectiveness": 0.90,
+            "signal_override_nodes": 2,
+            "avg_intersection_delay_sec": 14,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.90,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.02,
+                "08": 0.04,
+                "09": 0.03,
+                "17": 0.04,
+                "18": 0.05,
+                "19": 0.02
+            },
+            "annual_road_incident_rate_per_km": 9.6,
+            "flood_zones_pct_area": 0.02,
+            "ems_staging_posts": [
+                "SP_Z15_A"
+            ]
+        },
+        "Z16": {
+            "zone_name": "Beed",
+            "zone_type": "rural",
+            "base_congestion_level": "very_low",
+            "road_quality_score": 0.45,
+            "lane_capacity_factor": 2.2,
+            "ems_priority_effectiveness": 0.92,
+            "signal_override_nodes": 1,
+            "avg_intersection_delay_sec": 8,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.82,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 10.4,
+            "flood_zones_pct_area": 0.01,
+            "ems_staging_posts": [
+                "SP_Z16_A"
+            ]
+        },
+        "Z17": {
+            "zone_name": "Latur",
+            "zone_type": "tier3_city",
+            "base_congestion_level": "low_moderate",
+            "road_quality_score": 0.55,
+            "lane_capacity_factor": 1.8,
+            "ems_priority_effectiveness": 0.88,
+            "signal_override_nodes": 3,
+            "avg_intersection_delay_sec": 16,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.93,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.03,
+                "08": 0.05,
+                "09": 0.03,
+                "17": 0.04,
+                "18": 0.06,
+                "19": 0.03
+            },
+            "annual_road_incident_rate_per_km": 9.2,
+            "flood_zones_pct_area": 0.02,
+            "seismic_zone": "III",
+            "ems_staging_posts": [
+                "SP_Z17_A",
+                "SP_Z17_B"
+            ]
+        },
+        "Z18": {
+            "zone_name": "Osmanabad (Dharashiv)",
+            "zone_type": "rural",
+            "base_congestion_level": "very_low",
+            "road_quality_score": 0.48,
+            "lane_capacity_factor": 2.0,
+            "ems_priority_effectiveness": 0.91,
+            "signal_override_nodes": 1,
+            "avg_intersection_delay_sec": 10,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.85,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 9.8,
+            "flood_zones_pct_area": 0.03,
+            "ems_staging_posts": [
+                "SP_Z18_A"
+            ]
+        },
+        "Z19": {
+            "zone_name": "Nanded",
+            "zone_type": "tier3_city",
+            "base_congestion_level": "low_moderate",
+            "road_quality_score": 0.52,
+            "lane_capacity_factor": 1.8,
+            "ems_priority_effectiveness": 0.88,
+            "signal_override_nodes": 3,
+            "avg_intersection_delay_sec": 16,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.96,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.02,
+                "08": 0.04,
+                "09": 0.03,
+                "17": 0.04,
+                "18": 0.05,
+                "19": 0.03
+            },
+            "annual_road_incident_rate_per_km": 8.8,
+            "flood_zones_pct_area": 0.06,
+            "pilgrimage_surge_multiplier": 1.45,
+            "ems_staging_posts": [
+                "SP_Z19_A",
+                "SP_Z19_B"
+            ]
+        },
+        "Z20": {
+            "zone_name": "Hingoli",
+            "zone_type": "rural",
+            "base_congestion_level": "very_low",
+            "road_quality_score": 0.42,
+            "lane_capacity_factor": 2.2,
+            "ems_priority_effectiveness": 0.93,
+            "signal_override_nodes": 0,
+            "avg_intersection_delay_sec": 6,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.80,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 9.0,
+            "flood_zones_pct_area": 0.04,
+            "ems_staging_posts": [
+                "SP_Z20_A"
+            ]
+        },
+        "Z21": {
+            "zone_name": "Parbhani",
+            "zone_type": "tier3_city",
+            "base_congestion_level": "low",
+            "road_quality_score": 0.48,
+            "lane_capacity_factor": 1.9,
+            "ems_priority_effectiveness": 0.90,
+            "signal_override_nodes": 2,
+            "avg_intersection_delay_sec": 12,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.88,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.02,
+                "08": 0.03,
+                "09": 0.02,
+                "17": 0.03,
+                "18": 0.04,
+                "19": 0.02
+            },
+            "annual_road_incident_rate_per_km": 9.4,
+            "flood_zones_pct_area": 0.02,
+            "ems_staging_posts": [
+                "SP_Z21_A"
+            ]
+        },
+        "Z22": {
+            "zone_name": "Buldhana",
+            "zone_type": "rural",
+            "base_congestion_level": "very_low",
+            "road_quality_score": 0.50,
+            "lane_capacity_factor": 2.0,
+            "ems_priority_effectiveness": 0.91,
+            "signal_override_nodes": 1,
+            "avg_intersection_delay_sec": 10,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.85,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 11.0,
+            "flood_zones_pct_area": 0.02,
+            "ems_staging_posts": [
+                "SP_Z22_A",
+                "SP_Z22_B"
+            ]
+        },
+        "Z23": {
+            "zone_name": "Amravati",
+            "zone_type": "tier2_city",
+            "base_congestion_level": "moderate",
+            "road_quality_score": 0.60,
+            "lane_capacity_factor": 1.55,
+            "ems_priority_effectiveness": 0.85,
+            "signal_override_nodes": 5,
+            "avg_intersection_delay_sec": 22,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 1.00,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.04,
+                "08": 0.07,
+                "09": 0.05,
+                "17": 0.06,
+                "18": 0.08,
+                "19": 0.04
+            },
+            "annual_road_incident_rate_per_km": 9.8,
+            "flood_zones_pct_area": 0.08,
+            "ems_staging_posts": [
+                "SP_Z23_A",
+                "SP_Z23_B"
+            ]
+        },
+        "Z24": {
+            "zone_name": "Akola",
+            "zone_type": "tier3_city",
+            "base_congestion_level": "low_moderate",
+            "road_quality_score": 0.58,
+            "lane_capacity_factor": 1.7,
+            "ems_priority_effectiveness": 0.87,
+            "signal_override_nodes": 3,
+            "avg_intersection_delay_sec": 18,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.96,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.03,
+                "08": 0.05,
+                "09": 0.03,
+                "17": 0.04,
+                "18": 0.06,
+                "19": 0.03
+            },
+            "annual_road_incident_rate_per_km": 10.4,
+            "flood_zones_pct_area": 0.02,
+            "ems_staging_posts": [
+                "SP_Z24_A"
+            ]
+        },
+        "Z25": {
+            "zone_name": "Washim",
+            "zone_type": "rural",
+            "base_congestion_level": "very_low",
+            "road_quality_score": 0.42,
+            "lane_capacity_factor": 2.2,
+            "ems_priority_effectiveness": 0.93,
+            "signal_override_nodes": 0,
+            "avg_intersection_delay_sec": 6,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.80,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 9.4,
+            "flood_zones_pct_area": 0.02,
+            "ems_staging_posts": [
+                "SP_Z25_A"
+            ]
+        },
+        "Z26": {
+            "zone_name": "Yavatmal",
+            "zone_type": "rural",
+            "base_congestion_level": "very_low",
+            "road_quality_score": 0.45,
+            "lane_capacity_factor": 2.1,
+            "ems_priority_effectiveness": 0.92,
+            "signal_override_nodes": 1,
+            "avg_intersection_delay_sec": 8,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.83,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 9.8,
+            "flood_zones_pct_area": 0.03,
+            "pesticide_seasonal_incident_risk": "high",
+            "ems_staging_posts": [
+                "SP_Z26_A",
+                "SP_Z26_B"
+            ]
+        },
+        "Z27": {
+            "zone_name": "Nagpur City",
+            "zone_type": "metro_tier2",
+            "base_congestion_level": "moderate_high",
+            "road_quality_score": 0.72,
+            "lane_capacity_factor": 1.30,
+            "ems_priority_effectiveness": 0.80,
+            "signal_override_nodes": 12,
+            "avg_intersection_delay_sec": 30,
+            "one_way_street_density": "medium",
+            "pedestrian_interference_factor": 1.12,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.07,
+                "08": 0.12,
+                "09": 0.09,
+                "17": 0.12,
+                "18": 0.15,
+                "19": 0.09
+            },
+            "annual_road_incident_rate_per_km": 6.8,
+            "flood_zones_pct_area": 0.10,
+            "zero_mile_junction_delay_min": 4,
+            "ems_staging_posts": [
+                "SP_Z27_A",
+                "SP_Z27_B",
+                "SP_Z27_C"
+            ]
+        },
+        "Z28": {
+            "zone_name": "Wardha",
+            "zone_type": "tier3_city",
+            "base_congestion_level": "low",
+            "road_quality_score": 0.55,
+            "lane_capacity_factor": 1.8,
+            "ems_priority_effectiveness": 0.89,
+            "signal_override_nodes": 2,
+            "avg_intersection_delay_sec": 14,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.88,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.02,
+                "08": 0.04,
+                "09": 0.03,
+                "17": 0.04,
+                "18": 0.05,
+                "19": 0.02
+            },
+            "annual_road_incident_rate_per_km": 10.6,
+            "flood_zones_pct_area": 0.08,
+            "ems_staging_posts": [
+                "SP_Z28_A"
+            ]
+        },
+        "Z29": {
+            "zone_name": "Chandrapur",
+            "zone_type": "industrial_town",
+            "base_congestion_level": "low_moderate",
+            "road_quality_score": 0.52,
+            "lane_capacity_factor": 1.8,
+            "ems_priority_effectiveness": 0.87,
+            "signal_override_nodes": 2,
+            "avg_intersection_delay_sec": 16,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.90,
+            "local_hour_multiplier_adjustment": {
+                "06": 0.08,
+                "07": 0.06,
+                "14": 0.08,
+                "22": 0.06
+            },
+            "annual_road_incident_rate_per_km": 9.2,
+            "flood_zones_pct_area": 0.12,
+            "industrial_shift_traffic_pattern": true,
+            "heavy_vehicle_pct": 0.38,
+            "ems_staging_posts": [
+                "SP_Z29_A",
+                "SP_Z29_B"
+            ]
+        },
+        "Z30": {
+            "zone_name": "Gadchiroli",
+            "zone_type": "tribal_forest",
+            "base_congestion_level": "negligible",
+            "road_quality_score": 0.28,
+            "lane_capacity_factor": 3.0,
+            "ems_priority_effectiveness": 0.97,
+            "signal_override_nodes": 0,
+            "avg_intersection_delay_sec": 2,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.70,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 5.8,
+            "flood_zones_pct_area": 0.35,
+            "unpaved_road_pct": 0.68,
+            "seasonal_road_closures": true,
+            "security_concern_delay_pct": 0.12,
+            "river_crossing_points": 8,
+            "ems_staging_posts": [
+                "SP_Z30_A"
+            ]
+        },
+        "Z31": {
+            "zone_name": "Gondia",
+            "zone_type": "rural",
+            "base_congestion_level": "very_low",
+            "road_quality_score": 0.50,
+            "lane_capacity_factor": 2.0,
+            "ems_priority_effectiveness": 0.91,
+            "signal_override_nodes": 1,
+            "avg_intersection_delay_sec": 10,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.83,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 8.4,
+            "flood_zones_pct_area": 0.20,
+            "forest_terrain_pct": 0.35,
+            "ems_staging_posts": [
+                "SP_Z31_A"
+            ]
+        },
+        "Z32": {
+            "zone_name": "Bhandara",
+            "zone_type": "rural",
+            "base_congestion_level": "very_low",
+            "road_quality_score": 0.52,
+            "lane_capacity_factor": 2.0,
+            "ems_priority_effectiveness": 0.91,
+            "signal_override_nodes": 1,
+            "avg_intersection_delay_sec": 10,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.83,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 7.8,
+            "flood_zones_pct_area": 0.22,
+            "ems_staging_posts": [
+                "SP_Z32_A"
+            ]
+        },
+        "Z33": {
+            "zone_name": "Sindhudurg",
+            "zone_type": "coastal_rural",
+            "base_congestion_level": "low",
+            "road_quality_score": 0.55,
+            "lane_capacity_factor": 1.8,
+            "ems_priority_effectiveness": 0.88,
+            "signal_override_nodes": 1,
+            "avg_intersection_delay_sec": 12,
+            "one_way_street_density": "none",
+            "pedestrian_interference_factor": 0.85,
+            "local_hour_multiplier_adjustment": {},
+            "annual_road_incident_rate_per_km": 6.8,
+            "flood_zones_pct_area": 0.20,
+            "ghat_sections_km": 62,
+            "coastal_fog_events_per_year": 18,
+            "ems_staging_posts": [
+                "SP_Z33_A"
+            ]
+        },
+        "Z34": {
+            "zone_name": "Ratnagiri",
+            "zone_type": "coastal_semi_urban",
+            "base_congestion_level": "low_moderate",
+            "road_quality_score": 0.52,
+            "lane_capacity_factor": 1.8,
+            "ems_priority_effectiveness": 0.87,
+            "signal_override_nodes": 2,
+            "avg_intersection_delay_sec": 14,
+            "one_way_street_density": "very_low",
+            "pedestrian_interference_factor": 0.88,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.02,
+                "08": 0.04,
+                "09": 0.03,
+                "17": 0.04,
+                "18": 0.05,
+                "19": 0.02
+            },
+            "annual_road_incident_rate_per_km": 8.4,
+            "flood_zones_pct_area": 0.18,
+            "ghat_sections_km": 78,
+            "ems_staging_posts": [
+                "SP_Z34_A",
+                "SP_Z34_B"
+            ]
+        },
+        "Z35": {
+            "zone_name": "Palghar",
+            "zone_type": "metro_peri_urban",
+            "base_congestion_level": "moderate_high",
+            "road_quality_score": 0.62,
+            "lane_capacity_factor": 1.3,
+            "ems_priority_effectiveness": 0.80,
+            "signal_override_nodes": 6,
+            "avg_intersection_delay_sec": 28,
+            "one_way_street_density": "low",
+            "pedestrian_interference_factor": 1.05,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.08,
+                "08": 0.14,
+                "09": 0.10,
+                "17": 0.12,
+                "18": 0.16,
+                "19": 0.10
+            },
+            "annual_road_incident_rate_per_km": 8.8,
+            "flood_zones_pct_area": 0.16,
+            "nuclear_zone_proximity_restriction": true,
+            "ems_staging_posts": [
+                "SP_Z35_A",
+                "SP_Z35_B"
+            ]
+        },
+        "Z36": {
+            "zone_name": "Sangli",
+            "zone_type": "tier2_city",
+            "base_congestion_level": "moderate",
+            "road_quality_score": 0.60,
+            "lane_capacity_factor": 1.5,
+            "ems_priority_effectiveness": 0.85,
+            "signal_override_nodes": 4,
+            "avg_intersection_delay_sec": 22,
+            "one_way_street_density": "low",
+            "pedestrian_interference_factor": 1.02,
+            "local_hour_multiplier_adjustment": {
+                "07": 0.04,
+                "08": 0.07,
+                "09": 0.05,
+                "17": 0.07,
+                "18": 0.09,
+                "19": 0.05
+            },
+            "annual_road_incident_rate_per_km": 7.8,
+            "flood_zones_pct_area": 0.24,
+            "ems_staging_posts": [
+                "SP_Z36_A",
+                "SP_Z36_B"
+            ]
+        }
+    },
+    "ambulance_staging_posts": {
+        "note": "72 staging posts across 36 zones. Each post has zone, coordinates, unit types, and shift coverage.",
+        "SP_Z01_A": {
+            "zone": "Z01",
+            "name": "KEM Hospital Staging Bay",
+            "lat": 18.9941,
+            "lon": 72.8404,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z01_B": {
+            "zone": "Z01",
+            "name": "Sion Hospital Forward Post",
+            "lat": 19.0433,
+            "lon": 72.8635,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z01_C": {
+            "zone": "Z01",
+            "name": "Nair Hospital Base",
+            "lat": 18.9800,
+            "lon": 72.8348,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z01_D": {
+            "zone": "Z01",
+            "name": "Bandra-Kurla Outpost",
+            "lat": 19.0650,
+            "lon": 72.8680,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z02_A": {
+            "zone": "Z02",
+            "name": "Kokilaben Hospital Base",
+            "lat": 19.1305,
+            "lon": 72.8272,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": true
+        },
+        "SP_Z02_B": {
+            "zone": "Z02",
+            "name": "Nanavati Hospital Staging",
+            "lat": 19.1007,
+            "lon": 72.8467,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z02_C": {
+            "zone": "Z02",
+            "name": "Mulund Outpost",
+            "lat": 19.1730,
+            "lon": 72.9560,
+            "units": [
+                "BLS",
+                "ALS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z03_A": {
+            "zone": "Z03",
+            "name": "Jupiter Hospital Thane Base",
+            "lat": 19.2183,
+            "lon": 72.9781,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z03_B": {
+            "zone": "Z03",
+            "name": "Bhiwandi Forward Post",
+            "lat": 19.2966,
+            "lon": 73.0572,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z03_C": {
+            "zone": "Z03",
+            "name": "Kalyan Outpost",
+            "lat": 19.2403,
+            "lon": 73.1305,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z04_A": {
+            "zone": "Z04",
+            "name": "Alibag Base Station",
+            "lat": 18.6415,
+            "lon": 72.8722,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z04_B": {
+            "zone": "Z04",
+            "name": "Rasayani MIDC Outpost",
+            "lat": 18.7065,
+            "lon": 73.1555,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z05_A": {
+            "zone": "Z05",
+            "name": "Sassoon Hospital Base",
+            "lat": 18.5236,
+            "lon": 73.8738,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": true
+        },
+        "SP_Z05_B": {
+            "zone": "Z05",
+            "name": "Ruby Hall Forward Post",
+            "lat": 18.5308,
+            "lon": 73.8756,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z05_C": {
+            "zone": "Z05",
+            "name": "Deenanath Hospital Base",
+            "lat": 18.5129,
+            "lon": 73.8254,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z05_D": {
+            "zone": "Z05",
+            "name": "Hadapsar Outpost",
+            "lat": 18.5090,
+            "lon": 73.9290,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z06_A": {
+            "zone": "Z06",
+            "name": "Civil Hospital Solapur Base",
+            "lat": 17.6878,
+            "lon": 75.9147,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z06_B": {
+            "zone": "Z06",
+            "name": "Hotgi Road Outpost",
+            "lat": 17.6450,
+            "lon": 75.8900,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "08-20"
+        },
+        "SP_Z07_A": {
+            "zone": "Z07",
+            "name": "Civil Hospital Kolhapur Base",
+            "lat": 16.7050,
+            "lon": 74.2433,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z07_B": {
+            "zone": "Z07",
+            "name": "Kagal MIDC Outpost",
+            "lat": 16.5800,
+            "lon": 74.3100,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z08_A": {
+            "zone": "Z08",
+            "name": "Satara City Base",
+            "lat": 17.6805,
+            "lon": 74.0183,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z08_B": {
+            "zone": "Z08",
+            "name": "Karad Junction Outpost",
+            "lat": 17.2880,
+            "lon": 74.1840,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-20"
+        },
+        "SP_Z09_A": {
+            "zone": "Z09",
+            "name": "Civil Hospital Nashik Base",
+            "lat": 19.9975,
+            "lon": 73.7898,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z09_B": {
+            "zone": "Z09",
+            "name": "Satpur MIDC Outpost",
+            "lat": 20.0430,
+            "lon": 73.8350,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z09_C": {
+            "zone": "Z09",
+            "name": "Igatpuri Ghat Post",
+            "lat": 19.7070,
+            "lon": 73.5650,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false,
+            "notes": "Critical ghat section coverage"
+        },
+        "SP_Z10_A": {
+            "zone": "Z10",
+            "name": "Dhule Civil Hospital Base",
+            "lat": 20.9042,
+            "lon": 74.7749,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z10_B": {
+            "zone": "Z10",
+            "name": "Shirpur Outpost",
+            "lat": 21.3480,
+            "lon": 74.8850,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-20"
+        },
+        "SP_Z11_A": {
+            "zone": "Z11",
+            "name": "Jalgaon District Hospital Base",
+            "lat": 21.0077,
+            "lon": 75.5626,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z11_B": {
+            "zone": "Z11",
+            "name": "Bhusawal Railway Junction Post",
+            "lat": 21.0427,
+            "lon": 75.7840,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false,
+            "notes": "Serves railway accidents"
+        },
+        "SP_Z12_A": {
+            "zone": "Z12",
+            "name": "Nandurbar Base Station",
+            "lat": 21.3660,
+            "lon": 74.2430,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z13_A": {
+            "zone": "Z13",
+            "name": "Ahmednagar Civil Base",
+            "lat": 19.0948,
+            "lon": 74.7480,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z13_B": {
+            "zone": "Z13",
+            "name": "Shrirampur Outpost",
+            "lat": 19.6230,
+            "lon": 74.6570,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-20"
+        },
+        "SP_Z14_A": {
+            "zone": "Z14",
+            "name": "GMCA Aurangabad Base",
+            "lat": 19.8787,
+            "lon": 75.3346,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": true
+        },
+        "SP_Z14_B": {
+            "zone": "Z14",
+            "name": "Waluj MIDC Outpost",
+            "lat": 19.8320,
+            "lon": 75.4620,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z14_C": {
+            "zone": "Z14",
+            "name": "Chikalthana Airport Post",
+            "lat": 19.8627,
+            "lon": 75.4010,
+            "units": [
+                "MICU",
+                "ALS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false,
+            "notes": "Airport emergency coverage"
+        },
+        "SP_Z15_A": {
+            "zone": "Z15",
+            "name": "Jalna District Base",
+            "lat": 19.8347,
+            "lon": 75.8816,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z16_A": {
+            "zone": "Z16",
+            "name": "Beed Civil Base",
+            "lat": 18.9890,
+            "lon": 75.7601,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z17_A": {
+            "zone": "Z17",
+            "name": "Latur Civil Hospital Base",
+            "lat": 18.4088,
+            "lon": 76.5604,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z17_B": {
+            "zone": "Z17",
+            "name": "Udgir Outpost",
+            "lat": 18.3900,
+            "lon": 77.1180,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-20"
+        },
+        "SP_Z18_A": {
+            "zone": "Z18",
+            "name": "Osmanabad Base",
+            "lat": 18.1765,
+            "lon": 76.0420,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z19_A": {
+            "zone": "Z19",
+            "name": "Nanded Civil Base",
+            "lat": 19.1383,
+            "lon": 77.2210,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z19_B": {
+            "zone": "Z19",
+            "name": "Hazur Sahib Pilgrimage Post",
+            "lat": 19.1040,
+            "lon": 77.3120,
+            "units": [
+                "BLS",
+                "ALS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false,
+            "notes": "High-density pilgrimage area"
+        },
+        "SP_Z20_A": {
+            "zone": "Z20",
+            "name": "Hingoli Base",
+            "lat": 19.7165,
+            "lon": 77.1496,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z21_A": {
+            "zone": "Z21",
+            "name": "Parbhani Base",
+            "lat": 19.2704,
+            "lon": 76.7742,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z22_A": {
+            "zone": "Z22",
+            "name": "Buldhana Civil Base",
+            "lat": 20.5292,
+            "lon": 76.1840,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z22_B": {
+            "zone": "Z22",
+            "name": "Malkapur Junction Post",
+            "lat": 20.8840,
+            "lon": 76.2180,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-20"
+        },
+        "SP_Z23_A": {
+            "zone": "Z23",
+            "name": "Amravati Civil Base",
+            "lat": 20.9374,
+            "lon": 77.7796,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z23_B": {
+            "zone": "Z23",
+            "name": "Badnera Junction Post",
+            "lat": 20.9320,
+            "lon": 77.8520,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false,
+            "notes": "Railway junction coverage"
+        },
+        "SP_Z24_A": {
+            "zone": "Z24",
+            "name": "Akola Civil Base",
+            "lat": 20.7002,
+            "lon": 77.0082,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z25_A": {
+            "zone": "Z25",
+            "name": "Washim Base",
+            "lat": 20.1120,
+            "lon": 77.1478,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z26_A": {
+            "zone": "Z26",
+            "name": "Yavatmal Civil Base",
+            "lat": 20.3888,
+            "lon": 78.1204,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z26_B": {
+            "zone": "Z26",
+            "name": "Wani Outpost",
+            "lat": 20.0520,
+            "lon": 78.9460,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-20"
+        },
+        "SP_Z27_A": {
+            "zone": "Z27",
+            "name": "IGGMC Nagpur Base",
+            "lat": 21.1475,
+            "lon": 79.0752,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": true
+        },
+        "SP_Z27_B": {
+            "zone": "Z27",
+            "name": "GMCH Nagpur Base",
+            "lat": 21.1498,
+            "lon": 79.0806,
+            "units": [
+                "MICU",
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": true
+        },
+        "SP_Z27_C": {
+            "zone": "Z27",
+            "name": "MIHAN SEZ Outpost",
+            "lat": 21.0900,
+            "lon": 79.0470,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z28_A": {
+            "zone": "Z28",
+            "name": "Wardha Civil Base",
+            "lat": 20.7453,
+            "lon": 78.6022,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z29_A": {
+            "zone": "Z29",
+            "name": "Chandrapur District Base",
+            "lat": 19.9615,
+            "lon": 79.2961,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z29_B": {
+            "zone": "Z29",
+            "name": "MAHAGENCO Plant Gate",
+            "lat": 19.9380,
+            "lon": 79.3150,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false,
+            "notes": "Coal plant industrial emergency coverage"
+        },
+        "SP_Z30_A": {
+            "zone": "Z30",
+            "name": "Gadchiroli Base",
+            "lat": 20.1809,
+            "lon": 80.0086,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": true,
+            "notes": "Helipad critical for remote access"
+        },
+        "SP_Z31_A": {
+            "zone": "Z31",
+            "name": "Gondia Base",
+            "lat": 21.4624,
+            "lon": 80.1954,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z32_A": {
+            "zone": "Z32",
+            "name": "Bhandara Base",
+            "lat": 21.1667,
+            "lon": 79.6500,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z33_A": {
+            "zone": "Z33",
+            "name": "Sindhudurg Base Kudal",
+            "lat": 16.0450,
+            "lon": 73.6870,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z34_A": {
+            "zone": "Z34",
+            "name": "Ratnagiri District Base",
+            "lat": 17.0021,
+            "lon": 73.3158,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z34_B": {
+            "zone": "Z34",
+            "name": "Chiplun Outpost",
+            "lat": 17.5300,
+            "lon": 73.5120,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z35_A": {
+            "zone": "Z35",
+            "name": "Virar Base Station",
+            "lat": 19.4660,
+            "lon": 72.8000,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z35_B": {
+            "zone": "Z35",
+            "name": "Vasai Industrial Outpost",
+            "lat": 19.3698,
+            "lon": 72.8322,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": false,
+            "shift_coverage": "06-22"
+        },
+        "SP_Z36_A": {
+            "zone": "Z36",
+            "name": "Sangli Civil Base",
+            "lat": 16.8524,
+            "lon": 74.5815,
+            "units": [
+                "ALS",
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false
+        },
+        "SP_Z36_B": {
+            "zone": "Z36",
+            "name": "Miraj Junction Post",
+            "lat": 16.8290,
+            "lon": 74.6590,
+            "units": [
+                "BLS"
+            ],
+            "24h_coverage": true,
+            "helipad_access": false,
+            "notes": "Miraj railway junction coverage"
+        }
+    },
+    "bottleneck_network": {
+        "note": "54 bottleneck nodes. Each has zone, affected zones, incident slowdown multiplier, clearance time, and EMS bypass route.",
+        "BN_01": {
+            "zone": "Z01",
+            "name": "Sion-Panvel Highway Junction",
+            "affected_zones": [
+                "Z01",
+                "Z02"
+            ],
+            "incident_slowdown_multiplier": 1.65,
+            "clearance_time_min": 60,
+            "ems_bypass_route": "Eastern Express Highway",
+            "bypass_time_delta_min": 8
+        },
+        "BN_02": {
+            "zone": "Z01",
+            "name": "Bandra-Kurla Complex",
+            "affected_zones": [
+                "Z01",
+                "Z02"
+            ],
+            "incident_slowdown_multiplier": 1.55,
+            "clearance_time_min": 50,
+            "ems_bypass_route": "Western Express Highway",
+            "bypass_time_delta_min": 6
+        },
+        "BN_03": {
+            "zone": "Z01",
+            "name": "JVLR Junction",
+            "affected_zones": [
+                "Z01",
+                "Z02",
+                "Z03"
+            ],
+            "incident_slowdown_multiplier": 1.48,
+            "clearance_time_min": 40,
+            "ems_bypass_route": "JVLR service road",
+            "bypass_time_delta_min": 5
+        },
+        "BN_04": {
+            "zone": "Z01",
+            "name": "Andheri Junction",
+            "affected_zones": [
+                "Z01",
+                "Z02"
+            ],
+            "incident_slowdown_multiplier": 1.52,
+            "clearance_time_min": 45,
+            "ems_bypass_route": "Link Road",
+            "bypass_time_delta_min": 7
+        },
+        "BN_05": {
+            "zone": "Z02",
+            "name": "Dahisar Naka",
+            "affected_zones": [
+                "Z02",
+                "Z35"
+            ],
+            "incident_slowdown_multiplier": 1.50,
+            "clearance_time_min": 45,
+            "ems_bypass_route": "Highway flyover lane",
+            "bypass_time_delta_min": 4
+        },
+        "BN_06": {
+            "zone": "Z02",
+            "name": "Ghatkopar Junction",
+            "affected_zones": [
+                "Z01",
+                "Z02",
+                "Z03"
+            ],
+            "incident_slowdown_multiplier": 1.45,
+            "clearance_time_min": 40,
+            "ems_bypass_route": "Ghatkopar-Mankhurd Link",
+            "bypass_time_delta_min": 6
+        },
+        "BN_07": {
+            "zone": "Z02",
+            "name": "Mulund Check Naka",
+            "affected_zones": [
+                "Z02",
+                "Z03"
+            ],
+            "incident_slowdown_multiplier": 1.42,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "Airoli Bridge",
+            "bypass_time_delta_min": 5
+        },
+        "BN_08": {
+            "zone": "Z03",
+            "name": "Thane Station",
+            "affected_zones": [
+                "Z02",
+                "Z03"
+            ],
+            "incident_slowdown_multiplier": 1.48,
+            "clearance_time_min": 42,
+            "ems_bypass_route": "Ghodbunder Road",
+            "bypass_time_delta_min": 8
+        },
+        "BN_09": {
+            "zone": "Z03",
+            "name": "Bhiwandi Bypass",
+            "affected_zones": [
+                "Z03",
+                "Z35"
+            ],
+            "incident_slowdown_multiplier": 1.40,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "Kalyan-Bhiwandi bypass",
+            "bypass_time_delta_min": 6
+        },
+        "BN_10": {
+            "zone": "Z03",
+            "name": "Kalyan Flyover",
+            "affected_zones": [
+                "Z03",
+                "Z11"
+            ],
+            "incident_slowdown_multiplier": 1.44,
+            "clearance_time_min": 40,
+            "ems_bypass_route": "Old NH bypass",
+            "bypass_time_delta_min": 7
+        },
+        "BN_11": {
+            "zone": "Z04",
+            "name": "Khopoli Ghat Entry",
+            "affected_zones": [
+                "Z04",
+                "Z05"
+            ],
+            "incident_slowdown_multiplier": 1.80,
+            "clearance_time_min": 75,
+            "ems_bypass_route": "None — single carriageway",
+            "bypass_time_delta_min": 0,
+            "notes": "No bypass. Major incident causes 75+ min delay."
+        },
+        "BN_12": {
+            "zone": "Z04",
+            "name": "Alibag Ferry Point",
+            "affected_zones": [
+                "Z04",
+                "Z01"
+            ],
+            "incident_slowdown_multiplier": 2.20,
+            "clearance_time_min": 90,
+            "ems_bypass_route": "Road via Pen-Panvel",
+            "bypass_time_delta_min": 55,
+            "notes": "Ferry crossing — critical delay if missed"
+        },
+        "BN_13": {
+            "zone": "Z04",
+            "name": "Rasayani MIDC",
+            "affected_zones": [
+                "Z04",
+                "Z03"
+            ],
+            "incident_slowdown_multiplier": 1.50,
+            "clearance_time_min": 50,
+            "ems_bypass_route": "Service road",
+            "bypass_time_delta_min": 5
+        },
+        "BN_14": {
+            "zone": "Z04",
+            "name": "Pen Junction",
+            "affected_zones": [
+                "Z04",
+                "Z08"
+            ],
+            "incident_slowdown_multiplier": 1.38,
+            "clearance_time_min": 35,
+            "ems_bypass_route": "State highway 92",
+            "bypass_time_delta_min": 10
+        },
+        "BN_15": {
+            "zone": "Z05",
+            "name": "Shivajinagar Junction",
+            "affected_zones": [
+                "Z05"
+            ],
+            "incident_slowdown_multiplier": 1.52,
+            "clearance_time_min": 45,
+            "ems_bypass_route": "FC Road-Law College route",
+            "bypass_time_delta_min": 4
+        },
+        "BN_16": {
+            "zone": "Z05",
+            "name": "Hadapsar Junction",
+            "affected_zones": [
+                "Z05",
+                "Z06"
+            ],
+            "incident_slowdown_multiplier": 1.45,
+            "clearance_time_min": 40,
+            "ems_bypass_route": "Magarpatta road",
+            "bypass_time_delta_min": 5
+        },
+        "BN_17": {
+            "zone": "Z05",
+            "name": "Wakad Bridge",
+            "affected_zones": [
+                "Z05",
+                "Z03"
+            ],
+            "incident_slowdown_multiplier": 1.42,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "Sus Road",
+            "bypass_time_delta_min": 6
+        },
+        "BN_18": {
+            "zone": "Z05",
+            "name": "Katraj Ghat Entry",
+            "affected_zones": [
+                "Z05",
+                "Z08"
+            ],
+            "incident_slowdown_multiplier": 1.70,
+            "clearance_time_min": 65,
+            "ems_bypass_route": "NH48 expressway (paid)",
+            "bypass_time_delta_min": 8
+        },
+        "BN_19": {
+            "zone": "Z05",
+            "name": "Kothrud Junction",
+            "affected_zones": [
+                "Z05",
+                "Z02"
+            ],
+            "incident_slowdown_multiplier": 1.38,
+            "clearance_time_min": 35,
+            "ems_bypass_route": "Paud Road",
+            "bypass_time_delta_min": 4
+        },
+        "BN_20": {
+            "zone": "Z09",
+            "name": "Nashik Road Junction",
+            "affected_zones": [
+                "Z09",
+                "Z13"
+            ],
+            "incident_slowdown_multiplier": 1.42,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "Gangapur Road",
+            "bypass_time_delta_min": 6
+        },
+        "BN_21": {
+            "zone": "Z09",
+            "name": "Satpur MIDC",
+            "affected_zones": [
+                "Z09",
+                "Z10"
+            ],
+            "incident_slowdown_multiplier": 1.38,
+            "clearance_time_min": 35,
+            "ems_bypass_route": "NH160 service lane",
+            "bypass_time_delta_min": 4
+        },
+        "BN_22": {
+            "zone": "Z09",
+            "name": "Igatpuri Ghat",
+            "affected_zones": [
+                "Z09",
+                "Z02"
+            ],
+            "incident_slowdown_multiplier": 1.85,
+            "clearance_time_min": 80,
+            "ems_bypass_route": "None — ghat section",
+            "bypass_time_delta_min": 0,
+            "notes": "Most dangerous ghat. 85+ accidents/year."
+        },
+        "BN_23": {
+            "zone": "Z09",
+            "name": "College Road",
+            "affected_zones": [
+                "Z09"
+            ],
+            "incident_slowdown_multiplier": 1.32,
+            "clearance_time_min": 30,
+            "ems_bypass_route": "Mahatma Nagar Road",
+            "bypass_time_delta_min": 3
+        },
+        "BN_24": {
+            "zone": "Z11",
+            "name": "Bhusawal Junction",
+            "affected_zones": [
+                "Z11",
+                "Z22"
+            ],
+            "incident_slowdown_multiplier": 1.45,
+            "clearance_time_min": 42,
+            "ems_bypass_route": "Old Agra Road",
+            "bypass_time_delta_min": 8
+        },
+        "BN_25": {
+            "zone": "Z11",
+            "name": "Chalisgaon",
+            "affected_zones": [
+                "Z11",
+                "Z09"
+            ],
+            "incident_slowdown_multiplier": 1.35,
+            "clearance_time_min": 35,
+            "ems_bypass_route": "District road",
+            "bypass_time_delta_min": 10
+        },
+        "BN_26": {
+            "zone": "Z14",
+            "name": "MIDC Waluj",
+            "affected_zones": [
+                "Z14",
+                "Z15"
+            ],
+            "incident_slowdown_multiplier": 1.38,
+            "clearance_time_min": 35,
+            "ems_bypass_route": "Ring road",
+            "bypass_time_delta_min": 5
+        },
+        "BN_27": {
+            "zone": "Z14",
+            "name": "Jalna Road",
+            "affected_zones": [
+                "Z14",
+                "Z15"
+            ],
+            "incident_slowdown_multiplier": 1.35,
+            "clearance_time_min": 32,
+            "ems_bypass_route": "Bypass flyover",
+            "bypass_time_delta_min": 4
+        },
+        "BN_28": {
+            "zone": "Z14",
+            "name": "Chikalthana Airport Road",
+            "affected_zones": [
+                "Z14"
+            ],
+            "incident_slowdown_multiplier": 1.42,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "Cantonment road",
+            "bypass_time_delta_min": 5
+        },
+        "BN_29": {
+            "zone": "Z17",
+            "name": "Latur City Junction",
+            "affected_zones": [
+                "Z17",
+                "Z18"
+            ],
+            "incident_slowdown_multiplier": 1.35,
+            "clearance_time_min": 32,
+            "ems_bypass_route": "Ring road",
+            "bypass_time_delta_min": 4
+        },
+        "BN_30": {
+            "zone": "Z17",
+            "name": "Udgir Junction",
+            "affected_zones": [
+                "Z17",
+                "Z19"
+            ],
+            "incident_slowdown_multiplier": 1.30,
+            "clearance_time_min": 28,
+            "ems_bypass_route": "Service road",
+            "bypass_time_delta_min": 6
+        },
+        "BN_31": {
+            "zone": "Z27",
+            "name": "Nagpur Zero Mile",
+            "affected_zones": [
+                "Z27",
+                "Z28",
+                "Z32"
+            ],
+            "incident_slowdown_multiplier": 1.50,
+            "clearance_time_min": 45,
+            "ems_bypass_route": "Ring road NH353",
+            "bypass_time_delta_min": 8
+        },
+        "BN_32": {
+            "zone": "Z27",
+            "name": "Wardha Road MIHAN",
+            "affected_zones": [
+                "Z27",
+                "Z28"
+            ],
+            "incident_slowdown_multiplier": 1.40,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "Airport bypass",
+            "bypass_time_delta_min": 6
+        },
+        "BN_33": {
+            "zone": "Z27",
+            "name": "Amravati Road Junction",
+            "affected_zones": [
+                "Z27",
+                "Z23"
+            ],
+            "incident_slowdown_multiplier": 1.38,
+            "clearance_time_min": 35,
+            "ems_bypass_route": "NH53 service lane",
+            "bypass_time_delta_min": 4
+        },
+        "BN_34": {
+            "zone": "Z27",
+            "name": "Kamptee Road",
+            "affected_zones": [
+                "Z27",
+                "Z31"
+            ],
+            "incident_slowdown_multiplier": 1.35,
+            "clearance_time_min": 32,
+            "ems_bypass_route": "Outer ring road",
+            "bypass_time_delta_min": 7
+        },
+        "BN_35": {
+            "zone": "Z29",
+            "name": "MAHAGENCO Plant Road",
+            "affected_zones": [
+                "Z29",
+                "Z28"
+            ],
+            "incident_slowdown_multiplier": 1.35,
+            "clearance_time_min": 35,
+            "ems_bypass_route": "Industrial bypass",
+            "bypass_time_delta_min": 6
+        },
+        "BN_36": {
+            "zone": "Z29",
+            "name": "Ballarpur Industries Junction",
+            "affected_zones": [
+                "Z29",
+                "Z30"
+            ],
+            "incident_slowdown_multiplier": 1.32,
+            "clearance_time_min": 30,
+            "ems_bypass_route": "Forest road",
+            "bypass_time_delta_min": 12
+        },
+        "BN_37": {
+            "zone": "Z35",
+            "name": "Vasai Bridge",
+            "affected_zones": [
+                "Z35",
+                "Z02"
+            ],
+            "incident_slowdown_multiplier": 1.60,
+            "clearance_time_min": 55,
+            "ems_bypass_route": "Bhayander road",
+            "bypass_time_delta_min": 12
+        },
+        "BN_38": {
+            "zone": "Z35",
+            "name": "Virar Junction",
+            "affected_zones": [
+                "Z35",
+                "Z02"
+            ],
+            "incident_slowdown_multiplier": 1.45,
+            "clearance_time_min": 42,
+            "ems_bypass_route": "NH48 service lane",
+            "bypass_time_delta_min": 5
+        },
+        "BN_39": {
+            "zone": "Z35",
+            "name": "Manor Junction",
+            "affected_zones": [
+                "Z35",
+                "Z34"
+            ],
+            "incident_slowdown_multiplier": 1.42,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "None",
+            "bypass_time_delta_min": 0
+        },
+        "BN_40": {
+            "zone": "Z07",
+            "name": "Kolhapur City Junction",
+            "affected_zones": [
+                "Z07",
+                "Z36"
+            ],
+            "incident_slowdown_multiplier": 1.38,
+            "clearance_time_min": 35,
+            "ems_bypass_route": "Ring road",
+            "bypass_time_delta_min": 5
+        },
+        "BN_41": {
+            "zone": "Z07",
+            "name": "Panhala Road",
+            "affected_zones": [
+                "Z07",
+                "Z33"
+            ],
+            "incident_slowdown_multiplier": 1.55,
+            "clearance_time_min": 50,
+            "ems_bypass_route": "None — narrow ghat",
+            "bypass_time_delta_min": 0
+        },
+        "BN_42": {
+            "zone": "Z34",
+            "name": "Ratnagiri City",
+            "affected_zones": [
+                "Z34",
+                "Z33"
+            ],
+            "incident_slowdown_multiplier": 1.40,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "NH66 bypass",
+            "bypass_time_delta_min": 6
+        },
+        "BN_43": {
+            "zone": "Z34",
+            "name": "Chiplun Junction",
+            "affected_zones": [
+                "Z34",
+                "Z08"
+            ],
+            "incident_slowdown_multiplier": 1.48,
+            "clearance_time_min": 42,
+            "ems_bypass_route": "State highway 92",
+            "bypass_time_delta_min": 10
+        },
+        "BN_44": {
+            "zone": "Z34",
+            "name": "Khed Junction",
+            "affected_zones": [
+                "Z34",
+                "Z04"
+            ],
+            "incident_slowdown_multiplier": 1.42,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "Old highway",
+            "bypass_time_delta_min": 8
+        },
+        "BN_45": {
+            "zone": "Z03",
+            "name": "Ghodbunder Road Junction",
+            "affected_zones": [
+                "Z03",
+                "Z02"
+            ],
+            "incident_slowdown_multiplier": 1.45,
+            "clearance_time_min": 40,
+            "ems_bypass_route": "Hiranandani Bypass",
+            "bypass_time_delta_min": 8
+        },
+        "BN_46": {
+            "zone": "Z22",
+            "name": "Khamgaon",
+            "affected_zones": [
+                "Z22",
+                "Z23"
+            ],
+            "incident_slowdown_multiplier": 1.32,
+            "clearance_time_min": 30,
+            "ems_bypass_route": "NH53 service road",
+            "bypass_time_delta_min": 5
+        },
+        "BN_47": {
+            "zone": "Z06",
+            "name": "Solapur City Centre",
+            "affected_zones": [
+                "Z06",
+                "Z17"
+            ],
+            "incident_slowdown_multiplier": 1.35,
+            "clearance_time_min": 32,
+            "ems_bypass_route": "Ring road",
+            "bypass_time_delta_min": 4
+        },
+        "BN_48": {
+            "zone": "Z08",
+            "name": "Panchgani Ghat",
+            "affected_zones": [
+                "Z08",
+                "Z05"
+            ],
+            "incident_slowdown_multiplier": 1.70,
+            "clearance_time_min": 65,
+            "ems_bypass_route": "NH48 — 40km longer",
+            "bypass_time_delta_min": 25
+        },
+        "BN_49": {
+            "zone": "Z30",
+            "name": "Gadchiroli Town",
+            "affected_zones": [
+                "Z30",
+                "Z29"
+            ],
+            "incident_slowdown_multiplier": 1.30,
+            "clearance_time_min": 28,
+            "ems_bypass_route": "Forest track",
+            "bypass_time_delta_min": 20
+        },
+        "BN_50": {
+            "zone": "Z30",
+            "name": "Chamorshi Junction",
+            "affected_zones": [
+                "Z30",
+                "Z29"
+            ],
+            "incident_slowdown_multiplier": 1.55,
+            "clearance_time_min": 50,
+            "ems_bypass_route": "None — monsoon closures",
+            "bypass_time_delta_min": 0
+        },
+        "BN_51": {
+            "zone": "Z12",
+            "name": "Shahada Junction",
+            "affected_zones": [
+                "Z12",
+                "Z11"
+            ],
+            "incident_slowdown_multiplier": 1.42,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "State road",
+            "bypass_time_delta_min": 12
+        },
+        "BN_52": {
+            "zone": "Z12",
+            "name": "Taloda Ferry Cross",
+            "affected_zones": [
+                "Z12",
+                "Z10"
+            ],
+            "incident_slowdown_multiplier": 2.50,
+            "clearance_time_min": 120,
+            "ems_bypass_route": "Road bridge 45km longer",
+            "bypass_time_delta_min": 40,
+            "notes": "Seasonal ferry — no road bridge"
+        },
+        "BN_53": {
+            "zone": "Z36",
+            "name": "Miraj Junction",
+            "affected_zones": [
+                "Z36",
+                "Z07"
+            ],
+            "incident_slowdown_multiplier": 1.38,
+            "clearance_time_min": 35,
+            "ems_bypass_route": "District road",
+            "bypass_time_delta_min": 6
+        },
+        "BN_54": {
+            "zone": "Z23",
+            "name": "Badnera Junction",
+            "affected_zones": [
+                "Z23",
+                "Z24"
+            ],
+            "incident_slowdown_multiplier": 1.40,
+            "clearance_time_min": 38,
+            "ems_bypass_route": "NH53 bypass",
+            "bypass_time_delta_min": 5
+        }
+    },
+    "ems_emergency_corridors": {
+        "note": "18 named EMS corridors used for green corridor activation and priority routing. Each corridor connects major zone pairs via optimal hospital routes.",
+        "EC_01": {
+            "id": "EC_01",
+            "name": "Mumbai STEMI Corridor",
+            "from_zones": [
+                "Z01",
+                "Z02",
+                "Z35"
+            ],
+            "to_hospitals": [
+                "H02",
+                "H03",
+                "H04",
+                "H25"
+            ],
+            "route": "Western Express Highway + Green Corridor",
+            "avg_travel_min": 18,
+            "green_corridor_travel_min": 10,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "stemi",
+                "cardiac_arrest"
+            ],
+            "signal_override_nodes": [
+                "SN_WEH_01",
+                "SN_WEH_02",
+                "SN_WEH_03",
+                "SN_WEH_04"
+            ]
+        },
+        "EC_02": {
+            "id": "EC_02",
+            "name": "Pune Cardiac Fast Track",
+            "from_zones": [
+                "Z05"
+            ],
+            "to_hospitals": [
+                "H01",
+                "H07",
+                "H08"
+            ],
+            "route": "Sassoon Road Priority Corridor",
+            "avg_travel_min": 12,
+            "green_corridor_travel_min": 7,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "stemi",
+                "cardiac_arrest",
+                "aortic_emergency"
+            ],
+            "signal_override_nodes": [
+                "SN_PNQ_01",
+                "SN_PNQ_02",
+                "SN_PNQ_03"
+            ]
+        },
+        "EC_03": {
+            "id": "EC_03",
+            "name": "Nagpur Level-1 Trauma Corridor",
+            "from_zones": [
+                "Z27",
+                "Z28",
+                "Z29"
+            ],
+            "to_hospitals": [
+                "H05",
+                "H21"
+            ],
+            "route": "NH44 Emergency Lane",
+            "avg_travel_min": 15,
+            "green_corridor_travel_min": 9,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "polytrauma",
+                "major_trauma",
+                "mci"
+            ],
+            "signal_override_nodes": [
+                "SN_NGP_01",
+                "SN_NGP_02",
+                "SN_NGP_03",
+                "SN_NGP_04"
+            ]
+        },
+        "EC_04": {
+            "id": "EC_04",
+            "name": "Mumbai-Pune Expressway MCI Route",
+            "from_zones": [
+                "Z04",
+                "Z05"
+            ],
+            "to_hospitals": [
+                "H01",
+                "H02"
+            ],
+            "route": "Mumbai-Pune Expressway Emergency Lane",
+            "avg_travel_min": 85,
+            "green_corridor_travel_min": 55,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "mci_rta",
+                "polytrauma"
+            ],
+            "notes": "Fastest Mumbai-Pune route for critical trauma"
+        },
+        "EC_05": {
+            "id": "EC_05",
+            "name": "Konkan Coast Rescue Corridor",
+            "from_zones": [
+                "Z33",
+                "Z34"
+            ],
+            "to_hospitals": [
+                "H13",
+                "H07"
+            ],
+            "route": "NH66 Coast Road",
+            "avg_travel_min": 45,
+            "green_corridor_travel_min": 32,
+            "police_support_required": false,
+            "trigger_conditions": [
+                "mci_natural_disaster",
+                "drowning"
+            ],
+            "notes": "Monsoon closures probability 15%"
+        },
+        "EC_06": {
+            "id": "EC_06",
+            "name": "Marathwada MCI Mutual Aid Corridor",
+            "from_zones": [
+                "Z17",
+                "Z18",
+                "Z19",
+                "Z20"
+            ],
+            "to_hospitals": [
+                "H06",
+                "H20"
+            ],
+            "route": "NH65 Priority",
+            "avg_travel_min": 40,
+            "green_corridor_travel_min": 28,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "mci_rta",
+                "earthquake"
+            ],
+            "mutual_aid_activation_threshold": 3
+        },
+        "EC_07": {
+            "id": "EC_07",
+            "name": "Nashik Kumbh Medical Corridor",
+            "from_zones": [
+                "Z09",
+                "Z13"
+            ],
+            "to_hospitals": [
+                "H11"
+            ],
+            "route": "Nashik Road Dedicated",
+            "avg_travel_min": 18,
+            "green_corridor_travel_min": 10,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "mci",
+                "crowd_crush"
+            ],
+            "seasonal_activation": "kumbh_mela_period",
+            "signal_override_nodes": [
+                "SN_NSK_01",
+                "SN_NSK_02"
+            ]
+        },
+        "EC_08": {
+            "id": "EC_08",
+            "name": "Gadchiroli Air Evacuation Corridor",
+            "from_zones": [
+                "Z30"
+            ],
+            "to_hospitals": [
+                "H05",
+                "H21"
+            ],
+            "route": "Air — CRPF Airstrip to Nagpur",
+            "avg_travel_min": 65,
+            "air_evacuation_travel_min": 38,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "polytrauma",
+                "mci"
+            ],
+            "notes": "Ground route 220+ min. Air preferred for P1.",
+            "helipad_required": true
+        },
+        "EC_09": {
+            "id": "EC_09",
+            "name": "Nandurbar Tribal Emergency Corridor",
+            "from_zones": [
+                "Z12"
+            ],
+            "to_hospitals": [
+                "H11",
+                "H14"
+            ],
+            "route": "NH52 + ferry crossing",
+            "avg_travel_min": 120,
+            "green_corridor_travel_min": 90,
+            "police_support_required": false,
+            "trigger_conditions": [
+                "obstetric_emergency",
+                "sepsis",
+                "trauma"
+            ],
+            "notes": "Ferry dependency. Monsoon closures frequent."
+        },
+        "EC_10": {
+            "id": "EC_10",
+            "name": "Vidarbha Snakebite Corridor",
+            "from_zones": [
+                "Z26",
+                "Z23",
+                "Z24",
+                "Z25"
+            ],
+            "to_hospitals": [
+                "H05",
+                "H14"
+            ],
+            "route": "NH53 / NH361 Priority",
+            "avg_travel_min": 55,
+            "green_corridor_travel_min": 40,
+            "police_support_required": false,
+            "trigger_conditions": [
+                "snakebite",
+                "toxicology"
+            ],
+            "notes": "Critical for Vidarbha snakebite belt. ASV availability at destination critical."
+        },
+        "EC_11": {
+            "id": "EC_11",
+            "name": "Mumbai Suburban Paediatric Corridor",
+            "from_zones": [
+                "Z02",
+                "Z35"
+            ],
+            "to_hospitals": [
+                "H25",
+                "H16"
+            ],
+            "route": "SV Road Priority",
+            "avg_travel_min": 20,
+            "green_corridor_travel_min": 12,
+            "police_support_required": false,
+            "trigger_conditions": [
+                "paediatric_emergency",
+                "neonatal"
+            ],
+            "signal_override_nodes": [
+                "SN_SVR_01",
+                "SN_SVR_02"
+            ]
+        },
+        "EC_12": {
+            "id": "EC_12",
+            "name": "Pune Obstetric Emergency Corridor",
+            "from_zones": [
+                "Z05"
+            ],
+            "to_hospitals": [
+                "H01",
+                "H08"
+            ],
+            "route": "Sassoon Road + SH60",
+            "avg_travel_min": 14,
+            "green_corridor_travel_min": 8,
+            "police_support_required": false,
+            "trigger_conditions": [
+                "obstetric_emergency",
+                "eclampsia"
+            ],
+            "signal_override_nodes": [
+                "SN_PNQ_04",
+                "SN_PNQ_05"
+            ]
+        },
+        "EC_13": {
+            "id": "EC_13",
+            "name": "Aurangabad Trauma Corridor",
+            "from_zones": [
+                "Z14",
+                "Z15",
+                "Z16"
+            ],
+            "to_hospitals": [
+                "H06"
+            ],
+            "route": "NH52 Priority",
+            "avg_travel_min": 22,
+            "green_corridor_travel_min": 14,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "major_trauma",
+                "polytrauma",
+                "mci_rta"
+            ]
+        },
+        "EC_14": {
+            "id": "EC_14",
+            "name": "Thane Industrial Hazmat Corridor",
+            "from_zones": [
+                "Z03",
+                "Z35"
+            ],
+            "to_hospitals": [
+                "H03",
+                "H17"
+            ],
+            "route": "Eastern Express Highway",
+            "avg_travel_min": 30,
+            "green_corridor_travel_min": 18,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "toxicology",
+                "hazmat",
+                "burns"
+            ],
+            "decontamination_point": "Sion Hospital decon zone"
+        },
+        "EC_15": {
+            "id": "EC_15",
+            "name": "Raigad Industrial Emergency Corridor",
+            "from_zones": [
+                "Z04"
+            ],
+            "to_hospitals": [
+                "H01",
+                "H03"
+            ],
+            "route": "Khopoli Ghat + Expressway",
+            "avg_travel_min": 90,
+            "green_corridor_travel_min": 62,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "industrial_mci",
+                "chemical_exposure"
+            ],
+            "notes": "Rasayani and ONGC industrial zone coverage"
+        },
+        "EC_16": {
+            "id": "EC_16",
+            "name": "Nagpur Vidarbha Air Bridge",
+            "from_zones": [
+                "Z30",
+                "Z31",
+                "Z32",
+                "Z29"
+            ],
+            "to_hospitals": [
+                "H05",
+                "H21"
+            ],
+            "route": "Dr. Babasaheb Ambedkar International Airport Nagpur",
+            "avg_travel_min": 55,
+            "air_bridge_travel_min": 35,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "mass_casualty",
+                "critical_transfer"
+            ],
+            "helipad_required": true,
+            "notes": "NDRF air transport activation threshold: 3+ critical patients"
+        },
+        "EC_17": {
+            "id": "EC_17",
+            "name": "Kolhapur-Sangli Flood MCI Corridor",
+            "from_zones": [
+                "Z07",
+                "Z36"
+            ],
+            "to_hospitals": [
+                "H13",
+                "H12"
+            ],
+            "route": "NH48 + boat evacuation if flooded",
+            "avg_travel_min": 35,
+            "flood_mode_travel_min": 90,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "mci_natural_disaster",
+                "flood_rescue"
+            ],
+            "seasonal_risk": "monsoon",
+            "notes": "Flood season activates alternate boat corridors"
+        },
+        "EC_18": {
+            "id": "EC_18",
+            "name": "Pune-Nashik Expressway Trauma Route",
+            "from_zones": [
+                "Z09",
+                "Z05"
+            ],
+            "to_hospitals": [
+                "H01",
+                "H11"
+            ],
+            "route": "Pune-Nashik Highway NH753G",
+            "avg_travel_min": 185,
+            "green_corridor_travel_min": 130,
+            "police_support_required": true,
+            "trigger_conditions": [
+                "mci_rta",
+                "polytrauma"
+            ],
+            "notes": "High accident zone — steep ghat section"
+        }
+    },
+    "terrain_penalties": {
+        "ghat_sections": [
+            {
+                "id": "GHAT_KATRAJ",
+                "zone_pair": [
+                    "Z05",
+                    "Z08"
+                ],
+                "name": "Katraj Ghat",
+                "length_km": 18,
+                "gradient_pct": 8,
+                "base_penalty": 1.45,
+                "monsoon_penalty": 2.10,
+                "night_penalty": 1.25,
+                "fog_penalty": 1.60,
+                "max_speed_kmh": 30,
+                "accidents_per_year": 62,
+                "ambulance_capable": true
+            },
+            {
+                "id": "GHAT_MALSHEJ",
+                "zone_pair": [
+                    "Z09",
+                    "Z05"
+                ],
+                "name": "Malshej Ghat",
+                "length_km": 22,
+                "gradient_pct": 11,
+                "base_penalty": 1.65,
+                "monsoon_penalty": 2.40,
+                "night_penalty": 1.45,
+                "fog_penalty": 1.80,
+                "max_speed_kmh": 25,
+                "accidents_per_year": 85,
+                "ambulance_capable": true,
+                "closure_probability_monsoon": 0.22
+            },
+            {
+                "id": "GHAT_KHOPOLI",
+                "zone_pair": [
+                    "Z04",
+                    "Z05"
+                ],
+                "name": "Khopoli Ghat",
+                "length_km": 15,
+                "gradient_pct": 7,
+                "base_penalty": 1.32,
+                "monsoon_penalty": 1.75,
+                "night_penalty": 1.15,
+                "fog_penalty": 1.40,
+                "max_speed_kmh": 40,
+                "accidents_per_year": 48,
+                "ambulance_capable": true
+            },
+            {
+                "id": "GHAT_PANHALA",
+                "zone_pair": [
+                    "Z07",
+                    "Z36"
+                ],
+                "name": "Panhala Ghat",
+                "length_km": 20,
+                "gradient_pct": 9,
+                "base_penalty": 1.50,
+                "monsoon_penalty": 2.20,
+                "night_penalty": 1.35,
+                "fog_penalty": 1.65,
+                "max_speed_kmh": 28,
+                "accidents_per_year": 72,
+                "ambulance_capable": true
+            },
+            {
+                "id": "GHAT_IGATPURI",
+                "zone_pair": [
+                    "Z09",
+                    "Z02"
+                ],
+                "name": "Igatpuri Ghat",
+                "length_km": 28,
+                "gradient_pct": 12,
+                "base_penalty": 1.70,
+                "monsoon_penalty": 2.55,
+                "night_penalty": 1.50,
+                "fog_penalty": 1.90,
+                "max_speed_kmh": 22,
+                "accidents_per_year": 110,
+                "ambulance_capable": true,
+                "closure_probability_monsoon": 0.28
+            },
+            {
+                "id": "GHAT_PANCHGANI",
+                "zone_pair": [
+                    "Z08",
+                    "Z05"
+                ],
+                "name": "Panchgani Ghat",
+                "length_km": 16,
+                "gradient_pct": 10,
+                "base_penalty": 1.55,
+                "monsoon_penalty": 2.25,
+                "night_penalty": 1.40,
+                "fog_penalty": 1.70,
+                "max_speed_kmh": 26,
+                "accidents_per_year": 78,
+                "ambulance_capable": true
+            },
+            {
+                "id": "GHAT_SAWANTWADI",
+                "zone_pair": [
+                    "Z33",
+                    "Z34"
+                ],
+                "name": "Sawantwadi Ghat",
+                "length_km": 24,
+                "gradient_pct": 9,
+                "base_penalty": 1.55,
+                "monsoon_penalty": 2.30,
+                "night_penalty": 1.40,
+                "fog_penalty": 1.70,
+                "max_speed_kmh": 26,
+                "accidents_per_year": 55,
+                "ambulance_capable": true
+            },
+            {
+                "id": "GHAT_KARAD",
+                "zone_pair": [
+                    "Z08",
+                    "Z07"
+                ],
+                "name": "Karad Ghat",
+                "length_km": 12,
+                "gradient_pct": 7,
+                "base_penalty": 1.35,
+                "monsoon_penalty": 1.80,
+                "night_penalty": 1.20,
+                "fog_penalty": 1.45,
+                "max_speed_kmh": 32,
+                "accidents_per_year": 42,
+                "ambulance_capable": true
+            },
+            {
+                "id": "GHAT_TAMHINI",
+                "zone_pair": [
+                    "Z05",
+                    "Z34"
+                ],
+                "name": "Tamhini Ghat",
+                "length_km": 30,
+                "gradient_pct": 13,
+                "base_penalty": 1.75,
+                "monsoon_penalty": 2.60,
+                "night_penalty": 1.55,
+                "fog_penalty": 2.00,
+                "max_speed_kmh": 20,
+                "accidents_per_year": 95,
+                "ambulance_capable": false,
+                "notes": "Not recommended for ambulances — steep, narrow"
+            }
+        ],
+        "forest_zones": {
+            "zones": [
+                "Z29",
+                "Z30",
+                "Z31"
+            ],
+            "base_penalty": 1.40,
+            "monsoon_penalty": 1.90,
+            "night_penalty": 1.55,
+            "security_check_delay_min": 8,
+            "unpaved_pct": 0.55,
+            "radio_blackout_probability": 0.18
+        },
+        "rural_unpaved": {
+            "zones": [
+                "Z12",
+                "Z20",
+                "Z25",
+                "Z30"
+            ],
+            "base_penalty": 1.60,
+            "post_monsoon_degradation": 1.45,
+            "dry_season_improvement": 0.88,
+            "ambulance_ground_clearance_required_mm": 200
+        },
+        "bridge_crossings": {
+            "note": "Critical single-bridge points where incident blocks entire route",
+            "BRIDGE_VASAI": {
+                "zones": [
+                    "Z35",
+                    "Z02"
+                ],
+                "single_lane_probability": 0.35,
+                "closure_probability_monsoon": 0.08,
+                "bypass_route_km": 25
+            },
+            "BRIDGE_KALYAN": {
+                "zones": [
+                    "Z03",
+                    "Z02"
+                ],
+                "single_lane_probability": 0.20,
+                "closure_probability_monsoon": 0.04,
+                "bypass_route_km": 12
+            },
+            "BRIDGE_TALODA_FERRY": {
+                "zones": [
+                    "Z12",
+                    "Z10"
+                ],
+                "type": "ferry",
+                "closure_probability_monsoon": 0.55,
+                "bypass_road_km": 68
+            },
+            "BRIDGE_GODAVARI_NASHIK": {
+                "zones": [
+                    "Z09",
+                    "Z13"
+                ],
+                "single_lane_probability": 0.15,
+                "closure_probability_monsoon": 0.06
+            },
+            "BRIDGE_KRISHNA_SANGLI": {
+                "zones": [
+                    "Z36",
+                    "Z07"
+                ],
+                "single_lane_probability": 0.25,
+                "closure_probability_monsoon": 0.12
+            }
+        }
+    },
+    "zone_hourly_incident_probability": {
+        "note": "Probability per step of a traffic incident occurring in each zone, by hour. Used by incident_engine to spawn secondary slowdowns.",
+        "Z01": {
+            "00": 0.015,
+            "01": 0.010,
+            "02": 0.008,
+            "03": 0.007,
+            "04": 0.010,
+            "05": 0.018,
+            "06": 0.028,
+            "07": 0.055,
+            "08": 0.068,
+            "09": 0.058,
+            "10": 0.042,
+            "11": 0.038,
+            "12": 0.040,
+            "13": 0.036,
+            "14": 0.034,
+            "15": 0.040,
+            "16": 0.052,
+            "17": 0.072,
+            "18": 0.078,
+            "19": 0.065,
+            "20": 0.048,
+            "21": 0.035,
+            "22": 0.025,
+            "23": 0.018
+        },
+        "Z02": {
+            "00": 0.012,
+            "01": 0.008,
+            "02": 0.006,
+            "03": 0.006,
+            "04": 0.008,
+            "05": 0.016,
+            "06": 0.025,
+            "07": 0.050,
+            "08": 0.062,
+            "09": 0.052,
+            "10": 0.038,
+            "11": 0.034,
+            "12": 0.036,
+            "13": 0.032,
+            "14": 0.030,
+            "15": 0.036,
+            "16": 0.048,
+            "17": 0.068,
+            "18": 0.074,
+            "19": 0.060,
+            "20": 0.044,
+            "21": 0.032,
+            "22": 0.022,
+            "23": 0.015
+        },
+        "Z03": {
+            "00": 0.010,
+            "01": 0.007,
+            "02": 0.005,
+            "03": 0.005,
+            "04": 0.007,
+            "05": 0.014,
+            "06": 0.022,
+            "07": 0.044,
+            "08": 0.055,
+            "09": 0.046,
+            "10": 0.034,
+            "11": 0.030,
+            "12": 0.032,
+            "13": 0.028,
+            "14": 0.026,
+            "15": 0.032,
+            "16": 0.042,
+            "17": 0.060,
+            "18": 0.065,
+            "19": 0.052,
+            "20": 0.038,
+            "21": 0.028,
+            "22": 0.018,
+            "23": 0.012
+        },
+        "Z04": {
+            "00": 0.018,
+            "01": 0.015,
+            "02": 0.012,
+            "03": 0.010,
+            "04": 0.012,
+            "05": 0.018,
+            "06": 0.025,
+            "07": 0.035,
+            "08": 0.038,
+            "09": 0.032,
+            "10": 0.028,
+            "11": 0.024,
+            "12": 0.026,
+            "13": 0.022,
+            "14": 0.020,
+            "15": 0.024,
+            "16": 0.030,
+            "17": 0.038,
+            "18": 0.040,
+            "19": 0.034,
+            "20": 0.028,
+            "21": 0.022,
+            "22": 0.018,
+            "23": 0.015
+        },
+        "Z05": {
+            "00": 0.010,
+            "01": 0.007,
+            "02": 0.005,
+            "03": 0.005,
+            "04": 0.007,
+            "05": 0.013,
+            "06": 0.020,
+            "07": 0.040,
+            "08": 0.050,
+            "09": 0.042,
+            "10": 0.030,
+            "11": 0.027,
+            "12": 0.028,
+            "13": 0.025,
+            "14": 0.023,
+            "15": 0.028,
+            "16": 0.038,
+            "17": 0.055,
+            "18": 0.060,
+            "19": 0.048,
+            "20": 0.035,
+            "21": 0.026,
+            "22": 0.016,
+            "23": 0.011
+        },
+        "Z06": {
+            "00": 0.006,
+            "01": 0.004,
+            "02": 0.003,
+            "03": 0.003,
+            "04": 0.004,
+            "05": 0.008,
+            "06": 0.014,
+            "07": 0.025,
+            "08": 0.030,
+            "09": 0.025,
+            "10": 0.020,
+            "11": 0.018,
+            "12": 0.019,
+            "13": 0.017,
+            "14": 0.016,
+            "15": 0.018,
+            "16": 0.024,
+            "17": 0.032,
+            "18": 0.035,
+            "19": 0.028,
+            "20": 0.020,
+            "21": 0.014,
+            "22": 0.009,
+            "23": 0.006
+        },
+        "Z07": {
+            "00": 0.006,
+            "01": 0.004,
+            "02": 0.003,
+            "03": 0.003,
+            "04": 0.004,
+            "05": 0.008,
+            "06": 0.013,
+            "07": 0.022,
+            "08": 0.028,
+            "09": 0.023,
+            "10": 0.019,
+            "11": 0.017,
+            "12": 0.018,
+            "13": 0.016,
+            "14": 0.015,
+            "15": 0.017,
+            "16": 0.022,
+            "17": 0.030,
+            "18": 0.032,
+            "19": 0.026,
+            "20": 0.019,
+            "21": 0.013,
+            "22": 0.008,
+            "23": 0.006
+        },
+        "Z08": {
+            "00": 0.012,
+            "01": 0.010,
+            "02": 0.008,
+            "03": 0.007,
+            "04": 0.008,
+            "05": 0.012,
+            "06": 0.016,
+            "07": 0.022,
+            "08": 0.024,
+            "09": 0.020,
+            "10": 0.016,
+            "11": 0.014,
+            "12": 0.015,
+            "13": 0.013,
+            "14": 0.012,
+            "15": 0.013,
+            "16": 0.017,
+            "17": 0.022,
+            "18": 0.024,
+            "19": 0.020,
+            "20": 0.016,
+            "21": 0.013,
+            "22": 0.010,
+            "23": 0.009
+        },
+        "Z09": {
+            "00": 0.008,
+            "01": 0.005,
+            "02": 0.004,
+            "03": 0.004,
+            "04": 0.005,
+            "05": 0.010,
+            "06": 0.018,
+            "07": 0.032,
+            "08": 0.040,
+            "09": 0.034,
+            "10": 0.025,
+            "11": 0.022,
+            "12": 0.024,
+            "13": 0.021,
+            "14": 0.019,
+            "15": 0.022,
+            "16": 0.030,
+            "17": 0.042,
+            "18": 0.046,
+            "19": 0.038,
+            "20": 0.028,
+            "21": 0.020,
+            "22": 0.013,
+            "23": 0.009
+        },
+        "Z27": {
+            "00": 0.008,
+            "01": 0.005,
+            "02": 0.004,
+            "03": 0.004,
+            "04": 0.005,
+            "05": 0.010,
+            "06": 0.017,
+            "07": 0.030,
+            "08": 0.038,
+            "09": 0.032,
+            "10": 0.024,
+            "11": 0.020,
+            "12": 0.022,
+            "13": 0.019,
+            "14": 0.017,
+            "15": 0.020,
+            "16": 0.028,
+            "17": 0.040,
+            "18": 0.044,
+            "19": 0.036,
+            "20": 0.026,
+            "21": 0.018,
+            "22": 0.012,
+            "23": 0.008
+        },
+        "default_rural": {
+            "00": 0.008,
+            "01": 0.006,
+            "02": 0.005,
+            "03": 0.004,
+            "04": 0.005,
+            "05": 0.008,
+            "06": 0.012,
+            "07": 0.018,
+            "08": 0.020,
+            "09": 0.016,
+            "10": 0.013,
+            "11": 0.012,
+            "12": 0.013,
+            "13": 0.011,
+            "14": 0.010,
+            "15": 0.011,
+            "16": 0.014,
+            "17": 0.018,
+            "18": 0.020,
+            "19": 0.016,
+            "20": 0.013,
+            "21": 0.010,
+            "22": 0.008,
+            "23": 0.006
+        }
+    },
+    "zone_hourly_ems_demand_index": {
+        "note": "Relative incident rate by zone and hour. 1.0 = average. Used by demand_forecaster.py to build 12-hour heatmap.",
+        "Z01": {
+            "00": 0.42,
+            "01": 0.32,
+            "02": 0.28,
+            "03": 0.25,
+            "04": 0.30,
+            "05": 0.55,
+            "06": 0.85,
+            "07": 1.30,
+            "08": 1.45,
+            "09": 1.35,
+            "10": 1.10,
+            "11": 1.05,
+            "12": 1.20,
+            "13": 1.08,
+            "14": 1.02,
+            "15": 1.05,
+            "16": 1.15,
+            "17": 1.40,
+            "18": 1.55,
+            "19": 1.35,
+            "20": 1.10,
+            "21": 0.88,
+            "22": 0.65,
+            "23": 0.50
+        },
+        "Z02": {
+            "00": 0.38,
+            "01": 0.28,
+            "02": 0.24,
+            "03": 0.22,
+            "04": 0.26,
+            "05": 0.50,
+            "06": 0.80,
+            "07": 1.28,
+            "08": 1.42,
+            "09": 1.30,
+            "10": 1.05,
+            "11": 1.00,
+            "12": 1.15,
+            "13": 1.05,
+            "14": 1.00,
+            "15": 1.02,
+            "16": 1.12,
+            "17": 1.38,
+            "18": 1.52,
+            "19": 1.32,
+            "20": 1.08,
+            "21": 0.85,
+            "22": 0.62,
+            "23": 0.45
+        },
+        "Z05": {
+            "00": 0.35,
+            "01": 0.26,
+            "02": 0.22,
+            "03": 0.20,
+            "04": 0.24,
+            "05": 0.45,
+            "06": 0.72,
+            "07": 1.18,
+            "08": 1.35,
+            "09": 1.22,
+            "10": 0.98,
+            "11": 0.95,
+            "12": 1.10,
+            "13": 1.00,
+            "14": 0.95,
+            "15": 0.98,
+            "16": 1.08,
+            "17": 1.32,
+            "18": 1.45,
+            "19": 1.25,
+            "20": 1.02,
+            "21": 0.80,
+            "22": 0.58,
+            "23": 0.40
+        },
+        "Z27": {
+            "00": 0.36,
+            "01": 0.27,
+            "02": 0.23,
+            "03": 0.21,
+            "04": 0.25,
+            "05": 0.46,
+            "06": 0.73,
+            "07": 1.20,
+            "08": 1.36,
+            "09": 1.24,
+            "10": 1.00,
+            "11": 0.96,
+            "12": 1.12,
+            "13": 1.02,
+            "14": 0.96,
+            "15": 0.99,
+            "16": 1.10,
+            "17": 1.34,
+            "18": 1.46,
+            "19": 1.26,
+            "20": 1.04,
+            "21": 0.81,
+            "22": 0.60,
+            "23": 0.42
+        },
+        "Z14": {
+            "00": 0.30,
+            "01": 0.22,
+            "02": 0.18,
+            "03": 0.16,
+            "04": 0.20,
+            "05": 0.38,
+            "06": 0.62,
+            "07": 1.02,
+            "08": 1.18,
+            "09": 1.08,
+            "10": 0.88,
+            "11": 0.84,
+            "12": 0.98,
+            "13": 0.88,
+            "14": 0.84,
+            "15": 0.86,
+            "16": 0.95,
+            "17": 1.15,
+            "18": 1.28,
+            "19": 1.10,
+            "20": 0.90,
+            "21": 0.72,
+            "22": 0.52,
+            "23": 0.36
+        },
+        "Z09": {
+            "00": 0.32,
+            "01": 0.24,
+            "02": 0.20,
+            "03": 0.18,
+            "04": 0.22,
+            "05": 0.42,
+            "06": 0.68,
+            "07": 1.10,
+            "08": 1.24,
+            "09": 1.12,
+            "10": 0.92,
+            "11": 0.88,
+            "12": 1.02,
+            "13": 0.92,
+            "14": 0.88,
+            "15": 0.90,
+            "16": 1.00,
+            "17": 1.20,
+            "18": 1.32,
+            "19": 1.14,
+            "20": 0.94,
+            "21": 0.75,
+            "22": 0.55,
+            "23": 0.38
+        },
+        "Z30": {
+            "00": 0.60,
+            "01": 0.55,
+            "02": 0.50,
+            "03": 0.48,
+            "04": 0.50,
+            "05": 0.60,
+            "06": 0.70,
+            "07": 0.80,
+            "08": 0.85,
+            "09": 0.82,
+            "10": 0.78,
+            "11": 0.75,
+            "12": 0.78,
+            "13": 0.75,
+            "14": 0.72,
+            "15": 0.74,
+            "16": 0.78,
+            "17": 0.82,
+            "18": 0.85,
+            "19": 0.80,
+            "20": 0.76,
+            "21": 0.70,
+            "22": 0.65,
+            "23": 0.62
+        },
+        "default": {
+            "00": 0.30,
+            "01": 0.22,
+            "02": 0.18,
+            "03": 0.16,
+            "04": 0.20,
+            "05": 0.38,
+            "06": 0.62,
+            "07": 0.98,
+            "08": 1.12,
+            "09": 1.02,
+            "10": 0.84,
+            "11": 0.80,
+            "12": 0.92,
+            "13": 0.84,
+            "14": 0.80,
+            "15": 0.82,
+            "16": 0.90,
+            "17": 1.08,
+            "18": 1.20,
+            "19": 1.04,
+            "20": 0.86,
+            "21": 0.68,
+            "22": 0.50,
+            "23": 0.34
+        }
+    },
+    "festival_event_calendar": {
+        "note": "Annual recurring events with traffic impact. Month 0 = dynamic (declared). Entries used to adjust OD matrix and activate EMS pre-positioning.",
+        "events": [
+            {
+                "id": "EVT_01",
+                "name": "Ganesh Chaturthi Mumbai",
+                "month": 8,
+                "typical_day": 3,
+                "duration_days": 10,
+                "affected_zones": [
+                    "Z01",
+                    "Z02",
+                    "Z03",
+                    "Z35"
+                ],
+                "traffic_multiplier": 2.10,
+                "ems_demand_multiplier": 1.35,
+                "pre_staging_activation": true,
+                "mutual_aid_trigger": false
+            },
+            {
+                "id": "EVT_02",
+                "name": "Kumbh Mela Nashik (Simhastha)",
+                "month": 8,
+                "typical_day": 15,
+                "duration_days": 45,
+                "affected_zones": [
+                    "Z09",
+                    "Z13",
+                    "Z05"
+                ],
+                "traffic_multiplier": 2.40,
+                "ems_demand_multiplier": 1.80,
+                "pre_staging_activation": true,
+                "mutual_aid_trigger": true,
+                "crowd_crush_risk": "high"
+            },
+            {
+                "id": "EVT_03",
+                "name": "Diwali Festival",
+                "month": 10,
+                "typical_day": 20,
+                "duration_days": 5,
+                "affected_zones": [
+                    "Z01",
+                    "Z02",
+                    "Z03",
+                    "Z05",
+                    "Z09",
+                    "Z14",
+                    "Z27"
+                ],
+                "traffic_multiplier": 1.65,
+                "ems_demand_multiplier": 1.25,
+                "firecracker_burn_risk": true
+            },
+            {
+                "id": "EVT_04",
+                "name": "Wari Pilgrimage Pandharpur",
+                "month": 6,
+                "typical_day": 10,
+                "duration_days": 21,
+                "affected_zones": [
+                    "Z05",
+                    "Z06",
+                    "Z13"
+                ],
+                "traffic_multiplier": 1.80,
+                "ems_demand_multiplier": 1.40,
+                "pre_staging_activation": true
+            },
+            {
+                "id": "EVT_05",
+                "name": "Eid Congregation",
+                "month": 3,
+                "typical_day": 0,
+                "duration_days": 3,
+                "affected_zones": [
+                    "Z01",
+                    "Z02",
+                    "Z14",
+                    "Z27"
+                ],
+                "traffic_multiplier": 1.55,
+                "ems_demand_multiplier": 1.15
+            },
+            {
+                "id": "EVT_06",
+                "name": "IPL Match Mumbai",
+                "month": 4,
+                "typical_day": 0,
+                "duration_hours": 6,
+                "affected_zones": [
+                    "Z01",
+                    "Z02"
+                ],
+                "traffic_multiplier": 1.85,
+                "ems_demand_multiplier": 1.05,
+                "time_of_day": "18-23"
+            },
+            {
+                "id": "EVT_07",
+                "name": "Dussehra Nagpur (RSS)",
+                "month": 10,
+                "typical_day": 5,
+                "duration_days": 2,
+                "affected_zones": [
+                    "Z27",
+                    "Z28"
+                ],
+                "traffic_multiplier": 1.70,
+                "ems_demand_multiplier": 1.10
+            },
+            {
+                "id": "EVT_08",
+                "name": "Shivajayanti",
+                "month": 2,
+                "typical_day": 19,
+                "duration_days": 1,
+                "affected_zones": [
+                    "Z05",
+                    "Z01",
+                    "Z02",
+                    "Z27"
+                ],
+                "traffic_multiplier": 1.60,
+                "ems_demand_multiplier": 1.10
+            },
+            {
+                "id": "EVT_09",
+                "name": "Shirdi Sai Baba Punyatithi",
+                "month": 10,
+                "typical_day": 15,
+                "duration_days": 3,
+                "affected_zones": [
+                    "Z13",
+                    "Z09",
+                    "Z14"
+                ],
+                "traffic_multiplier": 1.55,
+                "ems_demand_multiplier": 1.20,
+                "crowd_density": "very_high"
+            },
+            {
+                "id": "EVT_10",
+                "name": "Ganesh Nimajjan (final day)",
+                "month": 8,
+                "typical_day": 13,
+                "duration_hours": 18,
+                "affected_zones": [
+                    "Z01",
+                    "Z02",
+                    "Z03"
+                ],
+                "traffic_multiplier": 2.80,
+                "ems_demand_multiplier": 1.50,
+                "road_closure_probability": 0.45
+            },
+            {
+                "id": "EVT_11",
+                "name": "Pune Monsoon Flood Season",
+                "month": 7,
+                "typical_day": 0,
+                "duration_days": 60,
+                "affected_zones": [
+                    "Z05",
+                    "Z08",
+                    "Z36",
+                    "Z07"
+                ],
+                "traffic_multiplier": 1.55,
+                "ems_demand_multiplier": 1.30
+            },
+            {
+                "id": "EVT_12",
+                "name": "Latur Killari Earthquake Memorial",
+                "month": 9,
+                "typical_day": 30,
+                "duration_days": 1,
+                "affected_zones": [
+                    "Z17",
+                    "Z18"
+                ],
+                "traffic_multiplier": 1.20,
+                "ems_demand_multiplier": 1.05
+            },
+            {
+                "id": "EVT_13",
+                "name": "Maharashtra Day",
+                "month": 5,
+                "typical_day": 1,
+                "duration_days": 1,
+                "affected_zones": [
+                    "Z01",
+                    "Z02",
+                    "Z05"
+                ],
+                "traffic_multiplier": 0.68,
+                "ems_demand_multiplier": 0.92
+            },
+            {
+                "id": "EVT_14",
+                "name": "Republic Day Parade",
+                "month": 1,
+                "typical_day": 26,
+                "duration_days": 1,
+                "affected_zones": [
+                    "Z01",
+                    "Z02",
+                    "Z05",
+                    "Z27"
+                ],
+                "traffic_multiplier": 0.62,
+                "ems_demand_multiplier": 0.90,
+                "road_closure_zones": [
+                    "Z01"
+                ]
+            },
+            {
+                "id": "EVT_15",
+                "name": "Cyclone Season Pre-Alert",
+                "month": 5,
+                "typical_day": 1,
+                "duration_days": 90,
+                "affected_zones": [
+                    "Z01",
+                    "Z02",
+                    "Z33",
+                    "Z34",
+                    "Z35"
+                ],
+                "traffic_multiplier": 1.0,
+                "cyclone_closure_probability": 0.10,
+                "ems_pre_alert": true
+            }
+        ]
+    },
+    "weather_impact_model": {
+        "note": "Weather events and their EMS traffic impact. Triggered by weather station readings.",
+        "weather_stations": [
+            {
+                "id": "WS_01",
+                "name": "Mumbai Colaba",
+                "zone": "Z01",
+                "lat": 18.9040,
+                "lon": 72.8155
+            },
+            {
+                "id": "WS_02",
+                "name": "Pune Airport",
+                "zone": "Z05",
+                "lat": 18.5822,
+                "lon": 73.9197
+            },
+            {
+                "id": "WS_03",
+                "name": "Nashik Airport",
+                "zone": "Z09",
+                "lat": 19.9668,
+                "lon": 73.8137
+            },
+            {
+                "id": "WS_04",
+                "name": "Nagpur MIHAN",
+                "zone": "Z27",
+                "lat": 21.0922,
+                "lon": 79.0472
+            },
+            {
+                "id": "WS_05",
+                "name": "Aurangabad Airport",
+                "zone": "Z14",
+                "lat": 19.8627,
+                "lon": 75.4010
+            },
+            {
+                "id": "WS_06",
+                "name": "Kolhapur",
+                "zone": "Z07",
+                "lat": 16.6972,
+                "lon": 74.2270
+            },
+            {
+                "id": "WS_07",
+                "name": "Latur",
+                "zone": "Z17",
+                "lat": 18.4088,
+                "lon": 76.5604
+            },
+            {
+                "id": "WS_08",
+                "name": "Ratnagiri",
+                "zone": "Z34",
+                "lat": 17.0021,
+                "lon": 73.3158
+            },
+            {
+                "id": "WS_09",
+                "name": "Chandrapur",
+                "zone": "Z29",
+                "lat": 19.9615,
+                "lon": 79.2961
+            },
+            {
+                "id": "WS_10",
+                "name": "Gadchiroli",
+                "zone": "Z30",
+                "lat": 20.1809,
+                "lon": 80.0086
+            }
+        ],
+        "thresholds": {
+            "heavy_rain_mm_per_hour": {
+                "threshold": 30,
+                "multiplier": 1.42,
+                "affected_radius_km": 15
+            },
+            "very_heavy_rain_mm_per_hour": {
+                "threshold": 50,
+                "multiplier": 1.85,
+                "affected_radius_km": 20,
+                "road_closure_probability": 0.12
+            },
+            "extreme_rain_mm_per_hour": {
+                "threshold": 80,
+                "multiplier": 2.40,
+                "affected_radius_km": 25,
+                "road_closure_probability": 0.35,
+                "ems_grounding_probability": 0.05
+            },
+            "waterlogging_depth_cm": {
+                "threshold": 30,
+                "multiplier": 2.10,
+                "affected_zones_coastal": [
+                    "Z01",
+                    "Z02",
+                    "Z03",
+                    "Z35"
+                ]
+            },
+            "fog_visibility_m": {
+                "threshold": 200,
+                "multiplier": 1.55,
+                "affected_zones": [
+                    "Z27",
+                    "Z23",
+                    "Z14",
+                    "Z26"
+                ]
+            },
+            "wind_speed_kmh": {
+                "threshold": 60,
+                "multiplier": 1.35,
+                "ems_caution": true
+            },
+            "extreme_wind_kmh": {
+                "threshold": 90,
+                "multiplier": 1.80,
+                "ems_grounding_probability": 0.20
+            },
+            "heat_index_celsius": {
+                "threshold": 45,
+                "multiplier": 1.08,
+                "ems_demand_multiplier": 1.22
+            }
+        }
+    },
+    "zone_pair_travel_modifiers": {
+        "note": "Route-specific multipliers applied on top of base OD matrix. Captures real-world asymmetries (one-way systems, toll plazas, railway crossings).",
+        "Z01_to_Z02_via_WEH": {
+            "multiplier": 0.88,
+            "condition": "off_peak",
+            "note": "Western Express Highway southbound faster"
+        },
+        "Z02_to_Z01_via_EEH": {
+            "multiplier": 0.92,
+            "condition": "any",
+            "note": "Eastern Express Highway northbound"
+        },
+        "Z05_to_Z04_via_expressway": {
+            "multiplier": 0.72,
+            "condition": "any",
+            "toll_plaza_delay_min": 3
+        },
+        "Z04_to_Z05_via_expressway": {
+            "multiplier": 0.72,
+            "condition": "any",
+            "toll_plaza_delay_min": 3
+        },
+        "Z09_to_Z02_via_ghat": {
+            "multiplier": 1.35,
+            "condition": "monsoon",
+            "closure_probability": 0.22
+        },
+        "Z05_to_Z08_via_ghat": {
+            "multiplier": 1.28,
+            "condition": "night",
+            "note": "Katraj Ghat night restriction"
+        },
+        "Z27_to_Z29_via_NH930": {
+            "multiplier": 1.25,
+            "condition": "any",
+            "note": "Forest section speed limit"
+        },
+        "Z30_to_Z27_via_road": {
+            "multiplier": 1.55,
+            "condition": "any",
+            "note": "Poor road quality + security checks"
+        },
+        "Z12_to_Z10_via_ferry": {
+            "multiplier": 3.20,
+            "condition": "monsoon",
+            "closure_probability": 0.55,
+            "note": "Ferry dependent"
+        },
+        "Z33_to_Z07_via_ghat": {
+            "multiplier": 1.45,
+            "condition": "monsoon",
+            "closure_probability": 0.18
+        },
+        "Z14_to_Z27_via_NH52": {
+            "multiplier": 0.95,
+            "condition": "highway",
+            "note": "NH52 good quality"
+        },
+        "Z05_to_Z27_direct": {
+            "multiplier": 1.10,
+            "condition": "any",
+            "note": "No direct expressway, NH48+NH65 route"
+        }
+    },
+    "historical_ems_performance": {
+        "note": "Historical response time benchmarks per zone, calibrated from EMRI 108 dispatch data. Used to score agent against real-world baseline.",
+        "Z01": {
+            "avg_response_min": 11.2,
+            "p90_response_min": 18.5,
+            "target_min": 8,
+            "performance_ratio": 1.40,
+            "year": 2024
+        },
+        "Z02": {
+            "avg_response_min": 13.5,
+            "p90_response_min": 22.0,
+            "target_min": 10,
+            "performance_ratio": 1.35,
+            "year": 2024
+        },
+        "Z03": {
+            "avg_response_min": 15.8,
+            "p90_response_min": 26.0,
+            "target_min": 12,
+            "performance_ratio": 1.32,
+            "year": 2024
+        },
+        "Z04": {
+            "avg_response_min": 22.4,
+            "p90_response_min": 38.0,
+            "target_min": 18,
+            "performance_ratio": 1.24,
+            "year": 2024
+        },
+        "Z05": {
+            "avg_response_min": 13.1,
+            "p90_response_min": 22.0,
+            "target_min": 10,
+            "performance_ratio": 1.31,
+            "year": 2024
+        },
+        "Z06": {
+            "avg_response_min": 18.7,
+            "p90_response_min": 30.0,
+            "target_min": 15,
+            "performance_ratio": 1.25,
+            "year": 2024
+        },
+        "Z07": {
+            "avg_response_min": 20.3,
+            "p90_response_min": 34.0,
+            "target_min": 16,
+            "performance_ratio": 1.27,
+            "year": 2024
+        },
+        "Z08": {
+            "avg_response_min": 24.8,
+            "p90_response_min": 42.0,
+            "target_min": 20,
+            "performance_ratio": 1.24,
+            "year": 2024
+        },
+        "Z09": {
+            "avg_response_min": 16.4,
+            "p90_response_min": 27.0,
+            "target_min": 13,
+            "performance_ratio": 1.26,
+            "year": 2024
+        },
+        "Z10": {
+            "avg_response_min": 28.1,
+            "p90_response_min": 46.0,
+            "target_min": 22,
+            "performance_ratio": 1.28,
+            "year": 2024
+        },
+        "Z11": {
+            "avg_response_min": 22.6,
+            "p90_response_min": 38.0,
+            "target_min": 18,
+            "performance_ratio": 1.26,
+            "year": 2024
+        },
+        "Z12": {
+            "avg_response_min": 41.2,
+            "p90_response_min": 68.0,
+            "target_min": 32,
+            "performance_ratio": 1.29,
+            "year": 2024
+        },
+        "Z13": {
+            "avg_response_min": 25.4,
+            "p90_response_min": 42.0,
+            "target_min": 20,
+            "performance_ratio": 1.27,
+            "year": 2024
+        },
+        "Z14": {
+            "avg_response_min": 17.8,
+            "p90_response_min": 29.0,
+            "target_min": 14,
+            "performance_ratio": 1.27,
+            "year": 2024
+        },
+        "Z15": {
+            "avg_response_min": 30.1,
+            "p90_response_min": 50.0,
+            "target_min": 24,
+            "performance_ratio": 1.25,
+            "year": 2024
+        },
+        "Z16": {
+            "avg_response_min": 33.8,
+            "p90_response_min": 55.0,
+            "target_min": 26,
+            "performance_ratio": 1.30,
+            "year": 2024
+        },
+        "Z17": {
+            "avg_response_min": 27.4,
+            "p90_response_min": 44.0,
+            "target_min": 22,
+            "performance_ratio": 1.25,
+            "year": 2024
+        },
+        "Z18": {
+            "avg_response_min": 35.6,
+            "p90_response_min": 58.0,
+            "target_min": 28,
+            "performance_ratio": 1.27,
+            "year": 2024
+        },
+        "Z19": {
+            "avg_response_min": 26.2,
+            "p90_response_min": 42.0,
+            "target_min": 20,
+            "performance_ratio": 1.31,
+            "year": 2024
+        },
+        "Z20": {
+            "avg_response_min": 38.4,
+            "p90_response_min": 62.0,
+            "target_min": 30,
+            "performance_ratio": 1.28,
+            "year": 2024
+        },
+        "Z21": {
+            "avg_response_min": 33.2,
+            "p90_response_min": 54.0,
+            "target_min": 26,
+            "performance_ratio": 1.28,
+            "year": 2024
+        },
+        "Z22": {
+            "avg_response_min": 30.8,
+            "p90_response_min": 50.0,
+            "target_min": 24,
+            "performance_ratio": 1.28,
+            "year": 2024
+        },
+        "Z23": {
+            "avg_response_min": 22.8,
+            "p90_response_min": 38.0,
+            "target_min": 18,
+            "performance_ratio": 1.27,
+            "year": 2024
+        },
+        "Z24": {
+            "avg_response_min": 27.6,
+            "p90_response_min": 44.0,
+            "target_min": 22,
+            "performance_ratio": 1.25,
+            "year": 2024
+        },
+        "Z25": {
+            "avg_response_min": 40.2,
+            "p90_response_min": 64.0,
+            "target_min": 32,
+            "performance_ratio": 1.26,
+            "year": 2024
+        },
+        "Z26": {
+            "avg_response_min": 34.6,
+            "p90_response_min": 56.0,
+            "target_min": 26,
+            "performance_ratio": 1.33,
+            "year": 2024
+        },
+        "Z27": {
+            "avg_response_min": 15.4,
+            "p90_response_min": 26.0,
+            "target_min": 12,
+            "performance_ratio": 1.28,
+            "year": 2024
+        },
+        "Z28": {
+            "avg_response_min": 32.4,
+            "p90_response_min": 52.0,
+            "target_min": 26,
+            "performance_ratio": 1.25,
+            "year": 2024
+        },
+        "Z29": {
+            "avg_response_min": 28.6,
+            "p90_response_min": 46.0,
+            "target_min": 22,
+            "performance_ratio": 1.30,
+            "year": 2024
+        },
+        "Z30": {
+            "avg_response_min": 62.4,
+            "p90_response_min": 95.0,
+            "target_min": 45,
+            "performance_ratio": 1.39,
+            "year": 2024
+        },
+        "Z31": {
+            "avg_response_min": 36.2,
+            "p90_response_min": 58.0,
+            "target_min": 28,
+            "performance_ratio": 1.29,
+            "year": 2024
+        },
+        "Z32": {
+            "avg_response_min": 35.4,
+            "p90_response_min": 56.0,
+            "target_min": 28,
+            "performance_ratio": 1.26,
+            "year": 2024
+        },
+        "Z33": {
+            "avg_response_min": 38.6,
+            "p90_response_min": 62.0,
+            "target_min": 30,
+            "performance_ratio": 1.29,
+            "year": 2024
+        },
+        "Z34": {
+            "avg_response_min": 36.8,
+            "p90_response_min": 60.0,
+            "target_min": 28,
+            "performance_ratio": 1.31,
+            "year": 2024
+        },
+        "Z35": {
+            "avg_response_min": 20.4,
+            "p90_response_min": 34.0,
+            "target_min": 16,
+            "performance_ratio": 1.28,
+            "year": 2024
+        },
+        "Z36": {
+            "avg_response_min": 22.8,
+            "p90_response_min": 36.0,
+            "target_min": 18,
+            "performance_ratio": 1.27,
+            "year": 2024
+        }
+    },
+    "incident_secondary_slowdowns": [
+        {
+            "incident_type": "polytrauma_rta",
+            "affected_radius_km": 4.5,
+            "slowdown_multiplier": 1.55,
+            "requires_police": true,
+            "duration_steps": 8
+        },
+        {
+            "incident_type": "mci_large",
+            "affected_radius_km": 8.0,
+            "slowdown_multiplier": 1.85,
+            "requires_police": true,
+            "requires_fire": true,
+            "cordon_radius_km": 2.0,
+            "duration_steps": 20
+        },
+        {
+            "incident_type": "hazmat",
+            "affected_radius_km": 6.0,
+            "slowdown_multiplier": 2.20,
+            "exclusion_zone_km": 1.5,
+            "requires_fire": true,
+            "duration_steps": 15
+        },
+        {
+            "incident_type": "building_collapse",
+            "affected_radius_km": 5.0,
+            "slowdown_multiplier": 1.75,
+            "cordon_radius_km": 1.0,
+            "duration_steps": 25
+        },
+        {
+            "incident_type": "flood_rescue",
+            "affected_radius_km": 10.0,
+            "slowdown_multiplier": 2.40,
+            "road_closure_probability": 0.45,
+            "duration_steps": 30
+        },
+        {
+            "incident_type": "cardiac_arrest",
+            "affected_radius_km": 0.5,
+            "slowdown_multiplier": 1.05,
+            "duration_steps": 2
+        },
+        {
+            "incident_type": "fire_active",
+            "affected_radius_km": 3.0,
+            "slowdown_multiplier": 1.65,
+            "exclusion_zone_km": 0.5,
+            "duration_steps": 12
+        },
+        {
+            "incident_type": "protest_riot",
+            "affected_radius_km": 8.0,
+            "slowdown_multiplier": 1.90,
+            "ems_escort_required": true,
+            "police_clearance_steps": 3,
+            "duration_steps": 20
+        },
+        {
+            "incident_type": "industrial_leak",
+            "affected_radius_km": 7.0,
+            "slowdown_multiplier": 2.10,
+            "exclusion_zone_km": 2.0,
+            "requires_fire": true,
+            "hazmat_decon_required": true,
+            "duration_steps": 18
+        },
+        {
+            "incident_type": "gas_explosion",
+            "affected_radius_km": 5.0,
+            "slowdown_multiplier": 2.40,
+            "cordon_radius_km": 1.5,
+            "requires_fire": true,
+            "requires_police": true,
+            "duration_steps": 22
+        },
+        {
+            "incident_type": "earthquake",
+            "affected_radius_km": 25.0,
+            "slowdown_multiplier": 2.80,
+            "road_collapse_probability": 0.15,
+            "duration_steps": 60
+        },
+        {
+            "incident_type": "landslide",
+            "affected_radius_km": 8.0,
+            "slowdown_multiplier": 3.50,
+            "road_closure_probability": 0.85,
+            "duration_steps": 80,
+            "notes": "Route may be permanently blocked"
+        },
+        {
+            "incident_type": "cyclone_event",
+            "affected_radius_km": 40.0,
+            "slowdown_multiplier": 2.60,
+            "ems_grounding_probability": 0.20,
+            "duration_steps": 40
+        },
+        {
+            "incident_type": "vip_convoy",
+            "affected_radius_km": 4.0,
+            "slowdown_multiplier": 2.20,
+            "clearance_after_steps": 2,
+            "ems_exempt": true
+        }
+    ],
+    "corridor_clearance_protocols": {
+        "green_corridor": {
+            "trigger_conditions": [
+                "stemi_cath_lab_activation",
+                "stroke_thrombolysis_window",
+                "organ_transport",
+                "mci_declared"
+            ],
+            "travel_time_reduction_pct": 0.45,
+            "activation_delay_min": 3,
+            "police_escort_zones": [
+                "Z01",
+                "Z02",
+                "Z05",
+                "Z27",
+                "Z09",
+                "Z14"
+            ],
+            "signal_override_required": true,
+            "duration_min": 90,
+            "notification_hospitals": true
+        },
+        "priority_1_lights_sirens": {
+            "trigger_conditions": [
+                "P1_incident",
+                "cardiac_arrest",
+                "major_trauma"
+            ],
+            "travel_time_reduction_pct": 0.35,
+            "urban_effectiveness": 0.72,
+            "suburban_effectiveness": 0.85,
+            "rural_effectiveness": 0.90,
+            "night_effectiveness_bonus": 0.08
+        },
+        "priority_2_lights_only": {
+            "trigger_conditions": [
+                "P2_incident"
+            ],
+            "travel_time_reduction_pct": 0.20,
+            "effectiveness": 0.80
+        },
+        "mutual_aid_corridor": {
+            "trigger_conditions": [
+                "mutual_aid_requested",
+                "city_surge_declared"
+            ],
+            "cross_zone_units_unlocked": true,
+            "assembly_point_activation": true,
+            "coordination_overhead_delay_min": 12,
+            "over_request_penalty_score": -0.10
+        },
+        "mass_casualty_corridor": {
+            "trigger_conditions": [
+                "task9_surge",
+                "state_mci_declared"
+            ],
+            "all_corridors_active": true,
+            "hospital_diversion_override": true,
+            "air_evacuation_activation": true,
+            "ndrf_coordination": true
+        }
+    },
+    "traffic_incident_types": [
+        {
+            "type": "minor_rta",
+            "probability_per_step": 0.040,
+            "slowdown_multiplier": 1.25,
+            "affected_radius_km": 2.0,
+            "clearance_steps": 3,
+            "high_risk_zones": [
+                "Z01",
+                "Z02",
+                "Z03",
+                "Z05",
+                "Z10",
+                "Z27"
+            ]
+        },
+        {
+            "type": "major_rta",
+            "probability_per_step": 0.012,
+            "slowdown_multiplier": 1.65,
+            "affected_radius_km": 4.0,
+            "clearance_steps": 8,
+            "high_risk_zones": [
+                "Z04",
+                "Z05",
+                "Z08",
+                "Z09",
+                "Z10"
+            ]
+        },
+        {
+            "type": "vehicle_breakdown",
+            "probability_per_step": 0.025,
+            "slowdown_multiplier": 1.35,
+            "affected_radius_km": 1.5,
+            "clearance_steps": 4,
+            "high_risk_zones": [
+                "Z01",
+                "Z02",
+                "Z03",
+                "Z10",
+                "Z27"
+            ]
+        },
+        {
+            "type": "vip_movement",
+            "probability_per_step": 0.008,
+            "slowdown_multiplier": 2.10,
+            "affected_radius_km": 5.0,
+            "clearance_steps": 2,
+            "ems_exempt": true
+        },
+        {
+            "type": "waterlogging",
+            "probability_per_step_monsoon": 0.080,
+            "probability_per_step_other": 0.002,
+            "slowdown_multiplier": 1.90,
+            "affected_radius_km": 2.0,
+            "clearance_steps": 12
+        },
+        {
+            "type": "road_works",
+            "probability_per_step": 0.015,
+            "slowdown_multiplier": 1.40,
+            "affected_radius_km": 1.0,
+            "clearance_steps": 24
+        },
+        {
+            "type": "protest_bandh",
+            "probability_per_step": 0.005,
+            "slowdown_multiplier": 0.50,
+            "affected_radius_km": 8.0,
+            "clearance_steps": 16,
+            "ems_exempt": true
+        },
+        {
+            "type": "level_crossing",
+            "probability_per_step": 0.030,
+            "slowdown_multiplier": 1.45,
+            "affected_radius_km": 1.0,
+            "clearance_steps": 2,
+            "zones": [
+                "Z10",
+                "Z11",
+                "Z14",
+                "Z22",
+                "Z27",
+                "Z28",
+                "Z29"
+            ]
+        },
+        {
+            "type": "fog_low_visibility",
+            "probability_per_step_winter": 0.040,
+            "slowdown_multiplier": 1.55,
+            "affected_radius_km": 15.0,
+            "clearance_steps": 6,
+            "ems_speed_reduction_pct": 0.25
+        },
+        {
+            "type": "cattle_crossing",
+            "probability_per_step_rural": 0.060,
+            "slowdown_multiplier": 1.30,
+            "affected_radius_km": 0.5,
+            "clearance_steps": 2,
+            "high_risk_zones": [
+                "Z16",
+                "Z17",
+                "Z18",
+                "Z19",
+                "Z20",
+                "Z26"
+            ]
+        },
+        {
+            "type": "religious_procession",
+            "probability_per_step_festival": 0.035,
+            "slowdown_multiplier": 1.80,
+            "affected_radius_km": 3.0,
+            "clearance_steps": 5,
+            "ems_escort_required": true,
+            "zones": [
+                "Z01",
+                "Z02",
+                "Z05",
+                "Z09",
+                "Z19"
+            ]
+        },
+        {
+            "type": "tractor_overload",
+            "probability_per_step_harvest": 0.045,
+            "slowdown_multiplier": 1.25,
+            "affected_radius_km": 0.8,
+            "clearance_steps": 2,
+            "high_risk_zones": [
+                "Z06",
+                "Z07",
+                "Z08",
+                "Z36",
+                "Z26"
+            ]
+        },
+        {
+            "type": "industrial_truck_jam",
+            "probability_per_step_shift_change": 0.055,
+            "slowdown_multiplier": 1.50,
+            "affected_radius_km": 2.0,
+            "clearance_steps": 4,
+            "zones": [
+                "Z03",
+                "Z04",
+                "Z29",
+                "Z35"
+            ]
+        },
+        {
+            "type": "school_zone_rush",
+            "probability_per_step_schoolday": 0.038,
+            "slowdown_multiplier": 1.35,
+            "affected_radius_km": 1.0,
+            "clearance_steps": 3,
+            "time_window": "07:30-09:00,13:30-15:00",
+            "zones": [
+                "Z01",
+                "Z02",
+                "Z05",
+                "Z09",
+                "Z27"
+            ]
+        }
+    ],
+    "dynamic_update_rules": {
+        "base_matrix_refresh_steps": 3,
+        "peak_hour_transition_steps": 2,
+        "max_concurrent_slowdowns_per_zone": 3,
+        "slowdown_stacking_rule": "multiplicative_capped",
+        "stack_cap_multiplier": 3.5,
+        "weather_update_frequency_steps": 6,
+        "traffic_noise_std_pct": 0.08,
+        "computation_method": "Modified_Dijkstra_with_time_windows",
+        "max_route_alternatives": 3,
+        "agent_observation_includes": [
+            "current_od_matrix_slice",
+            "active_slowdowns",
+            "bottleneck_flags",
+            "diversion_status",
+            "demand_forecast_12h",
+            "corridor_activation_status"
+        ],
+        "reward_penalty_wrong_route": -0.05,
+        "reward_penalty_diverted_hospital": -0.30,
+        "reward_bonus_green_corridor_use": 0.05
+    },
+    "ambulance_routing": {
+        "micu": {
+            "max_speed_urban_kmh": 80,
+            "max_speed_highway_kmh": 120,
+            "max_speed_ghat_kmh": 45,
+            "avoid": [
+                "unpaved",
+                "low_bridge_under_4m"
+            ],
+            "crew_weight_kg": 350,
+            "equipment_weight_kg": 450
+        },
+        "als": {
+            "max_speed_urban_kmh": 75,
+            "max_speed_highway_kmh": 110,
+            "max_speed_ghat_kmh": 40,
+            "avoid": [
+                "unpaved"
+            ],
+            "crew_weight_kg": 280,
+            "equipment_weight_kg": 280
+        },
+        "bls": {
+            "max_speed_urban_kmh": 70,
+            "max_speed_highway_kmh": 100,
+            "max_speed_ghat_kmh": 35,
+            "can_use_unpaved": true,
+            "crew_weight_kg": 200,
+            "equipment_weight_kg": 150
+        },
+        "routing_priority_order": [
+            "green_corridor",
+            "ems_corridor",
+            "fastest_route",
+            "shortest_distance"
+        ],
+        "toll_waiver": true,
+        "signal_preemption_available_zones": [
+            "Z01",
+            "Z02",
+            "Z03",
+            "Z05",
+            "Z09",
+            "Z14",
+            "Z27"
+        ]
+    },
+    "base_od_matrix_minutes": {
+        "description": "Base travel time matrix in minutes between all 36 zones under free-flow conditions. EMS priority travel = base × 0.65 (urban) or 0.80 (rural). Update every 3 simulation steps using hour_multiplier × season_multiplier × day_multiplier × terrain_factor × zone_profile_factor.",
+        "Z01": {
+            "Z01": 0,
+            "Z02": 25,
+            "Z03": 45,
+            "Z04": 85,
+            "Z05": 180,
+            "Z06": 360,
+            "Z07": 420,
+            "Z08": 280,
+            "Z09": 210,
+            "Z10": 290,
+            "Z11": 340,
+            "Z12": 380,
+            "Z13": 260,
+            "Z14": 380,
+            "Z15": 430,
+            "Z16": 460,
+            "Z17": 490,
+            "Z18": 510,
+            "Z19": 520,
+            "Z20": 480,
+            "Z21": 440,
+            "Z22": 380,
+            "Z23": 480,
+            "Z24": 450,
+            "Z25": 470,
+            "Z26": 460,
+            "Z27": 720,
+            "Z28": 660,
+            "Z29": 780,
+            "Z30": 860,
+            "Z31": 780,
+            "Z32": 740,
+            "Z33": 480,
+            "Z34": 420,
+            "Z35": 60,
+            "Z36": 440
+        },
+        "Z02": {
+            "Z01": 25,
+            "Z02": 0,
+            "Z03": 38,
+            "Z04": 72,
+            "Z05": 160,
+            "Z06": 340,
+            "Z07": 400,
+            "Z08": 260,
+            "Z09": 195,
+            "Z10": 275,
+            "Z11": 320,
+            "Z12": 360,
+            "Z13": 240,
+            "Z14": 360,
+            "Z15": 410,
+            "Z16": 440,
+            "Z17": 470,
+            "Z18": 490,
+            "Z19": 500,
+            "Z20": 460,
+            "Z21": 420,
+            "Z22": 360,
+            "Z23": 460,
+            "Z24": 430,
+            "Z25": 450,
+            "Z26": 440,
+            "Z27": 700,
+            "Z28": 640,
+            "Z29": 760,
+            "Z30": 840,
+            "Z31": 760,
+            "Z32": 720,
+            "Z33": 460,
+            "Z34": 400,
+            "Z35": 42,
+            "Z36": 420
+        },
+        "Z03": {
+            "Z01": 45,
+            "Z02": 38,
+            "Z03": 0,
+            "Z04": 65,
+            "Z05": 145,
+            "Z06": 320,
+            "Z07": 380,
+            "Z08": 240,
+            "Z09": 175,
+            "Z10": 255,
+            "Z11": 300,
+            "Z12": 340,
+            "Z13": 220,
+            "Z14": 340,
+            "Z15": 390,
+            "Z16": 420,
+            "Z17": 450,
+            "Z18": 470,
+            "Z19": 480,
+            "Z20": 440,
+            "Z21": 400,
+            "Z22": 340,
+            "Z23": 440,
+            "Z24": 410,
+            "Z25": 430,
+            "Z26": 420,
+            "Z27": 680,
+            "Z28": 620,
+            "Z29": 740,
+            "Z30": 820,
+            "Z31": 740,
+            "Z32": 700,
+            "Z33": 440,
+            "Z34": 380,
+            "Z35": 55,
+            "Z36": 400
+        },
+        "Z04": {
+            "Z01": 85,
+            "Z02": 72,
+            "Z03": 65,
+            "Z04": 0,
+            "Z05": 95,
+            "Z06": 280,
+            "Z07": 320,
+            "Z08": 110,
+            "Z09": 200,
+            "Z10": 280,
+            "Z11": 320,
+            "Z12": 360,
+            "Z13": 220,
+            "Z14": 340,
+            "Z15": 390,
+            "Z16": 420,
+            "Z17": 450,
+            "Z18": 470,
+            "Z19": 510,
+            "Z20": 470,
+            "Z21": 430,
+            "Z22": 370,
+            "Z23": 470,
+            "Z24": 440,
+            "Z25": 460,
+            "Z26": 450,
+            "Z27": 710,
+            "Z28": 650,
+            "Z29": 770,
+            "Z30": 850,
+            "Z31": 770,
+            "Z32": 730,
+            "Z33": 380,
+            "Z34": 100,
+            "Z35": 110,
+            "Z36": 350
+        },
+        "Z05": {
+            "Z01": 180,
+            "Z02": 160,
+            "Z03": 145,
+            "Z04": 95,
+            "Z05": 0,
+            "Z06": 240,
+            "Z07": 280,
+            "Z08": 140,
+            "Z09": 185,
+            "Z10": 260,
+            "Z11": 300,
+            "Z12": 340,
+            "Z13": 200,
+            "Z14": 320,
+            "Z15": 370,
+            "Z16": 400,
+            "Z17": 430,
+            "Z18": 450,
+            "Z19": 490,
+            "Z20": 450,
+            "Z21": 410,
+            "Z22": 350,
+            "Z23": 450,
+            "Z24": 420,
+            "Z25": 440,
+            "Z26": 430,
+            "Z27": 690,
+            "Z28": 630,
+            "Z29": 750,
+            "Z30": 830,
+            "Z31": 750,
+            "Z32": 710,
+            "Z33": 360,
+            "Z34": 140,
+            "Z35": 200,
+            "Z36": 300
+        },
+        "Z06": {
+            "Z01": 360,
+            "Z02": 340,
+            "Z03": 320,
+            "Z04": 280,
+            "Z05": 240,
+            "Z06": 0,
+            "Z07": 150,
+            "Z08": 110,
+            "Z09": 380,
+            "Z10": 420,
+            "Z11": 460,
+            "Z12": 500,
+            "Z13": 320,
+            "Z14": 280,
+            "Z15": 300,
+            "Z16": 180,
+            "Z17": 180,
+            "Z18": 220,
+            "Z19": 280,
+            "Z20": 280,
+            "Z21": 320,
+            "Z22": 380,
+            "Z23": 460,
+            "Z24": 440,
+            "Z25": 420,
+            "Z26": 380,
+            "Z27": 640,
+            "Z28": 600,
+            "Z29": 720,
+            "Z30": 800,
+            "Z31": 720,
+            "Z32": 680,
+            "Z33": 240,
+            "Z34": 200,
+            "Z35": 380,
+            "Z36": 60
+        },
+        "Z07": {
+            "Z01": 420,
+            "Z02": 400,
+            "Z03": 380,
+            "Z04": 320,
+            "Z05": 280,
+            "Z06": 150,
+            "Z07": 0,
+            "Z08": 110,
+            "Z09": 440,
+            "Z10": 480,
+            "Z11": 520,
+            "Z12": 560,
+            "Z13": 380,
+            "Z14": 340,
+            "Z15": 360,
+            "Z16": 240,
+            "Z17": 240,
+            "Z18": 280,
+            "Z19": 340,
+            "Z20": 340,
+            "Z21": 380,
+            "Z22": 440,
+            "Z23": 520,
+            "Z24": 500,
+            "Z25": 480,
+            "Z26": 440,
+            "Z27": 700,
+            "Z28": 660,
+            "Z29": 780,
+            "Z30": 860,
+            "Z31": 780,
+            "Z32": 740,
+            "Z33": 100,
+            "Z34": 160,
+            "Z35": 440,
+            "Z36": 80
+        },
+        "Z08": {
+            "Z01": 280,
+            "Z02": 260,
+            "Z03": 240,
+            "Z04": 110,
+            "Z05": 140,
+            "Z06": 110,
+            "Z07": 110,
+            "Z08": 0,
+            "Z09": 300,
+            "Z10": 380,
+            "Z11": 420,
+            "Z12": 460,
+            "Z13": 280,
+            "Z14": 360,
+            "Z15": 400,
+            "Z16": 300,
+            "Z17": 300,
+            "Z18": 330,
+            "Z19": 380,
+            "Z20": 360,
+            "Z21": 400,
+            "Z22": 440,
+            "Z23": 520,
+            "Z24": 500,
+            "Z25": 480,
+            "Z26": 460,
+            "Z27": 720,
+            "Z28": 680,
+            "Z29": 800,
+            "Z30": 880,
+            "Z31": 800,
+            "Z32": 760,
+            "Z33": 200,
+            "Z34": 95,
+            "Z35": 300,
+            "Z36": 150
+        },
+        "Z09": {
+            "Z01": 210,
+            "Z02": 195,
+            "Z03": 175,
+            "Z04": 200,
+            "Z05": 185,
+            "Z06": 380,
+            "Z07": 440,
+            "Z08": 300,
+            "Z09": 0,
+            "Z10": 165,
+            "Z11": 210,
+            "Z12": 250,
+            "Z13": 180,
+            "Z14": 300,
+            "Z15": 350,
+            "Z16": 380,
+            "Z17": 410,
+            "Z18": 440,
+            "Z19": 480,
+            "Z20": 460,
+            "Z21": 420,
+            "Z22": 360,
+            "Z23": 440,
+            "Z24": 410,
+            "Z25": 430,
+            "Z26": 420,
+            "Z27": 520,
+            "Z28": 460,
+            "Z29": 580,
+            "Z30": 660,
+            "Z31": 580,
+            "Z32": 540,
+            "Z33": 520,
+            "Z34": 440,
+            "Z35": 225,
+            "Z36": 400
+        },
+        "Z10": {
+            "Z01": 290,
+            "Z02": 275,
+            "Z03": 255,
+            "Z04": 280,
+            "Z05": 260,
+            "Z06": 420,
+            "Z07": 480,
+            "Z08": 380,
+            "Z09": 165,
+            "Z10": 0,
+            "Z11": 80,
+            "Z12": 130,
+            "Z13": 280,
+            "Z14": 380,
+            "Z15": 420,
+            "Z16": 440,
+            "Z17": 480,
+            "Z18": 510,
+            "Z19": 550,
+            "Z20": 530,
+            "Z21": 490,
+            "Z22": 120,
+            "Z23": 320,
+            "Z24": 290,
+            "Z25": 310,
+            "Z26": 320,
+            "Z27": 520,
+            "Z28": 480,
+            "Z29": 600,
+            "Z30": 680,
+            "Z31": 600,
+            "Z32": 560,
+            "Z33": 600,
+            "Z34": 520,
+            "Z35": 305,
+            "Z36": 500
+        },
+        "Z11": {
+            "Z01": 340,
+            "Z02": 320,
+            "Z03": 300,
+            "Z04": 320,
+            "Z05": 300,
+            "Z06": 460,
+            "Z07": 520,
+            "Z08": 420,
+            "Z09": 210,
+            "Z10": 80,
+            "Z11": 0,
+            "Z12": 90,
+            "Z13": 300,
+            "Z14": 360,
+            "Z15": 120,
+            "Z16": 340,
+            "Z17": 390,
+            "Z18": 430,
+            "Z19": 460,
+            "Z20": 200,
+            "Z21": 80,
+            "Z22": 95,
+            "Z23": 340,
+            "Z24": 310,
+            "Z25": 260,
+            "Z26": 290,
+            "Z27": 540,
+            "Z28": 500,
+            "Z29": 620,
+            "Z30": 700,
+            "Z31": 620,
+            "Z32": 580,
+            "Z33": 640,
+            "Z34": 560,
+            "Z35": 350,
+            "Z36": 540
+        },
+        "Z12": {
+            "Z01": 380,
+            "Z02": 360,
+            "Z03": 340,
+            "Z04": 360,
+            "Z05": 340,
+            "Z06": 500,
+            "Z07": 560,
+            "Z08": 460,
+            "Z09": 250,
+            "Z10": 130,
+            "Z11": 90,
+            "Z12": 0,
+            "Z13": 340,
+            "Z14": 400,
+            "Z15": 160,
+            "Z16": 380,
+            "Z17": 430,
+            "Z18": 470,
+            "Z19": 500,
+            "Z20": 240,
+            "Z21": 120,
+            "Z22": 135,
+            "Z23": 380,
+            "Z24": 350,
+            "Z25": 300,
+            "Z26": 330,
+            "Z27": 580,
+            "Z28": 540,
+            "Z29": 660,
+            "Z30": 740,
+            "Z31": 660,
+            "Z32": 620,
+            "Z33": 680,
+            "Z34": 600,
+            "Z35": 390,
+            "Z36": 580
+        },
+        "Z13": {
+            "Z01": 260,
+            "Z02": 240,
+            "Z03": 220,
+            "Z04": 220,
+            "Z05": 200,
+            "Z06": 320,
+            "Z07": 380,
+            "Z08": 280,
+            "Z09": 180,
+            "Z10": 280,
+            "Z11": 300,
+            "Z12": 340,
+            "Z13": 0,
+            "Z14": 180,
+            "Z15": 230,
+            "Z16": 280,
+            "Z17": 320,
+            "Z18": 240,
+            "Z19": 370,
+            "Z20": 360,
+            "Z21": 330,
+            "Z22": 320,
+            "Z23": 420,
+            "Z24": 390,
+            "Z25": 410,
+            "Z26": 400,
+            "Z27": 620,
+            "Z28": 580,
+            "Z29": 700,
+            "Z30": 780,
+            "Z31": 700,
+            "Z32": 660,
+            "Z33": 460,
+            "Z34": 360,
+            "Z35": 280,
+            "Z36": 380
+        },
+        "Z14": {
+            "Z01": 380,
+            "Z02": 360,
+            "Z03": 340,
+            "Z04": 340,
+            "Z05": 320,
+            "Z06": 280,
+            "Z07": 340,
+            "Z08": 360,
+            "Z09": 300,
+            "Z10": 380,
+            "Z11": 360,
+            "Z12": 400,
+            "Z13": 180,
+            "Z14": 0,
+            "Z15": 90,
+            "Z16": 160,
+            "Z17": 150,
+            "Z18": 130,
+            "Z19": 220,
+            "Z20": 200,
+            "Z21": 240,
+            "Z22": 300,
+            "Z23": 380,
+            "Z24": 360,
+            "Z25": 380,
+            "Z26": 370,
+            "Z27": 390,
+            "Z28": 360,
+            "Z29": 480,
+            "Z30": 560,
+            "Z31": 480,
+            "Z32": 440,
+            "Z33": 500,
+            "Z34": 420,
+            "Z35": 400,
+            "Z36": 320
+        },
+        "Z15": {
+            "Z01": 430,
+            "Z02": 410,
+            "Z03": 390,
+            "Z04": 390,
+            "Z05": 370,
+            "Z06": 300,
+            "Z07": 360,
+            "Z08": 400,
+            "Z09": 350,
+            "Z10": 420,
+            "Z11": 120,
+            "Z12": 160,
+            "Z13": 230,
+            "Z14": 90,
+            "Z15": 0,
+            "Z16": 150,
+            "Z17": 200,
+            "Z18": 200,
+            "Z19": 180,
+            "Z20": 100,
+            "Z21": 80,
+            "Z22": 240,
+            "Z23": 340,
+            "Z24": 320,
+            "Z25": 280,
+            "Z26": 310,
+            "Z27": 440,
+            "Z28": 410,
+            "Z29": 530,
+            "Z30": 610,
+            "Z31": 530,
+            "Z32": 490,
+            "Z33": 560,
+            "Z34": 480,
+            "Z35": 450,
+            "Z36": 360
+        },
+        "Z16": {
+            "Z01": 460,
+            "Z02": 440,
+            "Z03": 420,
+            "Z04": 420,
+            "Z05": 400,
+            "Z06": 180,
+            "Z07": 240,
+            "Z08": 300,
+            "Z09": 380,
+            "Z10": 440,
+            "Z11": 340,
+            "Z12": 380,
+            "Z13": 280,
+            "Z14": 160,
+            "Z15": 150,
+            "Z16": 0,
+            "Z17": 120,
+            "Z18": 170,
+            "Z19": 240,
+            "Z20": 200,
+            "Z21": 220,
+            "Z22": 340,
+            "Z23": 420,
+            "Z24": 400,
+            "Z25": 380,
+            "Z26": 360,
+            "Z27": 500,
+            "Z28": 470,
+            "Z29": 590,
+            "Z30": 670,
+            "Z31": 590,
+            "Z32": 550,
+            "Z33": 440,
+            "Z34": 380,
+            "Z35": 480,
+            "Z36": 220
+        },
+        "Z17": {
+            "Z01": 490,
+            "Z02": 470,
+            "Z03": 450,
+            "Z04": 450,
+            "Z05": 430,
+            "Z06": 180,
+            "Z07": 240,
+            "Z08": 300,
+            "Z09": 410,
+            "Z10": 480,
+            "Z11": 390,
+            "Z12": 430,
+            "Z13": 320,
+            "Z14": 150,
+            "Z15": 200,
+            "Z16": 120,
+            "Z17": 0,
+            "Z18": 100,
+            "Z19": 140,
+            "Z20": 180,
+            "Z21": 230,
+            "Z22": 350,
+            "Z23": 440,
+            "Z24": 420,
+            "Z25": 400,
+            "Z26": 380,
+            "Z27": 520,
+            "Z28": 490,
+            "Z29": 610,
+            "Z30": 690,
+            "Z31": 610,
+            "Z32": 570,
+            "Z33": 470,
+            "Z34": 410,
+            "Z35": 510,
+            "Z36": 250
+        },
+        "Z18": {
+            "Z01": 510,
+            "Z02": 490,
+            "Z03": 470,
+            "Z04": 470,
+            "Z05": 450,
+            "Z06": 220,
+            "Z07": 280,
+            "Z08": 330,
+            "Z09": 440,
+            "Z10": 510,
+            "Z11": 430,
+            "Z12": 470,
+            "Z13": 240,
+            "Z14": 130,
+            "Z15": 200,
+            "Z16": 170,
+            "Z17": 100,
+            "Z18": 0,
+            "Z19": 140,
+            "Z20": 200,
+            "Z21": 240,
+            "Z22": 370,
+            "Z23": 460,
+            "Z24": 440,
+            "Z25": 420,
+            "Z26": 400,
+            "Z27": 540,
+            "Z28": 510,
+            "Z29": 630,
+            "Z30": 710,
+            "Z31": 630,
+            "Z32": 590,
+            "Z33": 510,
+            "Z34": 450,
+            "Z35": 530,
+            "Z36": 280
+        },
+        "Z19": {
+            "Z01": 520,
+            "Z02": 500,
+            "Z03": 480,
+            "Z04": 510,
+            "Z05": 490,
+            "Z06": 280,
+            "Z07": 340,
+            "Z08": 380,
+            "Z09": 480,
+            "Z10": 550,
+            "Z11": 460,
+            "Z12": 500,
+            "Z13": 370,
+            "Z14": 220,
+            "Z15": 180,
+            "Z16": 240,
+            "Z17": 140,
+            "Z18": 140,
+            "Z19": 0,
+            "Z20": 100,
+            "Z21": 210,
+            "Z22": 420,
+            "Z23": 500,
+            "Z24": 480,
+            "Z25": 460,
+            "Z26": 440,
+            "Z27": 580,
+            "Z28": 550,
+            "Z29": 670,
+            "Z30": 750,
+            "Z31": 670,
+            "Z32": 630,
+            "Z33": 560,
+            "Z34": 500,
+            "Z35": 540,
+            "Z36": 340
+        },
+        "Z20": {
+            "Z01": 480,
+            "Z02": 460,
+            "Z03": 440,
+            "Z04": 470,
+            "Z05": 450,
+            "Z06": 280,
+            "Z07": 340,
+            "Z08": 360,
+            "Z09": 460,
+            "Z10": 530,
+            "Z11": 200,
+            "Z12": 240,
+            "Z13": 360,
+            "Z14": 200,
+            "Z15": 100,
+            "Z16": 200,
+            "Z17": 180,
+            "Z18": 200,
+            "Z19": 100,
+            "Z20": 0,
+            "Z21": 130,
+            "Z22": 360,
+            "Z23": 450,
+            "Z24": 430,
+            "Z25": 350,
+            "Z26": 300,
+            "Z27": 540,
+            "Z28": 510,
+            "Z29": 630,
+            "Z30": 710,
+            "Z31": 630,
+            "Z32": 590,
+            "Z33": 600,
+            "Z34": 540,
+            "Z35": 500,
+            "Z36": 380
+        },
+        "Z21": {
+            "Z01": 440,
+            "Z02": 420,
+            "Z03": 400,
+            "Z04": 430,
+            "Z05": 410,
+            "Z06": 320,
+            "Z07": 380,
+            "Z08": 400,
+            "Z09": 420,
+            "Z10": 490,
+            "Z11": 80,
+            "Z12": 120,
+            "Z13": 330,
+            "Z14": 240,
+            "Z15": 80,
+            "Z16": 220,
+            "Z17": 230,
+            "Z18": 240,
+            "Z19": 210,
+            "Z20": 130,
+            "Z21": 0,
+            "Z22": 220,
+            "Z23": 380,
+            "Z24": 360,
+            "Z25": 240,
+            "Z26": 270,
+            "Z27": 500,
+            "Z28": 470,
+            "Z29": 590,
+            "Z30": 670,
+            "Z31": 590,
+            "Z32": 550,
+            "Z33": 600,
+            "Z34": 540,
+            "Z35": 460,
+            "Z36": 430
+        },
+        "Z22": {
+            "Z01": 380,
+            "Z02": 360,
+            "Z03": 340,
+            "Z04": 370,
+            "Z05": 350,
+            "Z06": 380,
+            "Z07": 440,
+            "Z08": 440,
+            "Z09": 360,
+            "Z10": 120,
+            "Z11": 95,
+            "Z12": 135,
+            "Z13": 320,
+            "Z14": 300,
+            "Z15": 240,
+            "Z16": 340,
+            "Z17": 350,
+            "Z18": 370,
+            "Z19": 420,
+            "Z20": 360,
+            "Z21": 220,
+            "Z22": 0,
+            "Z23": 90,
+            "Z24": 80,
+            "Z25": 150,
+            "Z26": 200,
+            "Z27": 420,
+            "Z28": 390,
+            "Z29": 510,
+            "Z30": 590,
+            "Z31": 510,
+            "Z32": 470,
+            "Z33": 640,
+            "Z34": 580,
+            "Z35": 400,
+            "Z36": 500
+        },
+        "Z23": {
+            "Z01": 480,
+            "Z02": 460,
+            "Z03": 440,
+            "Z04": 470,
+            "Z05": 450,
+            "Z06": 460,
+            "Z07": 520,
+            "Z08": 520,
+            "Z09": 440,
+            "Z10": 320,
+            "Z11": 340,
+            "Z12": 380,
+            "Z13": 420,
+            "Z14": 380,
+            "Z15": 340,
+            "Z16": 420,
+            "Z17": 440,
+            "Z18": 460,
+            "Z19": 500,
+            "Z20": 450,
+            "Z21": 380,
+            "Z22": 90,
+            "Z23": 0,
+            "Z24": 80,
+            "Z25": 110,
+            "Z26": 155,
+            "Z27": 210,
+            "Z28": 180,
+            "Z29": 300,
+            "Z30": 380,
+            "Z31": 300,
+            "Z32": 260,
+            "Z33": 700,
+            "Z34": 640,
+            "Z35": 500,
+            "Z36": 570
+        },
+        "Z24": {
+            "Z01": 450,
+            "Z02": 430,
+            "Z03": 410,
+            "Z04": 440,
+            "Z05": 420,
+            "Z06": 440,
+            "Z07": 500,
+            "Z08": 500,
+            "Z09": 410,
+            "Z10": 290,
+            "Z11": 310,
+            "Z12": 350,
+            "Z13": 390,
+            "Z14": 360,
+            "Z15": 320,
+            "Z16": 400,
+            "Z17": 420,
+            "Z18": 440,
+            "Z19": 480,
+            "Z20": 430,
+            "Z21": 360,
+            "Z22": 80,
+            "Z23": 80,
+            "Z24": 0,
+            "Z25": 90,
+            "Z26": 160,
+            "Z27": 260,
+            "Z28": 230,
+            "Z29": 350,
+            "Z30": 430,
+            "Z31": 350,
+            "Z32": 310,
+            "Z33": 680,
+            "Z34": 620,
+            "Z35": 470,
+            "Z36": 550
+        },
+        "Z25": {
+            "Z01": 470,
+            "Z02": 450,
+            "Z03": 430,
+            "Z04": 460,
+            "Z05": 440,
+            "Z06": 420,
+            "Z07": 480,
+            "Z08": 480,
+            "Z09": 430,
+            "Z10": 310,
+            "Z11": 260,
+            "Z12": 300,
+            "Z13": 410,
+            "Z14": 380,
+            "Z15": 280,
+            "Z16": 380,
+            "Z17": 400,
+            "Z18": 420,
+            "Z19": 460,
+            "Z20": 350,
+            "Z21": 240,
+            "Z22": 150,
+            "Z23": 110,
+            "Z24": 90,
+            "Z25": 0,
+            "Z26": 120,
+            "Z27": 310,
+            "Z28": 280,
+            "Z29": 400,
+            "Z30": 480,
+            "Z31": 400,
+            "Z32": 360,
+            "Z33": 660,
+            "Z34": 600,
+            "Z35": 490,
+            "Z36": 530
+        },
+        "Z26": {
+            "Z01": 460,
+            "Z02": 440,
+            "Z03": 420,
+            "Z04": 450,
+            "Z05": 430,
+            "Z06": 380,
+            "Z07": 440,
+            "Z08": 460,
+            "Z09": 420,
+            "Z10": 320,
+            "Z11": 290,
+            "Z12": 330,
+            "Z13": 400,
+            "Z14": 370,
+            "Z15": 310,
+            "Z16": 360,
+            "Z17": 380,
+            "Z18": 400,
+            "Z19": 440,
+            "Z20": 300,
+            "Z21": 270,
+            "Z22": 200,
+            "Z23": 155,
+            "Z24": 160,
+            "Z25": 120,
+            "Z26": 0,
+            "Z27": 220,
+            "Z28": 190,
+            "Z29": 310,
+            "Z30": 390,
+            "Z31": 310,
+            "Z32": 270,
+            "Z33": 650,
+            "Z34": 590,
+            "Z35": 480,
+            "Z36": 500
+        },
+        "Z27": {
+            "Z01": 720,
+            "Z02": 700,
+            "Z03": 680,
+            "Z04": 710,
+            "Z05": 690,
+            "Z06": 640,
+            "Z07": 700,
+            "Z08": 720,
+            "Z09": 520,
+            "Z10": 520,
+            "Z11": 540,
+            "Z12": 580,
+            "Z13": 620,
+            "Z14": 390,
+            "Z15": 440,
+            "Z16": 500,
+            "Z17": 520,
+            "Z18": 540,
+            "Z19": 580,
+            "Z20": 540,
+            "Z21": 500,
+            "Z22": 420,
+            "Z23": 210,
+            "Z24": 260,
+            "Z25": 310,
+            "Z26": 220,
+            "Z27": 0,
+            "Z28": 90,
+            "Z29": 140,
+            "Z30": 220,
+            "Z31": 110,
+            "Z32": 80,
+            "Z33": 870,
+            "Z34": 810,
+            "Z35": 740,
+            "Z36": 710
+        },
+        "Z28": {
+            "Z01": 660,
+            "Z02": 640,
+            "Z03": 620,
+            "Z04": 650,
+            "Z05": 630,
+            "Z06": 600,
+            "Z07": 660,
+            "Z08": 680,
+            "Z09": 460,
+            "Z10": 480,
+            "Z11": 500,
+            "Z12": 540,
+            "Z13": 580,
+            "Z14": 360,
+            "Z15": 410,
+            "Z16": 470,
+            "Z17": 490,
+            "Z18": 510,
+            "Z19": 550,
+            "Z20": 510,
+            "Z21": 470,
+            "Z22": 390,
+            "Z23": 180,
+            "Z24": 230,
+            "Z25": 280,
+            "Z26": 190,
+            "Z27": 90,
+            "Z28": 0,
+            "Z29": 110,
+            "Z30": 190,
+            "Z31": 180,
+            "Z32": 140,
+            "Z33": 830,
+            "Z34": 770,
+            "Z35": 680,
+            "Z36": 670
+        },
+        "Z29": {
+            "Z01": 780,
+            "Z02": 760,
+            "Z03": 740,
+            "Z04": 770,
+            "Z05": 750,
+            "Z06": 720,
+            "Z07": 780,
+            "Z08": 800,
+            "Z09": 580,
+            "Z10": 600,
+            "Z11": 620,
+            "Z12": 660,
+            "Z13": 700,
+            "Z14": 480,
+            "Z15": 530,
+            "Z16": 590,
+            "Z17": 610,
+            "Z18": 630,
+            "Z19": 670,
+            "Z20": 630,
+            "Z21": 590,
+            "Z22": 510,
+            "Z23": 300,
+            "Z24": 350,
+            "Z25": 400,
+            "Z26": 310,
+            "Z27": 140,
+            "Z28": 110,
+            "Z29": 0,
+            "Z30": 110,
+            "Z31": 250,
+            "Z32": 180,
+            "Z33": 940,
+            "Z34": 880,
+            "Z35": 800,
+            "Z36": 790
+        },
+        "Z30": {
+            "Z01": 860,
+            "Z02": 840,
+            "Z03": 820,
+            "Z04": 850,
+            "Z05": 830,
+            "Z06": 800,
+            "Z07": 860,
+            "Z08": 880,
+            "Z09": 660,
+            "Z10": 680,
+            "Z11": 700,
+            "Z12": 740,
+            "Z13": 780,
+            "Z14": 560,
+            "Z15": 610,
+            "Z16": 670,
+            "Z17": 690,
+            "Z18": 710,
+            "Z19": 750,
+            "Z20": 710,
+            "Z21": 670,
+            "Z22": 590,
+            "Z23": 380,
+            "Z24": 430,
+            "Z25": 480,
+            "Z26": 390,
+            "Z27": 220,
+            "Z28": 190,
+            "Z29": 110,
+            "Z30": 0,
+            "Z31": 340,
+            "Z32": 270,
+            "Z33": 1020,
+            "Z34": 960,
+            "Z35": 880,
+            "Z36": 870
+        },
+        "Z31": {
+            "Z01": 780,
+            "Z02": 760,
+            "Z03": 740,
+            "Z04": 770,
+            "Z05": 750,
+            "Z06": 720,
+            "Z07": 780,
+            "Z08": 800,
+            "Z09": 580,
+            "Z10": 600,
+            "Z11": 620,
+            "Z12": 660,
+            "Z13": 700,
+            "Z14": 480,
+            "Z15": 530,
+            "Z16": 590,
+            "Z17": 610,
+            "Z18": 630,
+            "Z19": 670,
+            "Z20": 630,
+            "Z21": 590,
+            "Z22": 510,
+            "Z23": 300,
+            "Z24": 350,
+            "Z25": 400,
+            "Z26": 310,
+            "Z27": 110,
+            "Z28": 180,
+            "Z29": 250,
+            "Z30": 340,
+            "Z31": 0,
+            "Z32": 100,
+            "Z33": 940,
+            "Z34": 880,
+            "Z35": 800,
+            "Z36": 790
+        },
+        "Z32": {
+            "Z01": 740,
+            "Z02": 720,
+            "Z03": 700,
+            "Z04": 730,
+            "Z05": 710,
+            "Z06": 680,
+            "Z07": 740,
+            "Z08": 760,
+            "Z09": 540,
+            "Z10": 560,
+            "Z11": 580,
+            "Z12": 620,
+            "Z13": 660,
+            "Z14": 440,
+            "Z15": 490,
+            "Z16": 550,
+            "Z17": 570,
+            "Z18": 590,
+            "Z19": 630,
+            "Z20": 590,
+            "Z21": 550,
+            "Z22": 470,
+            "Z23": 260,
+            "Z24": 310,
+            "Z25": 360,
+            "Z26": 270,
+            "Z27": 80,
+            "Z28": 140,
+            "Z29": 180,
+            "Z30": 270,
+            "Z31": 100,
+            "Z32": 0,
+            "Z33": 900,
+            "Z34": 840,
+            "Z35": 760,
+            "Z36": 750
+        },
+        "Z33": {
+            "Z01": 480,
+            "Z02": 460,
+            "Z03": 440,
+            "Z04": 380,
+            "Z05": 360,
+            "Z06": 240,
+            "Z07": 100,
+            "Z08": 200,
+            "Z09": 520,
+            "Z10": 600,
+            "Z11": 640,
+            "Z12": 680,
+            "Z13": 460,
+            "Z14": 500,
+            "Z15": 560,
+            "Z16": 440,
+            "Z17": 470,
+            "Z18": 510,
+            "Z19": 560,
+            "Z20": 600,
+            "Z21": 600,
+            "Z22": 640,
+            "Z23": 700,
+            "Z24": 680,
+            "Z25": 660,
+            "Z26": 650,
+            "Z27": 870,
+            "Z28": 830,
+            "Z29": 940,
+            "Z30": 1020,
+            "Z31": 940,
+            "Z32": 900,
+            "Z33": 0,
+            "Z34": 90,
+            "Z35": 500,
+            "Z36": 140
+        },
+        "Z34": {
+            "Z01": 420,
+            "Z02": 400,
+            "Z03": 380,
+            "Z04": 100,
+            "Z05": 140,
+            "Z06": 200,
+            "Z07": 160,
+            "Z08": 95,
+            "Z09": 440,
+            "Z10": 520,
+            "Z11": 560,
+            "Z12": 600,
+            "Z13": 360,
+            "Z14": 420,
+            "Z15": 480,
+            "Z16": 380,
+            "Z17": 410,
+            "Z18": 450,
+            "Z19": 500,
+            "Z20": 540,
+            "Z21": 540,
+            "Z22": 580,
+            "Z23": 640,
+            "Z24": 620,
+            "Z25": 600,
+            "Z26": 590,
+            "Z27": 810,
+            "Z28": 770,
+            "Z29": 880,
+            "Z30": 960,
+            "Z31": 880,
+            "Z32": 840,
+            "Z33": 90,
+            "Z34": 0,
+            "Z35": 440,
+            "Z36": 180
+        },
+        "Z35": {
+            "Z01": 60,
+            "Z02": 42,
+            "Z03": 55,
+            "Z04": 110,
+            "Z05": 200,
+            "Z06": 380,
+            "Z07": 440,
+            "Z08": 300,
+            "Z09": 225,
+            "Z10": 305,
+            "Z11": 350,
+            "Z12": 390,
+            "Z13": 280,
+            "Z14": 400,
+            "Z15": 450,
+            "Z16": 480,
+            "Z17": 510,
+            "Z18": 530,
+            "Z19": 540,
+            "Z20": 500,
+            "Z21": 460,
+            "Z22": 400,
+            "Z23": 500,
+            "Z24": 470,
+            "Z25": 490,
+            "Z26": 480,
+            "Z27": 740,
+            "Z28": 680,
+            "Z29": 800,
+            "Z30": 880,
+            "Z31": 800,
+            "Z32": 760,
+            "Z33": 500,
+            "Z34": 440,
+            "Z35": 0,
+            "Z36": 460
+        },
+        "Z36": {
+            "Z01": 440,
+            "Z02": 420,
+            "Z03": 400,
+            "Z04": 350,
+            "Z05": 300,
+            "Z06": 60,
+            "Z07": 80,
+            "Z08": 150,
+            "Z09": 400,
+            "Z10": 500,
+            "Z11": 540,
+            "Z12": 580,
+            "Z13": 380,
+            "Z14": 320,
+            "Z15": 360,
+            "Z16": 220,
+            "Z17": 250,
+            "Z18": 280,
+            "Z19": 340,
+            "Z20": 380,
+            "Z21": 430,
+            "Z22": 500,
+            "Z23": 570,
+            "Z24": 550,
+            "Z25": 530,
+            "Z26": 500,
+            "Z27": 710,
+            "Z28": 670,
+            "Z29": 790,
+            "Z30": 870,
+            "Z31": 790,
+            "Z32": 750,
+            "Z33": 140,
+            "Z34": 180,
+            "Z35": 460,
+            "Z36": 0
+        }
+    },
+    "simulation_seeded_scenarios": {
+        "note": "9 seeded scenarios, one per task. Same seed always produces same traffic state for grader determinism.",
+        "task1_seed42": {
+            "hour": 9,
+            "day": "tuesday",
+            "season": "post_monsoon",
+            "active_incidents": 0,
+            "special_event": null,
+            "bottlenecks_active": [
+                "BN_15"
+            ],
+            "weather": "clear"
+        },
+        "task2_seed43": {
+            "hour": 14,
+            "day": "wednesday",
+            "season": "winter",
+            "active_incidents": 0,
+            "special_event": null,
+            "bottlenecks_active": [
+                "BN_08"
+            ],
+            "weather": "clear"
+        },
+        "task3_seed44": {
+            "hour": 11,
+            "day": "monday",
+            "season": "summer",
+            "active_incidents": 0,
+            "special_event": null,
+            "bottlenecks_active": [],
+            "weather": "heat_38C"
+        },
+        "task4_seed45": {
+            "hour": 8,
+            "day": "friday",
+            "season": "post_monsoon",
+            "active_incidents": 3,
+            "special_event": null,
+            "bottlenecks_active": [
+                "BN_01",
+                "BN_15",
+                "BN_31"
+            ],
+            "weather": "clear"
+        },
+        "task5_seed46": {
+            "hour": 18,
+            "day": "thursday",
+            "season": "winter",
+            "active_incidents": 2,
+            "special_event": null,
+            "bottlenecks_active": [
+                "BN_02",
+                "BN_37"
+            ],
+            "weather": "fog_nashik"
+        },
+        "task6_seed47": {
+            "hour": 6,
+            "day": "monday",
+            "season": "summer",
+            "active_incidents": 0,
+            "special_event": "demand_heatmap_morning_surge",
+            "bottlenecks_active": [],
+            "weather": "heat_40C"
+        },
+        "task7_seed48": {
+            "hour": 17,
+            "day": "saturday",
+            "season": "monsoon",
+            "active_incidents": 0,
+            "special_event": "mci_trigger",
+            "bottlenecks_active": [
+                "BN_11",
+                "BN_22",
+                "BN_50"
+            ],
+            "weather": "heavy_rain",
+            "road_closures": [
+                "Z09_Z02"
+            ]
+        },
+        "task8_seed49": {
+            "hour": 2,
+            "day": "wednesday",
+            "season": "winter",
+            "active_incidents": 5,
+            "special_event": null,
+            "bottlenecks_active": [
+                "BN_31",
+                "BN_32"
+            ],
+            "weather": "fog_nagpur"
+        },
+        "task9_seed50": {
+            "hour": 9,
+            "day": "tuesday",
+            "season": "monsoon",
+            "active_incidents": 8,
+            "special_event": "city_surge",
+            "bottlenecks_active": [
+                "BN_01",
+                "BN_04",
+                "BN_11",
+                "BN_15",
+                "BN_18",
+                "BN_22"
+            ],
+            "weather": "waterlogging_Z05",
+            "hospital_diversions": [
+                "H02",
+                "H07"
+            ],
+            "road_closures": [
+                "Z09_Z02",
+                "Z05_Z08_ghat"
+            ]
+        }
+    }
+}

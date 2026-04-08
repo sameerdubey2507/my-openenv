@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMERGI-ENV | Command Nucleus Auth</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #091321;
+            --surface: rgba(13, 24, 41, 0.6);
+            --surface2: rgba(30, 48, 80, 0.4);
+            --surface3: rgba(45, 70, 110, 0.5);
+            --text: #f0f6fc;
+            --muted: #7fa8cc;
+            --hint: #4a6f99;
+            --blue: #4da6ff;
+            --blue-bg: rgba(77, 166, 255, 0.15);
+            --cyan: #00d4ff;
+            --green: #4dff91;
+            --green-bg: rgba(77, 255, 145, 0.1);
+            --red: #ff5c5c;
+            --red-bg: rgba(255, 92, 92, 0.15);
+            --amber: #ffb347;
+            --amber-bg: rgba(255, 179, 71, 0.15);
+            --border: rgba(77, 166, 255, 0.15);
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Particles Background */
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.8; }
+        
+        .grid-overlay {
+            position: fixed; inset: 0; z-index: -1;
+            background-image: linear-gradient(rgba(77, 166, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(77, 166, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none;
+        }
+
+        /* ════ LOGIN OVERLAY ════ */
+        #auth-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: rgba(4, 9, 18, 0.4); backdrop-filter: blur(15px) saturate(150%);
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+
+        @keyframes driveAmbulance {
+            0% { transform: translateX(-150px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateX(450px); opacity: 0; }
+        }
+        @keyframes lightFlicker {
+            0%, 100% { opacity: 1; text-shadow: 0 0 15px var(--cyan); }
+            50% { opacity: 0.8; text-shadow: none; }
+        }
+
+        .auth-box {
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: 50px 40px 40px; width: 420px;
+            text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .ambulance-track {
+            position: absolute; top: 0; left: 0; width: 100%; height: 35px;
+            overflow: hidden; pointer-events: none;
+        }
+        .ambulance {
+            position: absolute; bottom: 2px; left: 0;
+            font-size: 20px; animation: driveAmbulance 4s infinite linear;
+            filter: drop-shadow(0 0 5px var(--red));
+        }
+        
+        .auth-logo { 
+            font-size: 26px; font-weight: 800; 
+            background: linear-gradient(90deg, var(--blue), var(--cyan)); 
+            -webkit-background-clip: text; 
+            background-clip: text;
+            -webkit-text-fill-color: transparent; 
+            margin-bottom: 5px; 
+        }
+        .auth-sub { font-size: 12px; color: var(--cyan); letter-spacing: 3px; font-family: var(--font-mono); margin-bottom: 30px; text-transform: uppercase; }
+
+        .auth-input-group { margin-bottom: 20px; text-align: left; }
+        .auth-input-group label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); }
+        .auth-input-group input { 
+            width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(77, 166, 255, 0.3); border-radius: 6px; 
+            padding: 14px 16px; color: var(--text); font-family: var(--font-mono); font-size: 14px; outline: none; transition: 0.3s;
+        }
+        .auth-input-group input:focus { border-color: var(--cyan); box-shadow: 0 0 15px rgba(0, 212, 255, 0.2); }
+
+        .auth-btn {
+            width: 100%; background: linear-gradient(90deg, rgba(77, 166, 255, 0.2), rgba(0, 212, 255, 0.2));
+            border: 1px solid var(--blue); color: var(--cyan); padding: 16px; border-radius: 6px; font-size: 14px; font-weight: 700;
+            letter-spacing: 2px; cursor: pointer; transition: 0.3s; margin-top: 15px; text-transform: uppercase;
+        }
+        .auth-btn:hover { background: var(--blue); color: #fff; box-shadow: 0 0 20px rgba(77, 166, 255, 0.5); }
+        
+        .auth-err { font-family: var(--font-mono); color: var(--red); font-size: 12px; margin-top: 15px; opacity: 0; transition: 0.3s; }
+
+        /* ════ MAIN DASHBOARD APP ════ */
+        #app-core {
+            opacity: 0; pointer-events: none; filter: blur(10px) brightness(0.5); transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex; flex-direction: column; min-height: 100vh;
+        }
+        #app-core.unlocked { opacity: 1; pointer-events: all; filter: blur(0) brightness(1); }
+
+        header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(13, 24, 41, 0.75); backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 40px; display: flex; align-items: center; justify-content: space-between; height: 70px;
+        }
+        .header-brand { display: flex; align-items: center; gap: 15px; }
+        .pulse-orb { width: 10px; height: 10px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+        .h-title { font-weight: 800; font-size: 18px; letter-spacing: 1px; color: var(--text); }
+        .h-title span { color: var(--cyan); font-weight: 400; font-family: var(--font-mono); font-size: 13px; margin-left: 10px; }
+
+        .nav-tabs { display: flex; gap: 8px; }
+        .nav-tab {
+            padding: 0 20px; height: 70px; display: flex; align-items: center; justify-content: center;
+            color: var(--muted); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+            cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; position: relative;
+        }
+        .nav-tab:hover { color: var(--text); background: rgba(77, 166, 255, 0.05); }
+        .nav-tab.active { color: var(--blue); border-bottom-color: var(--blue); background: linear-gradient(0deg, rgba(77, 166, 255, 0.1), transparent); }
+
+        .page-content { padding: 40px; max-width: 1600px; margin: 0 auto; width: 100%; display: none; animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .page-content.active { display: block; }
+        @keyframes popIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Grid Layouts */
+        .g4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .g3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        
+        /* Glass Cards */
+        .c-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+            padding: 24px; position: relative; overflow: hidden; backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .c-card::before { content: ''; position: absolute; top:0; left:0; right:0; height:1px; background: linear-gradient(90deg, transparent, var(--blue), transparent); opacity: 0.3; }
+        .c-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(77,166,255,0.1); padding-bottom: 15px; }
+        .c-title { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text); }
+        .c-subtitle { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); }
+
+        /* Typography & Metrics */
+        .kpi-h { font-size: 36px; font-family: var(--font-mono); font-weight: 800; line-height: 1; }
+        .c-green { color: var(--green); text-shadow: 0 0 10px rgba(77,255,145,0.2); }
+        .c-blue { color: var(--blue); text-shadow: 0 0 10px rgba(77,166,255,0.2); }
+        .c-cyan { color: var(--cyan); text-shadow: 0 0 10px rgba(0,212,255,0.2); }
+        .c-amber { color: var(--amber); }
+        .c-red { color: var(--red); }
+        .kpi-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; margin-top: 8px; letter-spacing: 1px; }
+
+        /* Terminal Logs */
+        .sys-log {
+            font-family: var(--font-mono); font-size: 12px; color: var(--muted); background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(77,166,255,0.1); border-radius: 6px; padding: 15px; height: 300px; overflow-y: auto;
+        }
+        .sys-log div { margin-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 4px; }
+        .sys-log .time { color: var(--hint); margin-right: 10px; }
+
+        /* Enhanced Analytics Grid replacement for Chart.js */
+        .analytic-grid {
+            display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; padding-top: 10px;
+        }
+        .a-bar { height: 120px; background: rgba(77,166,255,0.1); border-radius: 4px; position: relative; overflow: hidden; display: flex; align-items: flex-end; }
+        .a-fill { width: 100%; border-radius: 0 0 4px 4px; transition: height 1.5s ease-out; }
+        .a-fill.green { background: linear-gradient(0deg, rgba(77,255,145,0.2), var(--green)); }
+        .a-fill.blue { background: linear-gradient(0deg, rgba(77,166,255,0.2), var(--blue)); }
+        .a-fill.cyan { background: linear-gradient(0deg, rgba(0,212,255,0.2), var(--cyan)); }
+        .a-fill.amber { background: linear-gradient(0deg, rgba(255,179,71,0.2), var(--amber)); }
+        
+        .metric-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 12px 0; }
+        .metric-row:last-child { border: none; }
+        .mr-label { font-size: 13px; color: var(--muted); }
+        .mr-val { font-family: var(--font-mono); font-size: 14px; font-weight: bold; }
+
+        /* Progress Bars */
+        .prog-wrap { width: 100%; height: 6px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 15px; }
+        .prog-fill { height: 100%; border-radius: 3px; position: relative; }
+        .prog-fill::after { content: ''; position: absolute; inset:0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent); animation: moveLight 2s infinite linear; }
+        @keyframes moveLight { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+        /* Tables & Lists */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid rgba(77,166,255,0.05); }
+        th { color: var(--muted); font-size: 11px; text-transform: uppercase; font-family: var(--font-mono); border-bottom-color: rgba(77,166,255,0.2); }
+        td { color: var(--text); }
+        td.mono { font-family: var(--font-mono); color: var(--cyan); }
+
+        /* Feedback UI */
+        .fb-item { background: rgba(30, 48, 80, 0.2); border: 1px solid rgba(77,166,255,0.2); padding: 20px; border-radius: var(--radius-md); border-left: 4px solid var(--amber); margin-bottom: 16px; transition: 0.3s; }
+        .fb-item:hover { background: rgba(30, 48, 80, 0.4); }
+        .fb-item.resolved { border-left-color: var(--green); opacity: 0.6; }
+        .fb-meta { display: flex; justify-content: space-between; margin-bottom: 10px; font-family: var(--font-mono); font-size: 12px; }
+        .fb-meta span:first-child { color: var(--cyan); }
+        .fb-meta span:last-child { color: var(--muted); }
+        .fb-body { font-size: 14px; color: var(--text); line-height: 1.6; margin-bottom: 15px; }
+        .fb-reply-box { background: rgba(0,0,0,0.3); border: 1px solid rgba(77,166,255,0.1); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+        .fb-reply-box textarea { width: 100%; background: transparent; border: none; color: var(--text); font-family: var(--font-sans); font-size: 13px; resize: none; min-height: 60px; outline: none; border-bottom: 1px solid rgba(77,166,255,0.2); transition: 0.3s; }
+        .fb-reply-box textarea:focus { border-bottom-color: var(--blue); }
+        .fb-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .fb-btn { background: transparent; color: var(--blue); border: 1px solid var(--blue); padding: 6px 16px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        .fb-btn:hover { background: var(--blue); color: #000; }
+        .fb-btn-done { border-color: var(--green); color: var(--green); }
+        .fb-btn-done:hover { background: var(--green); color: #000; }
+
+        /* Admin Toggles */
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid rgba(77,166,255,0.1); }
+        .setting-row:last-child { border: none; padding-bottom: 0; }
+        .set-txt h4 { font-size: 15px; color: var(--text); margin-bottom: 4px; }
+        .set-txt p { font-size: 13px; color: var(--muted); }
+        .switch { position: relative; width: 44px; height: 24px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid var(--border); cursor: pointer; transition: 0.3s; }
+        .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: var(--muted); border-radius: 50%; transition: 0.3s; }
+        .switch.on { background: rgba(77, 255, 145, 0.2); border-color: var(--green); }
+        .switch.on::after { background: var(--green); left: 22px; box-shadow: 0 0 10px var(--green); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(77, 166, 255, 0.3); border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+    <div class="grid-overlay"></div>
+
+    <!-- Login Auth Overlay -->
+    <div id="auth-overlay">
+        <div class="auth-box">
+            <div class="ambulance-track"><div class="ambulance">🚑<span style="font-size:10px; opacity:0.5; margin-left:4px">💨</span></div></div>
+            <div class="auth-logo" style="animation: lightFlicker 3s infinite">COMMAND NUCLEUS</div>
+            <div class="auth-sub">Aegis Secure Authentication</div>
+            
+            <div style="display:flex; justify-content:center; gap:8px; margin-bottom:25px;">
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--red); animation: pulse 1s infinite"></span>
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--cyan); animation: pulse 1s infinite 0.3s"></span>
+                <span style="width:6px; height:6px; border-radius:50%; background:var(--blue); animation: pulse 1s infinite 0.6s"></span>
+            </div>
+            
+            <div class="auth-input-group">
+                <label>Operator Signature</label>
+                <input type="text" id="user" placeholder="e.g. meta" autocomplete="off">
+            </div>
+            
+            <div class="auth-input-group">
+                <label>Security Clearance Key</label>
+                <input type="password" id="pass" placeholder="•••••••••">
+            </div>
+            
+            <button class="auth-btn" id="loginBtn" onclick="attemptLogin()">Initiate Uplink</button>
+            <div class="auth-err" id="errorMsg">ACCESS DENIED - UNRECOGNIZED CLEARANCE</div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app-core">
+        <header>
+            <div class="header-brand">
+                <div class="pulse-orb"></div>
+                <div class="h-title">EMERGI-ENV <span>:: OPERATIONS NEXUS</span></div>
+            </div>
+            <div class="nav-tabs">
+                <div class="nav-tab active" onclick="switchTab('telemetry', this)">Global Telemetry</div>
+                <div class="nav-tab" onclick="switchTab('tasks', this)">Task Execution</div>
+                <div class="nav-tab" onclick="switchTab('feedback', this)">Operator Feedback</div>
+                <div class="nav-tab" onclick="switchTab('dataset', this)">Database</div>
+                <div class="nav-tab" onclick="switchTab('admin', this)">System Control</div>
+                <div class="nav-tab" onclick="logout()" style="color:var(--red); border-left: 1px solid rgba(255,255,255,0.1); margin-left:10px; padding-left:30px;">Terminate</div>
+            </div>
+        </header>
+
+        <!-- TELEMETRY TAB -->
+        <div id="view-telemetry" class="page-content active">
+            
+            <div class="g4">
+                <div class="c-card">
+                    <div class="c-title" style="margin-bottom:10px;">Simulation Uptime</div>
+                    <div class="kpi-h c-blue">14.6<span style="font-size:16px;">hrs</span></div>
+                    <div class="kpi-lbl">Node Health: 99.98% OK</div>
+                </div>
+                <div class="c-card">
+                    <div class="c-title" style="margin-bottom:10px;">Env Reward Total</div>
+                    <div class="kpi-h c-green">+<span class="anim-num float" data-target="8452.92">0.00</span></div>
+                    <div class="kpi-lbl">Cumulative Agent Scoring</div>
+                </div>
+                <div class="c-card">
+                    <div class="c-title" style="margin-bottom:10px;">Active Clusters</div>
+                    <div class="kpi-h c-cyan anim-num" data-target="1024">0</div>
+                    <div class="kpi-lbl">Distributed RL Instances</div>
+                </div>
+                <div class="c-card">
+                    <div class="c-title" style="margin-bottom:10px;">P95 Network Lat</div>
+                    <div class="kpi-h c-amber">4.2<span style="font-size:16px;">ms</span></div>
+                    <div class="kpi-lbl">Optimal Payload State</div>
+                </div>
+            </div>
+
+            <div class="g2">
+                <!-- Advanced Custom Data Viz Replacement instead of Chart.js -->
+                <div class="c-card">
+                    <div class="c-header">
+                        <div class="c-title">Agent Trajectory & Variance</div>
+                        <div class="c-subtitle">T-DQN Episode Batch Performance</div>
+                    </div>
+                    <div class="analytic-grid" id="vis-bars">
+                        <!-- Auto generated CSS bars -->
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:15px; font-size:11px; color:var(--muted); font-family:var(--font-mono)">
+                        <span>T-0</span><span>T-30</span><span>T-60</span><span>T-NOW</span>
+                    </div>
+                    <div class="metric-row" style="margin-top:20px;">
+                        <span class="mr-label">Peak Q-Value Approximation</span>
+                        <span class="mr-val c-green">0.994</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="mr-label">Exploration Rate (Epsilon)</span>
+                        <span class="mr-val c-amber">0.05</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="mr-label">Terminal State Frequency</span>
+                        <span class="mr-val c-cyan">14.2/min</span>
+                    </div>
+                </div>
+
+                <div class="c-card">
+                    <div class="c-header"><div class="c-title">Live Subspace Log</div><div class="c-subtitle">/var/log/emergi.sys</div></div>
+                    <div class="sys-log" id="sys-ledger"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TASKS TAB -->
+        <div id="view-tasks" class="page-content">
+            <div class="g3">
+                <div class="c-card">
+                    <div class="c-header"><div class="c-title">T1: Single Call Triage</div><div class="c-subtitle" style="color:var(--green)">EASY</div></div>
+                    <div class="kpi-h c-green">0.96</div>
+                    <div class="prog-wrap"><div class="prog-fill" style="width: 96%; background: var(--green);"></div></div>
+                    <p style="font-size:12px; color:var(--muted); margin-top:15px; line-height:1.5;">Triage classification at 99%, Hospital matching at 92%. Agent exhibits near-optimal single-incident behavior under restricted parameters.</p>
+                </div>
+                
+                <div class="c-card">
+                    <div class="c-header"><div class="c-title">T4: Queue Optimizer</div><div class="c-subtitle" style="color:var(--amber)">MEDIUM</div></div>
+                    <div class="kpi-h c-amber">0.82</div>
+                    <div class="prog-wrap"><div class="prog-fill" style="width: 82%; background: var(--amber);"></div></div>
+                    <p style="font-size:12px; color:var(--muted); margin-top:15px; line-height:1.5;">Efficient balancing of multiple incidents. Minor struggle with Crew Fatigue degradation during simultaneous P1 calls.</p>
+                </div>
+
+                <div class="c-card">
+                    <div class="c-header"><div class="c-title">T9: City-Wide Surge</div><div class="c-subtitle" style="color:var(--red)">HARD</div></div>
+                    <div class="kpi-h c-red">0.24</div>
+                    <div class="prog-wrap"><div class="prog-fill" style="width: 24%; background: var(--red);"></div></div>
+                    <p style="font-size:12px; color:var(--muted); margin-top:15px; line-height:1.5;">Agent struggles to request Mutual Aid appropriately, leading to frequent system cascades and overwhelming hospital capacities.</p>
+                </div>
+            </div>
+
+            <div class="c-card">
+                <div class="c-header" style="margin-bottom:0; border:none"><div class="c-title">Detailed Reward Matrices</div></div>
+                <table>
+                    <thead><tr><th>Task Model</th><th>Scenario Architecture</th><th>Class</th><th>Base.</th><th>RL Avg.</th><th>Gradient</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <tr><td class="mono">task1_triage</td><td>Symptom classification and dispatch mechanics</td><td><span style="color:var(--green)">Easy</span></td><td>0.61</td><td class="mono c-green">0.96</td><td style="color:var(--green)">+35%</td><td><span style="background:rgba(77,255,145,0.1); color:var(--green); padding:2px 6px; border-radius:4px">CONVERGED</span></td></tr>
+                        <tr><td class="mono">task2_route</td><td>Live hospital routing vs dynamic traffic grids</td><td><span style="color:var(--green)">Easy</span></td><td>0.72</td><td class="mono c-green">0.89</td><td style="color:var(--green)">+17%</td><td><span style="background:rgba(77,255,145,0.1); color:var(--green); padding:2px 6px; border-radius:4px">CONVERGED</span></td></tr>
+                        <tr><td class="mono">task4_multi</td><td>Multi-incident simultaneous dispatch</td><td><span style="color:var(--amber)">Medium</span></td><td>0.44</td><td class="mono c-amber">0.82</td><td style="color:var(--amber)">+38%</td><td><span style="background:rgba(255,179,71,0.1); color:var(--amber); padding:2px 6px; border-radius:4px">TRAINING</span></td></tr>
+                        <tr><td class="mono">task5_reroute</td><td>In-flight dynamic pathfinding adjustments</td><td><span style="color:var(--amber)">Medium</span></td><td>0.38</td><td class="mono c-cyan">0.71</td><td style="color:var(--cyan)">+33%</td><td><span style="background:rgba(0,212,255,0.1); color:var(--cyan); padding:2px 6px; border-radius:4px">TRAINING</span></td></tr>
+                        <tr><td class="mono">task7_mci</td><td>START protocol mass casualty algorithms</td><td><span style="color:var(--red)">Hard</span></td><td>0.29</td><td class="mono c-amber">0.45</td><td style="color:var(--amber)">+16%</td><td><span style="background:rgba(255,92,92,0.1); color:var(--red); padding:2px 6px; border-radius:4px">UNSTABLE</span></td></tr>
+                        <tr><td class="mono">task9_surge</td><td>Catastrophic cascade avoidance logic</td><td><span style="color:var(--red)">Hard</span></td><td>0.17</td><td class="mono c-red">0.24</td><td style="color:var(--red)">+7%</td><td><span style="background:rgba(255,92,92,0.1); color:var(--red); padding:2px 6px; border-radius:4px">FAILURE</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FEEDBACK TAB -->
+        <div id="view-feedback" class="page-content">
+            <div class="g2">
+                <div>
+                    <div class="fb-item">
+                        <div class="fb-meta"><span>@Dispatcher_Lead</span> <span>15 MINS AGO</span></div>
+                        <div class="fb-body">The new routing algorithms in T5 are fantastic during normal traffic, but during the 8:00 AM peak, it aggressively routes units right into the highway roadblocks. We need a stricter avoidance penalty for roadblocks.</div>
+                        <div class="fb-reply-box">
+                            <textarea placeholder="Write policy adjustment..."></textarea>
+                            <div class="fb-actions"><button class="fb-btn fb-btn-done" onclick="resolveFB(this)">Mark Resolved</button><button class="fb-btn">Commit</button></div>
+                        </div>
+                    </div>
+                    
+                    <div class="fb-item">
+                        <div class="fb-meta"><span>@Dr_Zakir_ER</span> <span>3 HOURS AGO</span></div>
+                        <div class="fb-body">Golden Hour decay curves for stroke appear too generous in the current patch. A patient taking 110 minutes should have a much steeper survival probability drop. This artificially inflates the agent's reward limit.</div>
+                        <div class="fb-reply-box">
+                            <textarea placeholder="Write policy adjustment..."></textarea>
+                            <div class="fb-actions"><button class="fb-btn fb-btn-done" onclick="resolveFB(this)">Mark Resolved</button><button class="fb-btn">Commit</button></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="c-card">
+                        <div class="c-header"><div class="c-title">Feedback Resolution Metrics</div></div>
+                        <div class="metric-row" style="padding-top:0"><span class="mr-label">Total Outstanding Tickets</span><span class="mr-val c-amber">14</span></div>
+                        <div class="metric-row"><span class="mr-label">Tickets Resolved Today</span><span class="mr-val c-green">47</span></div>
+                        <div class="metric-row"><span class="mr-label">Average Time to Resolution</span><span class="mr-val c-cyan">42 min</span></div>
+                        <div class="metric-row"><span class="mr-label">User Sentiment Deviation</span><span class="mr-val c-green">+24.1%</span></div>
+                        
+                        <div class="c-subtitle" style="margin-top:20px; margin-bottom:10px;">Support Load Distribution</div>
+                        <div style="display:flex; height:8px; width:100%; border-radius:4px; overflow:hidden;">
+                            <div style="width: 40%; background:var(--blue)" title="System Bugs"></div>
+                            <div style="width: 35%; background:var(--cyan)" title="Algorithmic Tuning"></div>
+                            <div style="width: 15%; background:var(--amber)" title="UI Suggestions"></div>
+                            <div style="width: 10%; background:var(--red)" title="Critical Falures"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:var(--muted); font-family:var(--font-mono)">
+                            <span>BUGS 40%</span><span>ALGOS 35%</span><span>UI/UX 15%</span><span>CRIT 10%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DATASET TAB -->
+        <div id="view-dataset" class="page-content">
+            <div class="g2">
+                <div class="c-card">
+                    <div class="c-header"><div class="c-title">Hospital Infrastructure Grid</div><div class="c-subtitle">Live Capacity Tracking</div></div>
+                    <table style="margin-top:0">
+                        <thead><tr><th>Hosp-ID</th><th>Zone</th><th>Trauma Lvl</th><th>Bed Cap (Avail)</th><th>Status</th></tr></thead>
+                        <tbody>
+                            <tr><td class="mono">H-KEM</td><td>Z2 (Central)</td><td class="c-cyan">Level I</td><td class="mono">450 / <span class="c-red">12</span></td><td><span style="background:rgba(255,92,92,0.1); color:var(--red); padding:2px 6px; border-radius:4px">DIVERSION</span></td></tr>
+                            <tr><td class="mono">H-RUBY</td><td>Z5 (East)</td><td class="c-cyan">Level I</td><td class="mono">320 / <span class="c-amber">45</span></td><td><span style="background:rgba(255,179,71,0.1); color:var(--amber); padding:2px 6px; border-radius:4px">HEAVY LOAD</span></td></tr>
+                            <tr><td class="mono">H-CMH</td><td>Z8 (West)</td><td class="c-blue">Level II</td><td class="mono">150 / <span class="c-green">89</span></td><td><span style="background:rgba(77,255,145,0.1); color:var(--green); padding:2px 6px; border-radius:4px">OPTIMAL</span></td></tr>
+                            <tr><td class="mono">H-SASS</td><td>Z1 (North)</td><td class="c-cyan">Level I</td><td class="mono">600 / <span class="c-red">03</span></td><td><span style="background:rgba(255,92,92,0.1); color:var(--red); padding:2px 6px; border-radius:4px">CRITICAL</span></td></tr>
+                            <tr><td class="mono">H-NOBLE</td><td>Z12 (South)</td><td class="c-blue">Level II</td><td class="mono">210 / <span class="c-green">112</span></td><td><span style="background:rgba(77,255,145,0.1); color:var(--green); padding:2px 6px; border-radius:4px">OPTIMAL</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="c-card">
+                    <div class="c-header"><div class="c-title">Active Patient Ledger</div><div class="c-subtitle">Realtime Trajectories</div></div>
+                    <table style="margin-top:0">
+                        <thead><tr><th>Patient ID</th><th>Loc</th><th>Severity</th><th>Golden Hr</th><th>Dispatch</th></tr></thead>
+                        <tbody>
+                            <tr><td class="mono">PT-9942</td><td>Z5</td><td><span class="c-red">P1 (Stroke)</span></td><td><div class="prog-wrap" style="margin-top:0; height:4px"><div class="prog-fill" style="width:12%; background:var(--red)"></div></div></td><td class="mono c-cyan">AMB-04</td></tr>
+                            <tr><td class="mono">PT-9943</td><td>Z2</td><td><span class="c-amber">P2 (Trauma)</span></td><td><div class="prog-wrap" style="margin-top:0; height:4px"><div class="prog-fill" style="width:45%; background:var(--amber)"></div></div></td><td class="mono c-cyan">AMB-12</td></tr>
+                            <tr><td class="mono">PT-9944</td><td>Z8</td><td><span class="c-green">P3 (Minor)</span></td><td><div class="prog-wrap" style="margin-top:0; height:4px"><div class="prog-fill" style="width:88%; background:var(--green)"></div></div></td><td class="mono c-muted">WAITING</td></tr>
+                            <tr><td class="mono">PT-9945</td><td>Z1</td><td><span class="c-red">P1 (Cardiac)</span></td><td><div class="prog-wrap" style="margin-top:0; height:4px"><div class="prog-fill" style="width:8%; background:var(--red)"></div></div></td><td class="mono c-cyan">AMB-02</td></tr>
+                            <tr><td class="mono">PT-9946</td><td>Z12</td><td><span class="c-amber">P2 (Burn)</span></td><td><div class="prog-wrap" style="margin-top:0; height:4px"><div class="prog-fill" style="width:62%; background:var(--amber)"></div></div></td><td class="mono c-cyan">AMB-09</td></tr>
+                            <tr><td class="mono">PT-9947</td><td>Z5</td><td><span class="c-green">P3 (Minor)</span></td><td><div class="prog-wrap" style="margin-top:0; height:4px"><div class="prog-fill" style="width:95%; background:var(--green)"></div></div></td><td class="mono c-muted">WAITING</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="c-card" style="margin-top: 20px;">
+                <div class="c-header"><div class="c-title">Raw Demographics Data Stream</div><div class="c-subtitle">JSON Socket</div></div>
+                <div class="sys-log" style="height:150px; font-size:11px; color:var(--cyan)">
+                    <div>{ "event": "NEW_PATIENT", "id": "PT-9948", "zone": "Z3", "type": "Cardiac Arrest", "triage": "P1", "lat": 18.5204, "lng": 73.8567, "blood": "O+" }</div>
+                    <div>{ "event": "HOSPITAL_UPDATE", "id": "H-RUBY", "beds_freed": 2, "current_cap": 47, "status": "HEAVY LOAD" }</div>
+                    <div>{ "event": "PATIENT_TRANSFER", "id": "PT-9930", "status": "HANDOVER_COMPLETE", "hosp": "H-KEM", "survival_prob": 0.942 }</div>
+                    <div>{ "event": "NEW_PATIENT", "id": "PT-9949", "zone": "Z11", "type": "Fracture", "triage": "P3", "lat": 18.5122, "lng": 73.8111, "blood": "A-" }</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN TAB -->
+        <div id="view-admin" class="page-content">
+            <div class="g2">
+                <div class="c-card">
+                    <div class="c-header"><div class="c-title">Core Environment Variables</div><div class="c-subtitle">Real-time Parameters</div></div>
+                    <div class="setting-row">
+                        <div class="set-txt"><h4>Dense Reward Processing</h4><p>Calculate fine-grained rewards per step instead of sparse episodic signals.</p></div>
+                        <div class="switch on" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="set-txt"><h4>Strict Protocol Compliance Mode</h4><p>Aggressively penalize agents for bypassing standard dispatch logic during MCI events.</p></div>
+                        <div class="switch on" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="set-txt"><h4>Live Traffic Grid Mapping</h4><p>Pull real OD matrix data and simulate gridlocks dynamically.</p></div>
+                        <div class="switch" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="set-txt"><h4>Communication Perturbation</h4><p>Simulate random radio failures and packet drops (p=0.12).</p></div>
+                        <div class="switch on" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="set-txt"><h4>GraphQL Mutations</h4><p>Permit remote models to mutate state mid-episode.</p></div>
+                        <div class="switch" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="set-txt"><h4>Deep Tracking Telemetry</h4><p>Log all observation spaces entirely to massive buffer shards.</p></div>
+                        <div class="switch on" onclick="this.classList.toggle('on')"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="c-card" style="margin-bottom:20px;">
+                        <div class="c-header"><div class="c-title">Agent Control Sandbox</div><div class="c-subtitle">Cluster Auth Level: ROOT</div></div>
+                        <button class="auth-btn" style="background:var(--cyan); border-color:var(--cyan); color:#000; margin-top:0">Flush Experience Replay Buffers</button>
+                        <button class="auth-btn" style="background:rgba(77,166,255,0.1); margin-top:10px;">Trigger Mass Casualty Scenario</button>
+                    </div>
+
+                    <div class="c-card" style="border-color: rgba(255,92,92,0.4);">
+                        <div class="c-header" style="border-bottom-color: rgba(255,92,92,0.1)"><div class="c-title" style="color:var(--red)">Danger Zone</div></div>
+                        <div class="set-txt" style="margin-bottom:15px;">
+                            <h4>Purge All Historical Models</h4>
+                            <p>Permanently delete all checkpoints, weights, and rewards. Irreversible.</p>
+                        </div>
+                        <button class="auth-btn" style="background:var(--red-bg); border-color:var(--red); color:var(--red); margin-top:0;" onclick="alert('Operation locked by Aegis system.')">EXECUTE PURGE</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* ════ BACKGROUND PARTICLES ════ */
+        const c = document.getElementById('bg-canvas'), ctx = c.getContext('2d');
+        let W = c.width = innerWidth, H = c.height = innerHeight;
+        window.addEventListener('resize', () => { W = c.width = innerWidth; H = c.height = innerHeight; });
+        const pts = [...Array(40)].map(() => ({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random()-.5)*0.3, vy: (Math.random()-.5)*0.3, r: Math.random()*2 }));
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.2)';
+            pts.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if(p.x<0) p.x=W; if(p.x>W) p.x=0; if(p.y<0) p.y=H; if(p.y>H) p.y=0;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+            });
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        /* ════ AUTH LOGIC ════ */
+        const user = document.getElementById('user');
+        const pass = document.getElementById('pass');
+        pass.addEventListener('keypress', e => { if(e.key === 'Enter') attemptLogin(); });
+
+        function attemptLogin() {
+            const btn = document.getElementById('loginBtn');
+            const err = document.getElementById('errorMsg');
+            btn.innerHTML = 'Verifying Clearance...'; btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; err.style.opacity = '0';
+            
+            setTimeout(() => {
+                if(user.value.trim() === 'meta' && pass.value === 'ambulance') {
+                    document.getElementById('auth-overlay').style.opacity = '0';
+                    setTimeout(() => { 
+                        document.getElementById('auth-overlay').style.visibility = 'hidden'; 
+                        document.getElementById('app-core').classList.add('unlocked');
+                        triggerAnims();
+                        buildCSSChart();
+                    }, 800);
+                } else {
+                    btn.innerHTML = 'Initiate Uplink'; btn.style.opacity = '1'; btn.style.pointerEvents = 'all'; err.style.opacity = '1'; pass.value = '';
+                }
+            }, 1000);
+        }
+
+        function logout() {
+            document.getElementById('app-core').classList.remove('unlocked');
+            user.value = ''; pass.value = '';
+            const btn = document.getElementById('loginBtn');
+            btn.innerHTML = 'Initiate Uplink'; btn.style.opacity = '1'; btn.style.pointerEvents = 'all';
+            
+            setTimeout(() => {
+                document.getElementById('auth-overlay').style.visibility = 'visible';
+                document.getElementById('auth-overlay').style.opacity = '1';
+                switchTab('telemetry', document.querySelectorAll('.nav-tab')[0]);
+            }, 1000);
+        }
+
+        /* ════ TABS ════ */
+        function switchTab(viewId, el) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            if(el) el.classList.add('active');
+            document.querySelectorAll('.page-content').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + viewId).classList.add('active');
+        }
+
+        /* ════ FEEDBACK ════ */
+        function resolveFB(btn) {
+            btn.innerHTML = 'Resolved ✓';
+            btn.style.pointerEvents = 'none';
+            btn.closest('.fb-item').classList.add('resolved');
+            const textarea = btn.closest('.fb-reply-box').querySelector('textarea');
+            textarea.disabled = true;
+            textarea.value = "Response logged and transmitted.";
+        }
+
+        /* ════ NUMBERS & LOGS ════ */
+        function triggerAnims() {
+            document.querySelectorAll('.anim-num').forEach(el => {
+                const target = parseFloat(el.dataset.target);
+                const isFloat = el.classList.contains('float');
+                const dur = 2000; const t0 = performance.now();
+                const tick = now => {
+                    const p = Math.min(1, (now - t0)/dur);
+                    const ease = 1 - Math.pow(1-p, 4); // quart
+                    const v = (ease * target);
+                    el.textContent = isFloat ? v.toFixed(2) : Math.floor(v).toLocaleString();
+                    if(p < 1) requestAnimationFrame(tick);
+                }; requestAnimationFrame(tick);
+            });
+
+            const logBox = document.getElementById('sys-ledger');
+            const msgs = [
+                "Agent T-DQN loaded parameters from cluster.",
+                "Epoch 4022 completed. Loss: 0.042",
+                "Incident INC-842 (T1) populated at Bandra.",
+                "Dispatched AMB-03 (ALS) to INC-842. ETA 4.2m",
+                "Patient stabilized. Route locked to HOSP-2.",
+                "Task T1 Reward issued: +0.94",
+                "Mass Casualty EVENT triggered in Z-04. Alerting...",
+                "Wait... Cascade imminent. Mutual aid requested.",
+                "Training buffer synchronized. Backprop active."
+            ];
+            let i = 0;
+            if(!logBox.dataset.running) {
+                logBox.dataset.running = "true";
+                setInterval(() => {
+                    if(!document.getElementById('app-core').classList.contains('unlocked')) return;
+                    const div = document.createElement('div');
+                    div.innerHTML = `<span class="time">${new Date().toLocaleTimeString()}</span> <span>${msgs[i % msgs.length]}</span>`;
+                    logBox.appendChild(div);
+                    logBox.scrollTop = logBox.scrollHeight;
+                    i++;
+                }, 1800);
+            }
+        }
+
+        /* ════ CSS BAR CHART REPLACEMENT ════ */
+        let built = false;
+        function buildCSSChart() {
+            if(built) return; built = true;
+            const wrap = document.getElementById('vis-bars');
+            const colors = ['blue', 'cyan', 'green', 'amber'];
+            let html = '';
+            for(let i=0; i<24; i++) {
+                const h = Math.floor(Math.random() * 60) + 20 + (i*1.5);
+                const c = colors[Math.floor(Math.random() * colors.length)];
+                html += `<div class="a-bar"><div class="a-fill ${c}" style="height:0" data-h="${h}%"></div></div>`;
+            }
+            wrap.innerHTML = html;
+            setTimeout(() => {
+                wrap.querySelectorAll('.a-fill').forEach(el => el.style.height = el.dataset.h);
+            }, 300);
+        }
+    </script>
+</body>
+</html>

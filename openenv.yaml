@@ -1,0 +1,1143 @@
+name: emergi-env
+version: "1.4.0"
+display_name: "EMERGI-ENV: Emergency Medical Intelligence & Resource Governance Environment"
+description: |
+  EMERGI-ENV is a production-grade reinforcement learning environment that simulates
+  India's national 108/112 emergency medical services (EMS) dispatch network — the
+  world's largest ambulance coordination system, handling 50,000+ calls per day.
+  The environment models a Pune-inspired 12-zone metropolitan area with 8 hospitals,
+  a heterogeneous ambulance fleet (BLS / ALS / Mobile ICU), and a live incident queue
+  driven by 200+ medically-accurate symptom templates. The AI agent must learn to
+  triage, dispatch, route, and dynamically reallocate scarce medical resources to
+  maximise patient survival under realistic operational constraints including:
+    - Golden Hour survival curves with condition-specific decay (15 conditions)
+    - Full START triage protocol engine (RPM → Immediate/Delayed/Minimal/Expectant)
+    - Time-varying OD traffic matrix (peak-hour 30-60% penalty, incident slowdowns)
+    - Hospital diversion protocol (90% ER threshold → diversion flag + -0.30 penalty)
+    - Crew fatigue state machine (10h duty → degradation; 8-min crew swap delay)
+    - Multi-agency coordination (Police + Fire + EMS for trapped victims)
+    - Communication failure simulation (p=0.12 per step per unit in Tasks 7-9)
+    - 12-hour demand forecast heatmap with +-20% noise injection
+    - Protocol compliance scoring (+0.15 bonus per episode)
+    - Mutual aid cross-zone system (12-min delay; over-request = -0.10 penalty)
+  Core insight: ambulance dispatch is a Partially-Observable Markov Decision Process
+  (POMDP) with non-stationary dynamics. Standard dispatch heuristics fail. Learned
+  policies must generalise across mass casualty events, communication outages, and
+  city-wide surge conditions that challenge even GPT-4-class models.
+author: "sameer dubey"
+contact: "craftedlegend25@gmail.com"
+license: "Apache-2.0"
+python_requires: ">=3.11"
+tags:
+  - reinforcement-learning
+  - emergency-medical-services
+  - ambulance-dispatch
+  - healthcare-ai
+  - india-108-ems
+  - sequential-decision-making
+  - resource-allocation
+  - pomdp
+  - mass-casualty-incident
+  - start-triage
+  - golden-hour
+  - multi-agency
+  - real-world-rl
+  - openenv
+  - huggingface-hackathon
+homepage: "https://huggingface.co/spaces/emergi-env/emergi-env"
+repository: "https://github.com/emergi-env/emergi-env"
+documentation: "https://huggingface.co/spaces/emergi-env/emergi-env/blob/main/README.md"
+server:
+  host: "0.0.0.0"
+  port: 7860
+  framework: fastapi
+  entrypoint: "uvicorn server.main:app --host 0.0.0.0 --port 7860 --workers 1"
+  health_check_path: /health
+  health_check_interval_seconds: 30
+  startup_timeout_seconds: 60
+  graceful_shutdown_seconds: 10
+endpoints:
+  health:
+    method: GET
+    path: /health
+    description: "Liveness probe. Returns server status, version, uptime, and active sessions."
+    response_schema:
+      type: object
+      required: [status, version, uptime_seconds]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        version: { type: string }
+        uptime_seconds: { type: number }
+        active_sessions: { type: integer }
+        total_episodes_run: { type: integer }
+    http_status: 200
+  reset:
+    method: POST
+    path: /reset
+    description: |
+      Fully reinitialises all simulation state: fleet positions, hospital capacities,
+      incident queue, crew fatigue counters, traffic matrix, communication state,
+      mutual aid pool, and episode clock. Returns initial observation for the chosen
+      task. Same (task_id, seed) pair always produces an identical episode.
+    request_schema:
+      type: object
+      properties:
+        task_id:
+          type: string
+          enum:
+            - task1_single_triage
+            - task2_hospital_route
+            - task3_unit_type
+            - task4_multi_incident
+            - task5_dynamic_rerouting
+            - task6_prepositioning
+            - task7_mci_start
+            - task8_transfer_cascade
+            - task9_surge
+          description: "Task identifier. Defaults to task1_single_triage."
+        seed:
+          type: integer
+          description: "RNG seed for deterministic episode generation."
+        session_id:
+          type: string
+          description: "Client session identifier for concurrent episode management."
+        config_overrides:
+          type: object
+          description: "Optional per-episode parameter overrides."
+          properties:
+            max_steps: { type: integer, minimum: 1 }
+            n_bls: { type: integer, minimum: 0 }
+            n_als: { type: integer, minimum: 0 }
+            n_micu: { type: integer, minimum: 0 }
+            comms_failure_prob: { type: number, minimum: 0.0, maximum: 1.0 }
+            enable_fatigue: { type: boolean }
+            enable_multi_agency: { type: boolean }
+    response_schema:
+      type: object
+      required: [observation, info]
+      properties:
+        observation:
+          description: "See observation_space section for full schema."
+        info:
+          type: object
+          required: [task_id, seed, max_steps, episode_id]
+          properties:
+            task_id: { type: string }
+            task_name: { type: string }
+            difficulty: { type: string, enum: [easy, medium, hard] }
+            seed: { type: integer }
+            max_steps: { type: integer }
+            episode_id: { type: string }
+            session_id: { type: string }
+            n_ambulances: { type: integer }
+            n_hospitals: { type: integer }
+            n_zones: { type: integer }
+            sim_start_clock_min: { type: number }
+    http_status: 200
+  step:
+    method: POST
+    path: /step
+    description: |
+      Advances the simulation by one timestep. The agent submits an action;
+      the environment applies it, advances fleet/hospital/traffic state,
+      fires a dense reward signal, and returns the next observation.
+      Episode terminates when incident queue is empty OR max_steps is reached.
+    request_schema:
+      type: object
+      required: [action]
+      properties:
+        action:
+          description: "See observation_space section for full schema."
+        session_id:
+          type: string
+    response_schema:
+      type: object
+      required: [observation, reward, done, info]
+      properties:
+        observation:
+          description: "See observation_space section for full schema."
+        reward:
+          type: number
+          description: "Dense per-step reward. Cumulative sum over episode approximates episode score."
+        done:
+          type: boolean
+          description: "True when incident queue empties OR max_steps reached."
+        info:
+          type: object
+          properties:
+            step: { type: integer }
+            elapsed_sim_minutes: { type: number }
+            active_incidents: { type: integer }
+            resolved_incidents: { type: integer }
+            fleet_utilisation: { type: number }
+            protocol_violations: { type: array, items: { type: string } }
+            reward_breakdown:
+              type: object
+              properties:
+                survival_component: { type: number }
+                dispatch_efficiency: { type: number }
+                protocol_compliance: { type: number }
+                diversion_penalty: { type: number }
+                fatigue_penalty: { type: number }
+                comms_penalty: { type: number }
+                mutual_aid_penalty: { type: number }
+                cascade_penalty: { type: number }
+                surge_bonus: { type: number }
+            action_applied: { type: boolean }
+            action_rejection_reason: { type: string }
+            events_this_step: { type: array, items: { type: string } }
+    http_status: 200
+  grade:
+    method: POST
+    path: /grade
+    description: |
+      Runs the task-specific grader on the completed or force-completed episode.
+      Returns a float score in [0.0, 1.0] with detailed component breakdown.
+    request_schema:
+      type: object
+      properties:
+        session_id: { type: string }
+        force_complete:
+          type: boolean
+          description: "Grade even if episode is not done (uses partial episode state)."
+    response_schema:
+      type: object
+      required: [score, task_id, grader_version]
+      properties:
+        score:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+        task_id: { type: string }
+        grader_version: { type: string }
+        components: { type: object }
+        penalties: { type: array, items: { type: object } }
+        bonuses: { type: array, items: { type: object } }
+        p1_survival_rate: { type: number }
+        protocol_violation_count: { type: integer }
+        baseline_score: { type: number }
+        beats_baseline: { type: boolean }
+        grader_notes: { type: string }
+    http_status: 200
+  grade_batch:
+    method: POST
+    path: /grade/batch
+    description: "Runs graders for a list of task IDs using canonical seeds. Fast CI validation path."
+    request_schema:
+      type: object
+      required: [task_ids]
+      properties:
+        task_ids:
+          type: array
+          items: { type: string }
+        agent_mode: { type: string, enum: [rule_based, llm, hybrid] }
+    response_schema:
+      type: object
+      properties:
+        aggregate_score: { type: number }
+        tasks_beat_baseline: { type: integer }
+        tasks_total: { type: integer }
+        all_scores_in_range: { type: boolean }
+        per_task: { type: object }
+    http_status: 200
+  state:
+    method: GET
+    path: /state
+    description: "Returns full internal simulation state including ground truth for graders."
+    query_params:
+      session_id: { type: string }
+    http_status: 200
+  tasks:
+    method: GET
+    path: /tasks
+    description: "Lists all 9 tasks with metadata, schemas, grader weights, and baseline scores."
+    http_status: 200
+  validate:
+    method: POST
+    path: /validate
+    description: "Runs OpenEnv Phase 1 validation checklist and returns pass/fail with per-check results."
+    response_schema:
+      type: object
+      properties:
+        passed: { type: boolean }
+        checks: { type: array, items: { type: object } }
+        report: { type: string }
+    http_status: 200
+  metrics:
+    method: GET
+    path: /metrics
+    description: "Operational metrics: total episodes, average score, p95 step latency, fleet utilisation."
+    http_status: 200
+  episode_ledger:
+    method: GET
+    path: /episode/ledger
+    description: "Per-step action/reward/observation history for the current session episode."
+    query_params:
+      session_id: { type: string }
+    http_status: 200
+observation_space:
+  type: object
+  description: |
+    Partial observation of the EMS operational picture. Structured as five
+    sub-observations merged into a single flat JSON envelope returned by both
+    POST /reset and POST /step. In Tasks 7-9, communication failures cause
+    some fleet positions to show last-known-position (comm_ok=false) with a
+    staleness timestamp.
+  required:
+    - episode_id
+    - task_id
+    - step
+    - sim_clock_min
+    - queue_length
+    - active_patients
+    - resolved_patients
+    - surge_declared
+    - mci_active
+    - incident_queue
+    - fleet_status
+    - hospital_network
+    - traffic_snapshot
+    - demand_forecast
+  properties:
+    episode_id:
+      type: string
+      description: "UUID of the current episode."
+    task_id:
+      type: string
+      description: "Active task identifier string."
+    step:
+      type: integer
+      minimum: 0
+      description: "Current step counter within the episode."
+    sim_clock_min:
+      type: number
+      description: "Simulated time in minutes since episode start. One step = 2 sim minutes."
+    queue_length:
+      type: integer
+      minimum: 0
+      description: "Number of incidents still pending in the incident queue."
+    active_patients:
+      type: integer
+      minimum: 0
+      description: "Patients currently en route or on scene."
+    resolved_patients:
+      type: integer
+      minimum: 0
+      description: "Patients delivered to hospital and episode-resolved."
+    surge_declared:
+      type: boolean
+      description: "Whether the agent has declared a system-wide surge."
+    mci_active:
+      type: boolean
+      description: "True when a Mass Casualty Incident is currently in progress."
+    incident_queue:
+      type: array
+      description: "Pending incidents sorted P1 first. Includes RPM snapshot in Tasks 7-9."
+      items:
+        type: object
+        required:
+          - incident_id
+          - symptom_description
+          - zone_id
+          - zone_type
+          - severity_hint
+          - condition_family
+          - requires_extrication
+          - requires_police
+          - requires_fire
+        properties:
+          incident_id:
+            type: string
+          symptom_description:
+            type: string
+            description: "Natural-language symptom description for LLM triage."
+          zone_id:
+            type: string
+          zone_type:
+            type: string
+            enum: [metro_core, urban, suburban, industrial, highway, rural]
+          severity_hint:
+            type: string
+            enum: [P0, P1, P2, P3]
+          condition_family:
+            type: string
+            enum: [cardiac, neuro, trauma, respiratory, obstetric, burns, paediatric, psychiatric, general, mci]
+          requires_extrication:
+            type: boolean
+          requires_police:
+            type: boolean
+          requires_fire:
+            type: boolean
+          rpm_snapshot:
+            type: object
+            nullable: true
+            description: "START triage RPM values visible in Tasks 7-9."
+            properties:
+              respirations:
+                type: string
+                enum: [absent, present_rapid, present_abnormal, present_normal]
+              pulse:
+                type: string
+                enum: [absent, present_weak, present_normal]
+              mental_status:
+                type: string
+                enum: [unresponsive, follows_commands, alert]
+          time_since_call_min:
+            type: number
+          transfer_window_min:
+            type: number
+            nullable: true
+            description: "Minutes remaining for valid transfer window (Task 8 only)."
+    fleet_status:
+      type: array
+      description: "Status of every ambulance unit in the fleet."
+      items:
+        type: object
+        required:
+          - unit_id
+          - unit_type
+          - status
+          - zone_id
+          - hours_on_duty
+          - fatigue_flag
+          - comm_ok
+        properties:
+          unit_id:
+            type: string
+          unit_type:
+            type: string
+            enum: [BLS, ALS, MICU]
+          status:
+            type: string
+            enum: [available, dispatched, en_route, on_scene, transporting, at_hospital, crew_swap, out_of_service]
+          zone_id:
+            type: string
+          last_known_zone:
+            type: string
+            nullable: true
+          comm_ok:
+            type: boolean
+          comm_lost_at_step:
+            type: integer
+            nullable: true
+          hours_on_duty:
+            type: number
+            minimum: 0.0
+          fatigue_flag:
+            type: boolean
+          current_patient_id:
+            type: string
+            nullable: true
+          destination_hospital_id:
+            type: string
+            nullable: true
+          eta_minutes:
+            type: number
+            nullable: true
+          is_mutual_aid_unit:
+            type: boolean
+    hospital_network:
+      type: array
+      description: "Current state of all 8 hospitals."
+      items:
+        type: object
+        required:
+          - hospital_id
+          - name
+          - zone_id
+          - specialties
+          - er_occupancy
+          - icu_utilisation
+          - on_diversion
+          - has_cath_lab
+          - has_helipad
+          - is_level1_trauma
+          - pre_alerted
+        properties:
+          hospital_id: { type: string }
+          name: { type: string }
+          zone_id: { type: string }
+          specialties:
+            type: array
+            items:
+              type: string
+              enum: [cardiology, neurology, neurosurgery, trauma, burns, obstetrics, paediatrics, general_surgery, orthopaedics, psychiatry]
+          er_occupancy:
+            type: number
+            minimum: 0.0
+            maximum: 1.0
+          icu_utilisation:
+            type: number
+            minimum: 0.0
+            maximum: 1.0
+          available_er_beds: { type: integer, minimum: 0 }
+          available_icu_beds: { type: integer, minimum: 0 }
+          on_diversion: { type: boolean }
+          has_cath_lab: { type: boolean }
+          has_helipad: { type: boolean }
+          is_level1_trauma: { type: boolean }
+          has_stroke_unit: { type: boolean }
+          has_burn_unit: { type: boolean }
+          has_nicu: { type: boolean }
+          pre_alerted: { type: boolean }
+          incoming_patients: { type: integer, minimum: 0 }
+    traffic_snapshot:
+      type: object
+      required: [sim_clock_min, is_peak_hour, matrix]
+      properties:
+        sim_clock_min: { type: number }
+        is_peak_hour: { type: boolean }
+        peak_multiplier: { type: number }
+        matrix:
+          type: object
+          description: "12x12 OD matrix: matrix[from_zone][to_zone] = travel_time_minutes."
+          additionalProperties:
+            type: object
+            additionalProperties: { type: number }
+        active_incidents_on_roads:
+          type: array
+          items: { type: string }
+        last_updated_step: { type: integer }
+    demand_forecast:
+      type: object
+      nullable: true
+      properties:
+        heatmap:
+          type: object
+          additionalProperties: { type: number }
+        forecast_horizon_hours: { type: number }
+        noise_level: { type: number }
+        generated_at_step: { type: integer }
+    mutual_aid_availability:
+      type: object
+      nullable: true
+      properties:
+        available_zones:
+          type: array
+          items: { type: string }
+        units_available:
+          type: object
+          additionalProperties: { type: integer }
+        min_arrival_minutes: { type: number }
+        pending_requests:
+          type: array
+          items:
+            type: object
+            properties:
+              request_id: { type: string }
+              from_zone: { type: string }
+              n_units: { type: integer }
+              unit_type: { type: string }
+              eta_minutes: { type: number }
+              status: { type: string, enum: [pending, en_route, arrived] }
+    communication_status:
+      type: object
+      nullable: true
+      properties:
+        failure_prob_per_step: { type: number }
+        units_with_comm_loss: { type: integer }
+        total_units: { type: integer }
+        comms_health_ratio: { type: number }
+    weather_conditions:
+      type: object
+      nullable: true
+      properties:
+        condition: { type: string, enum: [clear, rain, heavy_rain, fog, storm] }
+        visibility_km: { type: number }
+        traffic_multiplier_override: { type: number }
+action_space:
+  type: object
+  description: |
+    All valid action types. Always a JSON object with an "action_type" field.
+    Additional fields depend on the action subtype. Unknown fields are silently
+    ignored. The server validates required fields and rejects invalid actions
+    with action_applied=false and an action_rejection_reason.
+  required: [action_type]
+  action_types:
+    dispatch:
+      description: |
+        Dispatch an available ambulance to an incident and transport to hospital.
+        Core action for Tasks 1-5, 7, 9. Penalty -0.30 if hospital is on_diversion.
+        Penalty -0.08/step if P1 incident waits while units are available.
+      required: [action_type, incident_id, unit_id, hospital_id]
+      properties:
+        action_type: { type: string, const: dispatch }
+        incident_id: { type: string }
+        unit_id: { type: string }
+        unit_type: { type: string, enum: [BLS, ALS, MICU] }
+        hospital_id: { type: string }
+        assigned_priority: { type: string, enum: [P0, P1, P2, P3] }
+        pre_alert: { type: boolean }
+        notes: { type: string }
+    reroute:
+      description: |
+        Reroute an en-route or transporting unit to a different hospital.
+        Required when destination hospital declares diversion mid-transport (Task 5).
+      required: [action_type, unit_id, new_hospital_id]
+      properties:
+        action_type: { type: string, const: reroute }
+        unit_id: { type: string }
+        new_hospital_id: { type: string }
+        reason:
+          type: string
+          enum: [diversion_detected, traffic_spike, capacity_full, specialty_mismatch, agent_choice]
+    tag:
+      description: |
+        Apply a START triage tag to an MCI victim (Tasks 7, 9).
+        Penalty -0.50 for tagging Immediate victim as Expectant.
+        Must be called before dispatch for protocol compliance credit.
+      required: [action_type, incident_id, tag]
+      properties:
+        action_type: { type: string, const: tag }
+        incident_id: { type: string }
+        tag: { type: string, enum: [Immediate, Delayed, Minimal, Expectant] }
+        rpm_assessment:
+          type: object
+          nullable: true
+          properties:
+            respirations: { type: string }
+            pulse: { type: string }
+            mental_status: { type: string }
+    transfer:
+      description: |
+        Initiate inter-hospital transfer to a specialist facility (Task 8).
+        Must be executed before the patient's transfer_window_min expires.
+      required: [action_type, patient_id, dest_hospital_id]
+      properties:
+        action_type: { type: string, const: transfer }
+        patient_id: { type: string }
+        dest_hospital_id: { type: string }
+        transfer_reason:
+          type: string
+          enum: [specialist_required, icu_required, cath_lab_required, burn_unit_required, neurosurgery_required]
+    preposition:
+      description: |
+        Move an available unit to a target zone in anticipation of future demand (Task 6).
+        Score is delayed — graded when incidents arrive and response times are measured.
+      required: [action_type, unit_id, target_zone]
+      properties:
+        action_type: { type: string, const: preposition }
+        unit_id: { type: string }
+        target_zone: { type: string }
+        priority: { type: string, enum: [demand_driven, coverage_gap, mutual_aid_staging] }
+    request_mutual_aid:
+      description: |
+        Request ambulances from a neighbouring zone. Arrive in 12 sim minutes.
+        Over-requesting when own fleet suffices triggers -0.10 coordination penalty.
+      required: [action_type, n_units, from_zone, unit_type]
+      properties:
+        action_type: { type: string, const: request_mutual_aid }
+        n_units: { type: integer, minimum: 1, maximum: 10 }
+        from_zone: { type: string }
+        unit_type: { type: string, enum: [BLS, ALS, MICU, any] }
+        justification:
+          type: string
+          enum: [queue_overflow, mci_response, surge_support, coverage_gap]
+    declare_surge:
+      description: |
+        Declare system-wide mass casualty surge. Bonus +0.08 per correct declaration.
+        Required when >=3 hospitals on diversion OR incident queue >=10.
+      required: [action_type]
+      properties:
+        action_type: { type: string, const: declare_surge }
+        reason:
+          type: string
+          enum: [hospital_saturation, queue_overflow, mci_trigger, comms_failure, rule_based_surge]
+        surge_level: { type: string, enum: [level_1, level_2, level_3] }
+    crew_swap:
+      description: |
+        Request a fresh crew for a fatigued unit. Spare crew deploys in 8 sim minutes.
+        Unit is unavailable (status=crew_swap) during deployment window.
+      required: [action_type, unit_id]
+      properties:
+        action_type: { type: string, const: crew_swap }
+        unit_id: { type: string }
+    escalate:
+      description: |
+        Request multi-agency coordination (Police + Fire) for a trapped victim.
+        Must be called before EMS dispatch on incidents with requires_extrication=true.
+        Penalty -0.15 for dispatching EMS alone to a trapped victim.
+      required: [action_type, incident_id]
+      properties:
+        action_type: { type: string, const: escalate }
+        incident_id: { type: string }
+        agencies:
+          type: array
+          items: { type: string, enum: [police, fire, hazmat, coast_guard] }
+    noop:
+      description: |
+        No operation. Incurs -0.08 penalty/step if P1 incidents are unaddressed
+        and units are available. Safe when no valid action is possible this step.
+      required: [action_type]
+      properties:
+        action_type: { type: string, const: noop }
+        reason: { type: string }
+        p1_incidents_unaddressed: { type: integer }
+tasks:
+  - id: task1_single_triage
+    name: "Single Call Triage & Dispatch"
+    number: 1
+    difficulty: easy
+    seed: 42
+    max_steps: 20
+    baseline_score: 0.61
+    description: |
+      Agent receives ONE incident with a symptom description. It must classify
+      severity (P1/P2/P3), select the correct ambulance type (BLS/ALS/MICU),
+      and route to the appropriate specialty hospital. Tests core medical knowledge
+      and protocol recall. No dynamic events.
+    reward_type: dense
+    grader:
+      class: task1_grader.Task1Grader
+      components:
+        triage_class_correct: { weight: 0.40, scoring: binary }
+        unit_type_correct: { weight: 0.30, scoring: binary }
+        hospital_specialty_match: { weight: 0.30, scoring: partial }
+      bonuses:
+        protocol_compliance: { max: 0.15 }
+      penalties:
+        diversion_routing: { value: -0.30 }
+    episode_config:
+      n_incidents: 1
+      n_bls: 2
+      n_als: 2
+      n_micu: 2
+      enable_fatigue: false
+      enable_comms_failure: false
+      enable_multi_agency: false
+      traffic_mode: static
+    observations_active: [incident_queue, fleet_status, hospital_network, traffic_snapshot]
+  - id: task2_hospital_route
+    name: "Hospital Route Selection"
+    number: 2
+    difficulty: easy
+    seed: 43
+    max_steps: 20
+    baseline_score: 0.72
+    description: |
+      Agent must select the optimal hospital for a patient given symptoms, location,
+      and the current hospital network state. Two hospitals are on diversion.
+      Tests multi-criteria decision making: specialty match, capacity, travel time.
+    reward_type: dense
+    grader:
+      class: task2_grader.Task2Grader
+      components:
+        specialty_match: { weight: 0.50, scoring: binary }
+        capacity_check: { weight: 0.30, scoring: binary }
+        travel_time_score: { weight: 0.20, scoring: normalised_ratio }
+      bonuses:
+        pre_alert_bonus: { max: 0.05 }
+      penalties:
+        diversion_routing: { value: -0.30 }
+        wrong_specialty: { value: -0.20 }
+    episode_config:
+      n_incidents: 1
+      n_diverted_hospitals: 2
+      enable_fatigue: false
+      enable_comms_failure: false
+      traffic_mode: static
+    observations_active: [incident_queue, fleet_status, hospital_network, traffic_snapshot]
+  - id: task3_unit_type
+    name: "Unit Type Matching"
+    number: 3
+    difficulty: easy
+    seed: 44
+    max_steps: 10
+    baseline_score: 0.68
+    description: |
+      Pure medical protocol knowledge test. Agent selects BLS/ALS/MICU for each
+      presented scenario across 10 incidents drawn from the condition library.
+      Binary exact-match grader. No routing, no dynamics.
+    reward_type: dense
+    grader:
+      class: task3_grader.Task3Grader
+      components:
+        unit_type_exact_match: { weight: 1.00, scoring: binary_per_scenario_averaged }
+      penalties:
+        under_triage_micu: { value: -0.15 }
+    episode_config:
+      n_incidents: 10
+      scenario_mode: unit_type_only
+      enable_fatigue: false
+      enable_comms_failure: false
+    observations_active: [incident_queue]
+  - id: task4_multi_incident
+    name: "Multi-Incident Queue Management"
+    number: 4
+    difficulty: medium
+    seed: 45
+    max_steps: 50
+    baseline_score: 0.44
+    description: |
+      5-8 simultaneous calls with only 3 ambulances available. Agent must triage
+      and prioritise the queue. P1 patients carry 3x weight in scoring. Delay
+      penalties accumulate for every step a P1 patient goes unaddressed.
+    reward_type: dense
+    grader:
+      class: task4_grader.Task4Grader
+      components:
+        weighted_survival_score: { weight: 0.70, scoring: continuous }
+        dispatch_efficiency: { weight: 0.30, scoring: normalised_ratio }
+      penalties:
+        p1_noop_penalty: { value: -0.08 }
+        under_triage: { value: -0.12 }
+    episode_config:
+      n_incidents: 7
+      n_bls: 1
+      n_als: 1
+      n_micu: 1
+      enable_fatigue: true
+      enable_comms_failure: false
+      traffic_mode: dynamic
+    observations_active: [incident_queue, fleet_status, hospital_network, traffic_snapshot, demand_forecast]
+  - id: task5_dynamic_rerouting
+    name: "Dynamic Rerouting Under Traffic & Diversion"
+    number: 5
+    difficulty: medium
+    seed: 46
+    max_steps: 40
+    baseline_score: 0.38
+    description: |
+      Mid-episode traffic matrix spike (step 5: 30-60%) and hospital diversion
+      flip (step 8) force the agent to reroute active units. Tests reactive
+      planning and time-savings calculation. Score = reroute correctness + time saved.
+    reward_type: dense
+    grader:
+      class: task5_grader.Task5Grader
+      components:
+        reroute_correctness: { weight: 0.50, scoring: binary }
+        net_time_saved: { weight: 0.50, scoring: normalised_continuous }
+      penalties:
+        diversion_routing: { value: -0.30 }
+        unnecessary_reroute: { value: -0.10 }
+    episode_config:
+      n_incidents: 4
+      n_bls: 1
+      n_als: 2
+      n_micu: 1
+      traffic_spike_at_step: 5
+      diversion_flip_at_step: 8
+      enable_fatigue: true
+      enable_comms_failure: false
+      traffic_mode: dynamic
+    observations_active: [incident_queue, fleet_status, hospital_network, traffic_snapshot]
+  - id: task6_prepositioning
+    name: "Fleet Pre-Positioning"
+    number: 6
+    difficulty: medium
+    seed: 47
+    max_steps: 60
+    baseline_score: 0.42
+    description: |
+      No active incidents at start. Agent repositions fleet based on the 12-hour
+      demand forecast heatmap. Score is entirely delayed: graded when incidents
+      arrive in the second half of the episode by measuring average response time
+      vs. a random-positioning baseline.
+    reward_type: delayed
+    grader:
+      class: task6_grader.Task6Grader
+      components:
+        avg_response_time_score: { weight: 0.70, scoring: normalised_ratio_inverted }
+        coverage_spread: { weight: 0.30, scoring: continuous }
+      penalties:
+        clustering_penalty: { value: -0.08 }
+    episode_config:
+      n_incidents: 0
+      n_bls: 3
+      n_als: 3
+      n_micu: 2
+      incidents_arrive_at_step: 30
+      enable_fatigue: false
+      enable_comms_failure: false
+      traffic_mode: dynamic
+      demand_forecast_noise: 0.20
+    observations_active: [fleet_status, hospital_network, traffic_snapshot, demand_forecast]
+  - id: task7_mci_start
+    name: "Mass Casualty Incident - START Triage Protocol"
+    number: 7
+    difficulty: hard
+    seed: 48
+    max_steps: 80
+    baseline_score: 0.29
+    description: |
+      20-40 simultaneous MCI victims. Agent must apply START triage (RPM scoring)
+      to every victim before dispatching. Immediate victims spread across hospitals.
+      Multi-agency coordination required for trapped victims. Comm failures active
+      at p=0.12/step. Penalty -0.50 for tagging Immediate as Expectant.
+    reward_type: dense
+    grader:
+      class: task7_grader.Task7Grader
+      components:
+        start_triage_accuracy: { weight: 0.45, scoring: continuous }
+        response_time_score: { weight: 0.30, scoring: normalised_continuous }
+        hospital_spread_score: { weight: 0.25, scoring: inverted_gini }
+      penalties:
+        immediate_as_expectant: { value: -0.50 }
+        wrong_tag: { value: -0.20 }
+        multi_agency_skip: { value: -0.15 }
+        comms_noop_penalty: { value: -0.10 }
+      bonuses:
+        protocol_compliance: { max: 0.15 }
+        surge_declaration_correct: { value: 0.08 }
+    episode_config:
+      n_victims: 30
+      n_bls: 3
+      n_als: 4
+      n_micu: 3
+      enable_fatigue: true
+      enable_comms_failure: true
+      comms_failure_prob: 0.12
+      enable_multi_agency: true
+      traffic_mode: dynamic
+      demand_forecast_noise: 0.20
+    observations_active: [incident_queue, fleet_status, hospital_network, traffic_snapshot, demand_forecast, mutual_aid_availability, communication_status]
+  - id: task8_transfer_cascade
+    name: "Inter-Hospital Transfer Cascade"
+    number: 8
+    difficulty: hard
+    seed: 49
+    max_steps: 70
+    baseline_score: 0.24
+    description: |
+      ICU patients at non-specialist hospitals need specialist care. Each patient
+      has a transfer_window_min that expires. Agent must identify patients requiring
+      transfer, select a specialist hospital with ICU availability, and initiate
+      before the window closes. Comm failures active.
+    reward_type: dense
+    grader:
+      class: task8_grader.Task8Grader
+      components:
+        transfer_appropriateness: { weight: 0.40, scoring: binary_per_transfer_averaged }
+        transfer_timing: { weight: 0.35, scoring: binary_per_transfer_averaged }
+        bed_utilisation: { weight: 0.25, scoring: inverted_gini }
+      penalties:
+        expired_transfer_window: { value: -0.25 }
+        wrong_specialty: { value: -0.20 }
+        diverted_hospital: { value: -0.30 }
+      bonuses:
+        protocol_compliance: { max: 0.15 }
+    episode_config:
+      n_transfer_patients: 8
+      n_als: 3
+      n_micu: 3
+      enable_fatigue: true
+      enable_comms_failure: true
+      comms_failure_prob: 0.12
+      traffic_mode: dynamic
+    observations_active: [incident_queue, fleet_status, hospital_network, traffic_snapshot, communication_status]
+  - id: task9_surge
+    name: "City-Wide Surge - Three Simultaneous MCIs"
+    number: 9
+    difficulty: hard
+    seed: 50
+    max_steps: 120
+    baseline_score: 0.17
+    description: |
+      Three simultaneous MCIs. All hospitals near saturation (75-88% ER occupancy).
+      Comm failures active. Agent must declare surge, request mutual aid, apply START
+      triage, spread patients, and prevent cascade collapse. Designed to score <0.30
+      even for GPT-4-class models. Under-requesting mutual aid causes cascade failure.
+    reward_type: dense
+    grader:
+      class: task9_grader.Task9Grader
+      components:
+        system_survival_score: { weight: 0.40, scoring: continuous }
+        cascade_avoidance: { weight: 0.30, scoring: continuous }
+        mutual_aid_effectiveness: { weight: 0.30, scoring: normalised_ratio }
+      penalties:
+        cascade_failure: { value: -0.35 }
+        surge_not_declared: { value: -0.20 }
+        over_mutual_aid: { value: -0.10 }
+        under_mutual_aid: { value: -0.40 }
+        comms_noop_penalty: { value: -0.10 }
+        immediate_as_expectant: { value: -0.50 }
+      bonuses:
+        surge_declaration_correct: { value: 0.08 }
+        protocol_compliance: { max: 0.15 }
+    episode_config:
+      n_mci_sites: 3
+      n_victims_per_mci: 15
+      initial_er_occupancy_min: 0.75
+      initial_er_occupancy_max: 0.88
+      n_bls: 4
+      n_als: 5
+      n_micu: 4
+      enable_fatigue: true
+      enable_comms_failure: true
+      comms_failure_prob: 0.12
+      enable_multi_agency: true
+      traffic_mode: dynamic
+      demand_forecast_noise: 0.20
+      mutual_aid_zones: [zone_2, zone_5, zone_8, zone_11]
+    observations_active: [incident_queue, fleet_status, hospital_network, traffic_snapshot, demand_forecast, mutual_aid_availability, communication_status]
+simulation:
+  step_duration_minutes: 2
+  zones: 12
+  zone_ids: [zone_1, zone_2, zone_3, zone_4, zone_5, zone_6, zone_7, zone_8, zone_9, zone_10, zone_11, zone_12]
+  zone_types: [metro_core, metro_core, urban, urban, urban, suburban, suburban, suburban, industrial, highway, highway, rural]
+  fleet_defaults:
+    n_bls: 4
+    n_als: 4
+    n_micu: 4
+    bls_speed_kmh: 45
+    als_speed_kmh: 50
+    micu_speed_kmh: 40
+    crew_max_hours: 10.0
+    crew_swap_delay_minutes: 8
+    fatigue_performance_multiplier: 0.75
+  hospital_defaults:
+    n_hospitals: 8
+    diversion_threshold_er_occupancy: 0.90
+    diversion_penalty: -0.30
+    diversion_redirect_delay_minutes: 6
+  traffic:
+    update_interval_steps: 3
+    peak_hours_am_start_min: 480
+    peak_hours_am_end_min: 600
+    peak_hours_pm_start_min: 1020
+    peak_hours_pm_end_min: 1140
+    peak_multiplier_min: 1.30
+    peak_multiplier_max: 1.60
+    incident_secondary_slowdown_radius_zones: 2
+  communications:
+    failure_prob_per_step_per_unit: 0.12
+    last_known_position_staleness_threshold_steps: 5
+    noop_on_unknown_unit_penalty: -0.10
+  mutual_aid:
+    arrival_delay_minutes: 12
+    max_units_per_request: 10
+    over_request_penalty: -0.10
+    max_active_requests: 5
+  golden_hour:
+    stemi_cliff_minutes: 90
+    polytrauma_linear_decay: true
+    stroke_window_minutes: 270
+    reward_integration_mode: survival_probability
+  protocol_compliance:
+    max_bonus_per_episode: 0.15
+    micu_for_stemi: true
+    nearest_trauma_within_30min: true
+    multi_agency_for_trapped: true
+    pre_alert_for_stemi: true
+    spread_mci_across_hospitals: true
+evaluation:
+  score_range: [0.0, 1.0]
+  grading_mode: deterministic
+  same_seed_same_score: true
+  reward_timing: dense
+  episode_termination:
+    - incident_queue_empty
+    - max_steps_reached
+  canonical_seeds:
+    task1_single_triage: 42
+    task2_hospital_route: 43
+    task3_unit_type: 44
+    task4_multi_incident: 45
+    task5_dynamic_rerouting: 46
+    task6_prepositioning: 47
+    task7_mci_start: 48
+    task8_transfer_cascade: 49
+    task9_surge: 50
+  baselines:
+    task1_single_triage: 0.61
+    task2_hospital_route: 0.72
+    task3_unit_type: 0.68
+    task4_multi_incident: 0.44
+    task5_dynamic_rerouting: 0.38
+    task6_prepositioning: 0.42
+    task7_mci_start: 0.29
+    task8_transfer_cascade: 0.24
+    task9_surge: 0.17
+  max_steps:
+    task1_single_triage: 20
+    task2_hospital_route: 20
+    task3_unit_type: 10
+    task4_multi_incident: 50
+    task5_dynamic_rerouting: 40
+    task6_prepositioning: 60
+    task7_mci_start: 80
+    task8_transfer_cascade: 70
+    task9_surge: 120
+  difficulty_tiers:
+    easy: [task1_single_triage, task2_hospital_route, task3_unit_type]
+    medium: [task4_multi_incident, task5_dynamic_rerouting, task6_prepositioning]
+    hard: [task7_mci_start, task8_transfer_cascade, task9_surge]
+validator:
+  phase: 1
+  checks:
+    - id: health_endpoint
+      description: "GET /health returns HTTP 200"
+      required: true
+    - id: reset_endpoint
+      description: "POST /reset returns HTTP 200 with observation and info"
+      required: true
+    - id: step_endpoint
+      description: "POST /step returns HTTP 200 with observation, reward (float), done (bool)"
+      required: true
+    - id: score_in_range
+      description: "All graders return float in [0.0, 1.0]"
+      required: true
+    - id: min_tasks
+      description: "At least 3 tasks with working graders"
+      required: true
+      min_task_count: 3
+    - id: determinism
+      description: "Same (task_id, seed, action_sequence) always produces same score"
+      required: true
+    - id: docker_build
+      description: "Dockerfile builds successfully from python:3.11-slim"
+      required: true
+    - id: inference_runs
+      description: "inference.py runs and produces per-task scores without crash"
+      required: true
+    - id: yaml_schema
+      description: "openenv.yaml has required fields: name, version, tasks, observation_space, action_space"
+      required: true
+inference:
+  script: inference.py
+  env_vars:
+    API_BASE_URL:
+      description: "EMERGI-ENV server base URL"
+      default: "http://localhost:7860"
+    MODEL_NAME:
+      description: "LLM model name for the inference agent"
+      default: "claude-sonnet-4-20250514"
+    HF_TOKEN:
+      description: "HuggingFace or LLM API authentication token"
+      required: false
+    LLM_API_BASE:
+      description: "OpenAI-compatible LLM API base URL"
+      default: "https://api.anthropic.com/v1"
+    AGENT_MODE:
+      description: "Agent mode: llm | rule_based | hybrid"
+      default: "hybrid"
+    MAX_LLM_TOKENS:
+      description: "Max tokens per LLM call"
+      default: "1000"
+    LLM_TEMPERATURE:
+      description: "LLM sampling temperature"
+      default: "0.2"
+    REQUEST_TIMEOUT:
+      description: "HTTP request timeout in seconds"
+      default: "30.0"
+    LLM_TIMEOUT:
+      description: "LLM API call timeout in seconds"
+      default: "45.0"
+    RESULTS_OUTPUT_PATH:
+      description: "Path to write JSON results file"
+      default: "inference_results.json"
+    AGENT_SESSION_PREFIX:
+      description: "Session ID prefix for concurrent runs"
+      default: "agent"
+  output:
+    format: json
+    required_fields:
+      - task_id
+      - final_score
+      - baseline
+      - beats_baseline
+      - delta_vs_baseline
+      - total_steps
+      - total_llm_tokens
+      - p1_survival_rate
+      - protocol_violations
