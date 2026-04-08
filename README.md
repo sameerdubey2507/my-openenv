@@ -73,7 +73,13 @@ Invoke-RestMethod -Uri "https://sameerdubey2507-emergi-env.hf.space/reset" `
   -Body '{"task_id": "task1_single_triage", "seed": 42}'
 ```
 
-**2. Send a Dispatch Action**
+**2. Query hidden Ground-Truth (State)**
+```powershell
+Invoke-RestMethod -Uri "https://sameerdubey2507-emergi-env.hf.space/state?session_id=default" `
+  -Method Get
+```
+
+**3. Send a Dispatch Action (Step)**
 ```powershell
 Invoke-RestMethod -Uri "https://sameerdubey2507-emergi-env.hf.space/step" `
   -Method Post `
@@ -90,6 +96,36 @@ Invoke-RestMethod -Uri "https://sameerdubey2507-emergi-env.hf.space/step" `
 
 ---
 
+## 🎖️ Evaluation & Grading System
+The environment features 9 calibrated tasks designed to test different aspects of medical resource management.
+
+### Task Tiers
+| Tier | Tasks | Grader Logic |
+| :--- | :--- | :--- |
+| **🟢 EASY** | T1 - T3 | Focuses on single-call triage and exact unit-type matching. |
+| **🟡 MEDIUM** | T4 - T6 | Focuses on multi-incident queues and fleet pre-positioning. |
+| **🔴 HARD** | T7 - T9 | Massive Casualty Incidents (MCI) and system-wide surge management. |
+
+### Sample Grader Output (`POST /grade`)
+When an agent completes a task, the grader returns a detailed performance breakdown:
+```json
+{
+  "task_id": "task1_single_triage",
+  "episode_score": 0.842,
+  "components": {
+    "triage_accuracy": 1.0,
+    "response_time_penalty": -0.05,
+    "protocol_bonus": 0.15,
+    "hospital_matching": 0.92
+  },
+  "summary": "Agent successfully triaged incident with minimal protocol deviation."
+}
+```
+
+---
+
+---
+
 ## 📋 Hackathon Summary
 *   **City Grid**: 12 zones, 8 hospitals, 50+ incident templates.
 *   **AI Goal**: Learn to triage, dispatch, and reroute under dynamic traffic and hospital saturation.
@@ -98,7 +134,34 @@ Invoke-RestMethod -Uri "https://sameerdubey2507-emergi-env.hf.space/step" `
 
 ---
 
+## 🛠️ Dashboard & Functional Guide
+
+### Tactical Modules
+| Module | Use Case |
+| :--- | :--- |
+| **Command Center** | Tactical map view of the city grid and live fleet positions. |
+| **Grid Routing** | Visualizes dynamic pathfinding and traffic impact. |
+| **Rapid Dispatch** | Real-time incident triage and unit assignment queue. |
+| **Trauma Flow** | Clinical monitoring of "Golden Hour" survival probabilities. |
+| **System Analytics** | Live performance telemetry and reward accumulation. |
+
+### 🏅 Reward & Task Logic
+The simulation uses **Dense Rewards**, ensuring continuous feedback for every agent decision.
+
+#### Scoring Formula:
+The environment calculates rewards based on:
+1. **Survival Probability**: $P_{survival}$ decay across the "Golden Hour".
+2. **Protocol Compliance**: Adherence to START triage and medical guidelines.
+3. **Operational Efficiency**: Minimizing travel time and hospital wait-times.
+
+#### Task Tiers (9 Evaluated Scenarios):
+*   **Easy**: Single call triage, Basic unit matching.
+*   **Medium**: Queue prioritization, Dynamic hospital rerouting.
+*   **Hard**: Mass Casualty Incidents (MCI), System-wide resource surges.
+
+---
+
 > [!TIP]
-> Use the **Open API Test** tab in the dashboard header to interactively test every endpoint and see the real-time JSON responses without writing any code.
+> Use the **"Functions"** tab in the dashboard header to access technical sub-pages for API testing and clinical validation.
 
 Developed for the **Hugging Face OpenEnv Hackathon**.
