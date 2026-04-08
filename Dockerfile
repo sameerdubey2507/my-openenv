@@ -1,26 +1,17 @@
-# ══════════════════════════════════════════════════════════════════
-# EMERGI-ENV  —  Multi-Stage Dockerfile
-# Stage 1 : Build React/Vite frontend  (node:20-alpine)
-# Stage 2 : Build Python wheels        (python:3.11-slim)
-# Stage 3 : Validate JSON data files   (python:3.11-slim)
-# Stage 4 : Production image           (python:3.11-slim)
-# ══════════════════════════════════════════════════════════════════
 
-# ── Stage 1 : Frontend ────────────────────────────────────────────
 FROM node:20-alpine AS frontend-builder
 
 WORKDIR /frontend
 
-# Install deps first (cache layer)
+
 COPY static/package.json static/package-lock.json ./
 RUN npm ci --prefer-offline
 
-# Copy source and build
+
 COPY static/ ./
 RUN npm run build
-# Output: /frontend/dist/
 
-# ── Stage 2 : Python wheel builder ────────────────────────────────
+
 FROM python:3.11-slim AS builder
 
 ARG APP_USER=emergi
