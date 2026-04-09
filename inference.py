@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 """
@@ -20,7 +21,7 @@ Rules:
   - All imports are guarded; script runs on stdlib alone if packages are missing
 """
 
-# ── stdlib only at top-level ────────────────────────────────────────────────
+
 import io
 import json
 import logging
@@ -33,15 +34,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# ── UTF-8 stdout ─────────────────────────────────────────────────────────────
-try:
-    if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
-except Exception:
-    pass
 
-# ── Load .env if present (silently ignore all errors) ────────────────────────
 try:
     _env_path = Path(__file__).parent / ".env"
     if _env_path.exists():
@@ -54,11 +47,11 @@ try:
 except Exception:
     pass
 
-# ── Mandatory env vars (checklist) ───────────────────────────────────────────
+
 API_BASE_URL: str = (os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1").rstrip("/")
 MODEL_NAME:   str = os.getenv("MODEL_NAME") or "meta-llama/Meta-Llama-3-8B-Instruct"
 HF_TOKEN:     str = os.getenv("HF_TOKEN", "")
-API_KEY:      str = HF_TOKEN  # HF_TOKEN is the single source of truth
+API_KEY:      str = HF_TOKEN  
 
 SERVER_URL:   str = (os.getenv("SERVER_URL") or "http://127.0.0.1:7860").rstrip("/")
 BENCHMARK:    str = "emergi_env"
@@ -88,7 +81,7 @@ logging.basicConfig(level=logging.WARNING,
                     datefmt="%H:%M:%S")
 logger = logging.getLogger("emergi_env.inference")
 
-# ── Optional imports (guarded) ───────────────────────────────────────────────
+
 try:
     import httpx as _httpx
     _HAS_HTTPX = True
@@ -110,11 +103,11 @@ except ImportError:
     _APITimeoutError = Exception
     _HAS_OPENAI = False
 
-# fallback HTTP using stdlib urllib
+
 import urllib.request
 import urllib.error
 
-# ── Task catalogue ────────────────────────────────────────────────────────────
+
 TASK_IDS: List[str] = [
     "task1_single_triage", "task2_hospital_route", "task3_unit_type",
     "task4_multi_incident", "task5_dynamic_rerouting", "task6_prepositioning",
@@ -132,7 +125,7 @@ MAX_STEPS_MAP: Dict[str, int] = {
     "task7_mci_start": 50, "task8_transfer_cascade": 40, "task9_surge": 60,
 }
 
-# ── Stdout format ─────────────────────────────────────────────────────────────
+
 def log_start(task: str) -> None:
     print(f"[START] task={task} env={BENCHMARK} model={MODEL_NAME}", flush=True)
 
@@ -151,7 +144,7 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rw}",
           flush=True)
 
-# ── HTTP client (httpx with urllib fallback) ──────────────────────────────────
+
 def _http_post(url: str, payload: Dict) -> Dict:
     data = json.dumps(payload).encode()
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -206,7 +199,7 @@ def server_grade(base: str, sid: str) -> Dict:
     return _http_post(f"{base}/grade",
                       {"session_id": sid, "force_complete": True})
 
-# ── Rule-based fallback ───────────────────────────────────────────────────────
+
 COND_UNIT: Dict[str, str] = {
     "stemi": "MICU", "cardiac_arrest": "MICU", "polytrauma": "MICU",
     "blast_injury": "MICU", "eclampsia": "MICU", "postpartum": "MICU",
@@ -259,7 +252,7 @@ def rule_action(obs: Dict, task_id: str) -> Dict:
                         if not h.get("diverted", h.get("on_diversion", False))
                         and float(h.get("er_load", h.get("er_occupancy", 0))) < 0.90]
 
-        # Task-specific logic
+        
         if task_id == "task6_prepositioning":
             if demand and avail_units:
                 top_zone = max(demand, key=lambda z: demand[z])
@@ -277,19 +270,19 @@ def rule_action(obs: Dict, task_id: str) -> Dict:
                             accept_hosps[0].get("hospital_id", "H1"))}
             return {"action_type": "noop", "reason": "no_transfer"}
 
-        # Surge / escalate
+        
         diverted = sum(1 for h in hospitals if h.get("diverted", h.get("on_diversion")))
         if not surge_declared and (diverted >= 3 or len(incidents) >= 10):
             if task_id in ("task9_surge", "task7_mci_start"):
                 return {"action_type": "escalate", "reason": "surge"}
 
-        # Mutual aid
+        
         if task_id in ("task7_mci_start", "task9_surge"):
             if len(incidents) > len(avail_units) + 2:
                 return {"action_type": "request_mutual_aid",
                         "units_requested": min(4, len(incidents) - len(avail_units))}
 
-        # MCI tagging
+        
         if task_id in ("task7_mci_start", "task9_surge"):
             tag_map = {"P1": "Immediate", "P2": "Delayed", "P3": "Minimal", "P0": "Expectant"}
             for inc in incidents:
@@ -298,7 +291,7 @@ def rule_action(obs: Dict, task_id: str) -> Dict:
                         "incident_id": inc.get("incident_id", ""),
                         "triage_tag": tag_map.get(sev, "Delayed")}
 
-        # Task5 reroute
+        
         if task_id == "task5_dynamic_rerouting":
             for u in fleet:
                 if u.get("status") in ("dispatched", "en_route", "transporting"):
@@ -308,7 +301,7 @@ def rule_action(obs: Dict, task_id: str) -> Dict:
                                 "hospital_id": accept_hosps[0].get("id",
                                     accept_hosps[0].get("hospital_id", "H1"))}
 
-        # Standard dispatch
+        
         for inc in incidents:
             if not avail_units:
                 break
@@ -348,7 +341,7 @@ def rule_action(obs: Dict, task_id: str) -> Dict:
         logger.warning("rule_action error: %s", exc)
         return {"action_type": "noop", "reason": "rule_error"}
 
-# ── LLM ───────────────────────────────────────────────────────────────────────
+
 _TASK_HINTS: Dict[str, str] = {
     "task1_single_triage":
         "One incident. Dispatch correct unit_type (BLS/ALS/MICU) to best hospital_id (H1-H8).\n"
@@ -476,7 +469,7 @@ def _init_llm() -> None:
         logger.warning("HF_TOKEN not set — rule-based fallback")
         return
     try:
-        # MANDATORY: OpenAI client with API_BASE_URL + HF_TOKEN (checklist requirement)
+        
         _llm_client = _OpenAI(
             api_key=HF_TOKEN,
             base_url=API_BASE_URL,
@@ -512,7 +505,7 @@ def _llm_decide(obs: Dict, task_id: str, history: List[Dict]) -> Optional[Dict]:
         logger.error("LLM wrapper error: %s", exc)
     return None
 
-# ── Action normalisation ──────────────────────────────────────────────────────
+
 _HOSP_MAP = {
     "sassoon": "H1", "kem": "H2", "ruby hall": "H3", "ruby": "H3",
     "jehangir": "H4", "deenanath": "H5", "bharati": "H6",
@@ -564,7 +557,7 @@ def normalise(a: Dict) -> Dict:
     except Exception:
         return {"action_type": "noop"}
 
-# ── Server wait ───────────────────────────────────────────────────────────────
+
 def wait_for_server(base: str, timeout: float = 90.0) -> bool:
     deadline = time.monotonic() + timeout
     first = True
@@ -577,12 +570,9 @@ def wait_for_server(base: str, timeout: float = 90.0) -> bool:
         time.sleep(3.0)
     return False
 
-# ── Episode runner ────────────────────────────────────────────────────────────
+
 def run_episode(base: str, task_id: str, server_ok: bool) -> None:
-    """
-    ALWAYS emits [START] and [END].
-    Never raises. Exits 0 even if everything fails.
-    """
+    
     seed = SEEDS.get(task_id, 42)
     sid  = f"agent-{task_id}-{uuid.uuid4().hex[:6]}"
     max_s = MAX_STEPS_MAP.get(task_id, 30)
@@ -592,11 +582,11 @@ def run_episode(base: str, task_id: str, server_ok: bool) -> None:
     score  = 0.0
     success = False
 
-    # [START] is emitted FIRST — before ANY network call
+    
     log_start(task_id)
 
     if not server_ok:
-        # Server unreachable — emit minimal valid output and return
+        
         log_step(1, {"action_type": "noop"}, 0.0, True, "server_unreachable")
         log_end(False, 1, 0.0, [0.0])
         return
@@ -652,13 +642,13 @@ def run_episode(base: str, task_id: str, server_ok: bool) -> None:
             rewards.append(0.0)
 
     finally:
-        # [END] is ALWAYS emitted
+        
         log_end(success, steps, score, rewards)
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+
 def main() -> int:
     try:
-        # Parse task args safely (no argparse — avoids SystemExit on unknown args)
+        
         tasks = TASK_IDS
         try:
             argv = sys.argv[1:]
@@ -683,10 +673,10 @@ def main() -> int:
 
         base = SERVER_URL
 
-        # Initialise mandatory OpenAI client (API_BASE_URL + HF_TOKEN)
+        
         _init_llm()
 
-        # Spawn server if not already running
+        
         server_proc = None
         if not server_health(base):
             print("[INFO] Server not running — spawning uvicorn...", flush=True)
@@ -706,19 +696,19 @@ def main() -> int:
         if not server_ok:
             print("[WARN] Server unreachable — running in offline mode", flush=True)
 
-        # Run all tasks — each one ALWAYS emits [START] and [END]
+        
         for task_id in tasks:
             try:
                 run_episode(base, task_id, server_ok)
             except Exception as exc:
-                # Last-resort safety net — should never reach here
+                
                 logger.error("Unexpected error in task %s: %s", task_id, exc)
                 try:
                     log_end(False, 0, 0.0, [0.0])
                 except Exception:
                     pass
 
-        # Cleanup
+        
         if server_proc:
             try:
                 server_proc.terminate()
@@ -730,16 +720,25 @@ def main() -> int:
                     pass
 
     except Exception as exc:
-        print(f"[ERROR] Fatal unhandled exception in main: {exc}", file=sys.stderr, flush=True)
-        # Even on catastrophic failure, print END to satisfy grader
+        try:
+            print(f"[ERROR] Fatal unhandled exception in main: {exc}", file=sys.stderr, flush=True)
+        except Exception:
+            pass
+        
         try:
             log_end(False, 0, 0.0, [0.0])
         except Exception:
-            print("[END] success=false steps=0 score=0.000 rewards=0.00", flush=True)
+            try:
+                print("[END] success=false steps=0 score=0.000 rewards=0.00", flush=True)
+            except Exception:
+                pass
 
-    # ALWAYS exit 0 — non-zero exit = "unhandled exception" to evaluator
+    
     return 0
 
-
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception:
+        
+        os._exit(0)
