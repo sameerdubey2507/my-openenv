@@ -50,12 +50,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger("emergi_env.inference")
 
-API_BASE_URL: str   = os.getenv("LLM_API_BASE", os.getenv("API_BASE_URL", "http://localhost:7860")).rstrip("/")
+API_BASE_URL: str   = os.getenv("API_BASE_URL", "http://localhost:7860").rstrip("/")
 SERVER_URL: str     = os.getenv("SERVER_URL", "http://localhost:7860").rstrip("/")
-MODEL_NAME: str     = os.getenv("MODEL_NAME",   "meta-llama/Meta-Llama-3-8B-Instruct")
+MODEL_NAME: str     = os.getenv("MODEL_NAME", "meta-llama/Meta-Llama-3-8B-Instruct")
 
-HF_TOKEN: str       = os.getenv("HF_TOKEN",     "")
-API_KEY: str        =HF_TOKEN
+HF_TOKEN: str       = os.getenv("HF_TOKEN")
+API_KEY: str        = HF_TOKEN
 MAX_LLM_TOKENS: int = int(os.getenv("MAX_LLM_TOKENS", "1000"))
 LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.2"))
 REQUEST_TIMEOUT: float = float(os.getenv("REQUEST_TIMEOUT", "30.0"))
