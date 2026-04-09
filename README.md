@@ -24,6 +24,11 @@ license: apache-2.0
 Access the production deployment and tactical overwatch dashboard here:
 👉 **[https://huggingface.co/spaces/sameerdubey2507/emergi-env](https://huggingface.co/spaces/sameerdubey2507/emergi-env)**
 
+### 🔐 Authentication
+To access the Command Center and clinical dashboards, use the following credentials:
+- **Username:** `meta`
+- **Password:** `ambulance`
+
 ---
 
 ## 🛰️ System Features
