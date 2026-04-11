@@ -64,6 +64,8 @@ dmypy.json
 
 
 *.log
+!reports/
+!reports/**/*.log
 docker-compose.override.yml
 
 
