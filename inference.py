@@ -61,20 +61,45 @@ try:
 except Exception:
     pass
 
+
+def _safe_int(name: str, default: int) -> int:
+    """Parse int from env; never raises (invalid/empty → default)."""
+    try:
+        raw = os.getenv(name)
+        if raw is None or str(raw).strip() == "":
+            return default
+        return int(str(raw).strip(), 10)
+    except (ValueError, TypeError, OverflowError):
+        return default
+
+
+def _safe_float(name: str, default: float) -> float:
+    """Parse float from env; never raises (invalid/empty → default)."""
+    try:
+        raw = os.getenv(name)
+        if raw is None or str(raw).strip() == "":
+            return default
+        return float(str(raw).strip())
+    except (ValueError, TypeError, OverflowError):
+        return default
+
+
 # ── Mandatory env vars ────────────────────────────────────────────────────────
-API_BASE_URL: str   = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1").rstrip("/")
-MODEL_NAME:   str   = os.getenv("MODEL_NAME",   "meta-llama/Meta-Llama-3-8B-Instruct")
-HF_TOKEN:     str   = os.getenv("HF_TOKEN", os.getenv("API_KEY", ""))
-# Validation moved to main() to prevent import-time crash
+API_BASE_URL: str = (
+    os.getenv("API_BASE_URL", "https://router.huggingface.co/v1") or ""
+).rstrip("/") or "https://router.huggingface.co/v1"
+MODEL_NAME: str = os.getenv("MODEL_NAME", "meta-llama/Meta-Llama-3-8B-Instruct") or "meta-llama/Meta-Llama-3-8B-Instruct"
+HF_TOKEN: str = os.getenv("HF_TOKEN", os.getenv("API_KEY", "")) or ""
+# Token / numeric validation is tolerant so the module never fails at import time.
 
-API_KEY:      str   = HF_TOKEN        # alias — always equals HF_TOKEN
+API_KEY: str = HF_TOKEN  # alias — always equals HF_TOKEN
 
-SERVER_URL: str = os.getenv("SERVER_URL", "http://localhost:7860").rstrip("/")
-MAX_TOKENS:   int   = int(os.getenv("MAX_LLM_TOKENS",    "800"))
-TEMPERATURE:  float = float(os.getenv("LLM_TEMPERATURE", "0.2"))
-LLM_TIMEOUT:  float = float(os.getenv("LLM_TIMEOUT",     "40.0"))
-REQ_TIMEOUT:  float = float(os.getenv("REQUEST_TIMEOUT",  "30.0"))
-BENCHMARK:    str   = "emergi_env"
+SERVER_URL: str = (os.getenv("SERVER_URL", "http://localhost:7860") or "http://localhost:7860").rstrip("/")
+MAX_TOKENS: int = _safe_int("MAX_LLM_TOKENS", 800)
+TEMPERATURE: float = _safe_float("LLM_TEMPERATURE", 0.2)
+LLM_TIMEOUT: float = max(1.0, _safe_float("LLM_TIMEOUT", 40.0))
+REQ_TIMEOUT: float = max(1.0, _safe_float("REQUEST_TIMEOUT", 30.0))
+BENCHMARK: str = "emergi_env"
 
 # ── Logging (stderr only — never pollutes stdout) ─────────────────────────────
 logging.basicConfig(
@@ -992,7 +1017,8 @@ def wait_server(env: EnvClient, timeout: float = 120.0) -> bool:
                 return True
         except Exception:
             pass
-        elapsed = int(time.monotonic() + timeout - deadline + timeout)
+        # Elapsed wait since we began probing (deadline = start + timeout).
+        elapsed = int(time.monotonic() - (deadline - timeout))
         if spin % 5 == 0:
             print(f"[INFO] Waiting for server… ({elapsed}s / {int(timeout)}s)",
                   flush=True)
@@ -1018,13 +1044,13 @@ def main() -> int:
     base_url   = (args.server or SERVER_URL).rstrip("/")
     env_client = EnvClient(base_url)
 
-    # ── Mandatory Secret Check (Fail-Fast but Caught) ─────────────────────────
+    # ── HF token (optional at runtime — LLM uses rule fallback if unset) ───────
     if not HF_TOKEN:
-        print("[ERROR] HF_TOKEN is missing. Please add it to your Space Secrets.", file=sys.stderr)
-        log_start("startup")
-        log_end(False, 0, 0.0, [])
-        return 1
-
+        print(
+            "[WARN] HF_TOKEN/API_KEY not set — LLM calls disabled; rule-based policy only.",
+            file=sys.stderr,
+            flush=True,
+        )
 
     # ── Start server if not reachable ─────────────────────────────────────────
     server_proc = None
@@ -1039,15 +1065,15 @@ def main() -> int:
 
     if not server_alive:
         print("[INFO] Server not responding — trying to start uvicorn…", flush=True)
-        # Try both module paths; the correct one is server.main:app
-        for mod in ("server.main:app", "server.app:app"):
+        # Prefer server.app:app (Dockerfile / openenv.yaml); server.main may not exist.
+        for mod in ("server.app:app", "server.main:app"):
             try:
                 server_proc = subprocess.Popen(
                     [sys.executable, "-m", "uvicorn", mod,
                      "--host", "0.0.0.0", "--port", "7860",
                      "--log-level", "warning"],
                     stdout=subprocess.DEVNULL,
-                    stderr=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
                 )
                 time.sleep(7)
                 try:
