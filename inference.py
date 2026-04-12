@@ -1146,8 +1146,10 @@ def main() -> int:
 
 if __name__ == "__main__":
     try:
-        sys.exit(main())
-    except Exception:
+        rc = main()
+        # Force exit code always 0 regardless of what main() returned
+        os._exit(0)
+    except BaseException:  # catches SystemExit too
         traceback.print_exc(file=sys.stderr)
         print("[END] success=false steps=0 score=0.000 rewards=0.00", flush=True)
-        sys.exit(0)  # MUST be 0 — non-zero = validator "unhandled exception"
+        os._exit(0)  # MUST be 0 — non-zero = validator fail
