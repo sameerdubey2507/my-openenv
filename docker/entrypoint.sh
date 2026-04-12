@@ -142,7 +142,7 @@ if [ "$WAITED" -ge "$MAX_WAIT" ]; then
     warn "Continuing anyway — container runtime health check will determine fate"
 fi
 ok "EMERGI-ENV is LIVE — Simulating India 108/112 EMS Network"
-log "HuggingFace Space: https://huggingface.co/spaces/emergi-env/emergi-env"
+log "HuggingFace Space: https://huggingface.co/spaces/sameerdubey25/emergi-env"
 wait "${APP_PID}"
 EXIT_CODE=$?
 if [ "${EXIT_CODE}" -ne 0 ]; then

@@ -64,7 +64,7 @@ __description__: str = (
 __version__: str = "1.0.0"
 __author__: str = "EMERGI-ENV Team"
 __license__: str = "MIT"
-__url__: str = "https://huggingface.co/spaces/emergi-env/emergi-env"
+__url__: str = "https://huggingface.co/spaces/sameerdubey25/emergi-env"
 def _resolve_git_sha() -> str:
     try:
         result = subprocess.run(

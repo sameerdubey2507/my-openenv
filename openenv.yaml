@@ -44,9 +44,9 @@ tags:
   - real-world-rl
   - openenv
   - huggingface-hackathon
-homepage: "https://huggingface.co/spaces/emergi-env/emergi-env"
-repository: "https://github.com/emergi-env/emergi-env"
-documentation: "https://huggingface.co/spaces/emergi-env/emergi-env/blob/main/README.md"
+homepage: "https://huggingface.co/spaces/sameerdubey25/emergi-env"
+repository: "https://github.com/sameerdubey2507/emergi-env"
+documentation: "https://huggingface.co/spaces/sameerdubey25/emergi-env/blob/main/README.md"
 server:
   host: "0.0.0.0"
   port: 7860
