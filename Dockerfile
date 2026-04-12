@@ -12,7 +12,7 @@ COPY static/ ./
 RUN npm run build
 
 
-FROM python:3.11-slim AS builder
+FROM python:3.11-slim@sha256:1cd8aafd75f4980ce6f58c9e1b1de2afa31f396b7ebf14e91ffc2f27828e7cc3 AS builder
 
 ARG APP_USER=emergi
 ARG APP_UID=10001
@@ -38,7 +38,7 @@ RUN python -m venv /venv && \
     --requirement /build/requirements.txt
 
 # ── Stage 3 : Data validator ──────────────────────────────────────
-FROM python:3.11-slim AS data-validator
+FROM python:3.11-slim@sha256:1cd8aafd75f4980ce6f58c9e1b1de2afa31f396b7ebf14e91ffc2f27828e7cc3 AS data-validator
 
 COPY data/ /validate/data/
 RUN python3 - <<'PYEOF'
@@ -74,7 +74,7 @@ print(f"\nAll {len(required_files)} data files validated.")
 PYEOF
 
 # ── Stage 4 : Production ──────────────────────────────────────────
-FROM python:3.11-slim AS production
+FROM python:3.11-slim@sha256:1cd8aafd75f4980ce6f58c9e1b1de2afa31f396b7ebf14e91ffc2f27828e7cc3 AS production
 
 LABEL org.opencontainers.image.title="EMERGI-ENV"
 LABEL org.opencontainers.image.description="Emergency Medical Intelligence & Resource Governance Environment"
