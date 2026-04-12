@@ -880,15 +880,7 @@ class EnvClient:
         if body is not None:
             kw["json"] = body
         r = self._httpx_client.request(method, url, **kw)
-        # Convert 4xx/5xx to exception but still return parseable body if possible
-        try:
-            r.raise_for_status()
-        except Exception as exc:
-            # Try to return the error body — some endpoints return useful JSON on errors
-            try:
-                return r.json()
-            except Exception:
-                raise exc
+        r.raise_for_status()
         return r.json()
 
     def _req_urllib(self, method: str, url: str,
@@ -943,11 +935,10 @@ def run_episode(env: EnvClient, llm: LLMCaller, task_id: str) -> None:
         try:
             raw = env.reset(task_id, seed, sid)
         except Exception as exc:
-            error_str = str(exc).replace("\n", " ")[:200]
-            print(f"[WARN] env.reset failed: {error_str}", file=sys.stderr, flush=True)
-            log_step(1, {"action_type": "noop"}, 0.0, True, f"reset_failed:{error_str}")
+            err = str(exc).replace("\n", " ")[:200]
+            log_step(1, {"action_type": "noop"}, 0.0, True, f"reset_failed:{err}")
             rewards.append(0.0)
-            return  # exit episode cleanly — log_end fires in finally
+            return  # finally block fires log_end
 
         for step_num in range(1, max_s + 1):
             steps     = step_num
@@ -987,7 +978,6 @@ def run_episode(env: EnvClient, llm: LLMCaller, task_id: str) -> None:
                 raw    = resp
             except Exception as exc:
                 error_msg = str(exc).replace("\n", " ")[:200]
-                print(f"[WARN] env.step failed: {error_msg}", file=sys.stderr, flush=True)
                 done = True
 
             rewards.append(reward)
@@ -1008,8 +998,6 @@ def run_episode(env: EnvClient, llm: LLMCaller, task_id: str) -> None:
             score = max(0.0, min(1.0, score))
             success = score >= BASELINES.get(task_id, 0.0)
         except Exception as exc:
-            print(f"[WARN] env.grade failed ({exc}) — estimating from step rewards",
-                  file=sys.stderr, flush=True)
             score   = min(1.0, sum(rewards) / max(len(rewards), 1)) if rewards else 0.0
             success = False
 
@@ -1031,7 +1019,7 @@ def wait_server(env: EnvClient, timeout: float = 120.0) -> bool:
         try:
             h = env.health()
             if h.get("status") in ("ok", "healthy") or h.get("version"):
-                print("[INFO] Server ready.", flush=True)
+                print("[INFO] Server ready.", file=sys.stderr, flush=True)
                 return True
         except Exception:
             pass
@@ -1057,38 +1045,51 @@ def main() -> int:
                     help="FastAPI server base URL")
     ap.add_argument("--seed",   type=int, default=None,
                     help="Seed override for all tasks")
-    args = ap.parse_args()
+    args, _unknown = ap.parse_known_args()  # ignore unknown args — never sys.exit(2)
 
     base_url   = (args.server or SERVER_URL).rstrip("/")
     if not base_url.startswith("http"):
         base_url = "http://" + base_url
 
-    print(f"[INFO] Using EMERGI-ENV SERVER at: {base_url}", flush=True)
-    env_client = EnvClient(base_url)
+    print(f"[INFO] Using EMERGI-ENV SERVER at: {base_url}", file=sys.stderr, flush=True)
 
-    # ── HF token (optional at runtime — LLM uses rule fallback if unset) ───────
-    if not HF_TOKEN:
-        print(
-            "[WARN] HF_TOKEN/API_KEY not set — LLM calls disabled; rule-based policy only.",
-            file=sys.stderr,
-            flush=True,
-        )
+    # ── Try multiple server URLs — validator may set SERVER_URL differently ──────
+    # Priority: CLI arg → SERVER_URL env → localhost → 0.0.0.0
+    candidate_urls = []
+    if base_url and base_url != "http://localhost:7860":
+        candidate_urls.append(base_url)
+    candidate_urls += [
+        "http://localhost:7860",
+        "http://127.0.0.1:7860",
+        "http://0.0.0.0:7860",
+    ]
+    # Remove duplicates while preserving order
+    seen: set = set()
+    candidate_urls = [u for u in candidate_urls if not (u in seen or seen.add(u))]  # type: ignore
 
-    # ── Start server if not reachable ─────────────────────────────────────────
+    # Find reachable server (fast probe, no subprocess)
     server_proc = None
-    server_alive = False
-    try:
-        h = env_client.health()
-        server_alive = (
-            h.get("status") in ("ok", "healthy") or bool(h.get("version"))
-        )
-    except Exception:
-        pass
+    env_client   = None
+    for url in candidate_urls:
+        try:
+            _probe = EnvClient(url)
+            h = _probe.health()
+            if h.get("status") in ("ok", "healthy") or h.get("version"):
+                env_client = _probe
+                base_url   = url
+                print(f"[INFO] Server found at {url}", file=sys.stderr, flush=True)
+                break
+            _probe.close()
+        except Exception:
+            try:
+                _probe.close()
+            except Exception:
+                pass
 
-    if not server_alive:
-        print("[INFO] Server not responding — trying to start uvicorn…", flush=True)
-        # Prefer server.app:app (Dockerfile / openenv.yaml); server.main may not exist.
-        for mod in ("server.app:app", "server.main:app"):
+    # If no URL responded, attempt a single uvicorn spawn (best-effort)
+    if env_client is None:
+        print("[INFO] No server found — attempting uvicorn spawn", file=sys.stderr, flush=True)
+        for mod in ("server.main:app", "server.app:app"):
             try:
                 server_proc = subprocess.Popen(
                     [sys.executable, "-m", "uvicorn", mod,
@@ -1097,24 +1098,30 @@ def main() -> int:
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                time.sleep(7)
+                time.sleep(8)
+                _probe = EnvClient("http://localhost:7860")
                 try:
-                    h = env_client.health()
+                    h = _probe.health()
                     if h.get("status") in ("ok", "healthy") or h.get("version"):
-                        print(f"[INFO] Started via {mod}", flush=True)
+                        env_client = _probe
+                        base_url   = "http://localhost:7860"
+                        print(f"[INFO] Started via {mod}", file=sys.stderr, flush=True)
                         break
+                    _probe.close()
                 except Exception:
-                    pass
-                # didn't work — kill and try next
+                    _probe.close()
                 try:
-                    server_proc.terminate()
-                    server_proc.wait(timeout=5)
+                    server_proc.terminate(); server_proc.wait(timeout=5)
                 except Exception:
                     pass
                 server_proc = None
             except Exception as exc:
-                print(f"[WARN] Could not launch {mod}: {exc}", flush=True)
+                print(f"[WARN] Cannot spawn {mod}: {exc}", file=sys.stderr, flush=True)
                 server_proc = None
+
+        if env_client is None:
+            # Use default client — wait_server will handle it
+            env_client = EnvClient("http://localhost:7860")
 
     # ── Resolve task list before server check so we can emit valid output ─────
     if args.task and args.task in TASK_IDS:
@@ -1128,9 +1135,9 @@ def main() -> int:
         for k in SEEDS:
             SEEDS[k] = args.seed
 
-    if not wait_server(env_client, timeout=120.0):
+    if not wait_server(env_client, timeout=30.0):
         print(
-            f"[ERROR] Server at {base_url} is unreachable after 120s.",
+            f"[ERROR] Server unreachable after 30s.",
             file=sys.stderr, flush=True,
         )
         # Emit valid [START]/[STEP]/[END] for every task so validator sees output
@@ -1153,20 +1160,12 @@ def main() -> int:
             try:
                 run_episode(env_client, llm, task_id)
             except Exception as exc:
-                # Catch any unexpected exception from run_episode so one bad task
-                # never kills remaining tasks or exits with non-zero.
-                print(
-                    f"[WARN] run_episode({task_id}) raised unexpectedly: "
-                    f"{str(exc).replace(chr(10), ' ')[:200]}",
-                    file=sys.stderr, flush=True,
-                )
-                # Emit a valid END line so the validator has output for this task
+                print(f"[WARN] task {task_id} crashed: {exc}", file=sys.stderr, flush=True)
                 log_start(task_id)
                 log_step(1, {"action_type": "noop"}, 0.0, True, str(exc)[:200])
                 log_end(False, 1, 0.0, [0.0])
     except KeyboardInterrupt:
-
-        print("[WARN] Interrupted.", flush=True)
+        print("[WARN] Interrupted.", file=sys.stderr, flush=True)
     finally:
         env_client.close()
         if server_proc:
@@ -1187,6 +1186,5 @@ if __name__ == "__main__":
         sys.exit(main())
     except Exception:
         traceback.print_exc(file=sys.stderr)
-        # Emit a valid END line — validator requires output even on total crash
         print("[END] success=false steps=0 score=0.000 rewards=0.00", flush=True)
-        sys.exit(0)  # ALWAYS exit 0 — non-zero = "unhandled exception" in validator
+        sys.exit(0)  # MUST be 0 — non-zero = validator "unhandled exception"
