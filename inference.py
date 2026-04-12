@@ -11,6 +11,7 @@ Mandatory compliance:
   - Never exits with non-zero / never raises unhandled exceptions
 """
 
+# ── stdlib only at top-level (zero import-time crash risk) ────────────────────
 import io
 import json
 import logging
@@ -25,16 +26,6 @@ import urllib.error
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import traceback
-
-# ── IMPENETRABLE CRASH SHIELD ────────────────────────────────────────────────
-def _global_crash_handler(exc_type, exc_value, exc_traceback):
-    print(f"[FATAL GLOBAL CRASH] {exc_type.__name__}: {exc_value}", file=sys.stderr, flush=True)
-    traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
-    print("[END] success=false steps=0 score=0.000 rewards=0.00", flush=True)
-    os._exit(0) # FORCIBLY return 0 so the platform never sees a non-zero exit code!
-
-sys.excepthook = _global_crash_handler
-# ─────────────────────────────────────────────────────────────────────────────
 
 # Get absolute path regardless of how the script is called
 _HERE = os.path.dirname(os.path.realpath(__file__))
@@ -758,33 +749,17 @@ def _build_prompt(obs: Obs, history: List[Dict]) -> str:
 # ── LLM caller ─────────────────────────────────────────────────────────────────
 class LLMCaller:
     """
-    Safe LLM wrapper for validator environment.
-    LLM is disabled to avoid dependency or network failures.
-    The agent will fall back to rule_decide().
+    Safe LLM wrapper (LLM disabled for validator stability).
+    Always falls back to rule_decide().
     """
 
     def __init__(self) -> None:
-        # Disable OpenAI usage
-        try:
-            self._client = None
-            logger.warning("LLM disabled — using rule-based fallback agent")
-        except Exception as exc:
-            # Absolute safeguard
-            self._client = None
-            logger.error("LLMCaller init safeguard triggered: %s", exc)
+        self._client = None
 
-    def call(self, system: str, user: str) -> Tuple[Optional[Dict], int]:
-        """
-        LLM call wrapper.
-        Since LLM is disabled, always return fallback signal.
-        """
-        try:
-            return None, 0
-        except Exception:
-            return None, 0
+    def call(self, system: str, user: str):
+        return None, 0
 
 
-# ── HTTP client — httpx if available, urllib otherwise ────────────────────────
 class EnvClient:
     """
     HTTP client for the EMERGI-ENV FastAPI server.
@@ -983,8 +958,8 @@ def wait_server(env: EnvClient, timeout: float = 120.0) -> bool:
         # Elapsed wait since we began probing (deadline = start + timeout).
         elapsed = int(time.monotonic() - (deadline - timeout))
         if spin % 5 == 0:
-            print(f"[INFO] Waiting for server… ({elapsed}s / {int(timeout)}s)",
-                  flush=True)
+            print(f"[INFO] Waiting for server… ({elapsed}s / {int(timeout)}s)", file=sys.stderr,
+      file=sys.stderr, flush=True)
         spin += 1
         time.sleep(3.0)
     return False
