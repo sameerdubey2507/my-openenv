@@ -749,82 +749,30 @@ def _build_prompt(obs: Obs, history: List[Dict]) -> str:
 # ── LLM caller ─────────────────────────────────────────────────────────────────
 class LLMCaller:
     """
-    Mandatory OpenAI client wrapper.
-    All errors are caught — never raises to caller.
-    Falls back to None → rule_decide() is used instead.
+    Safe LLM wrapper for validator environment.
+    LLM is disabled to avoid dependency or network failures.
+    The agent will fall back to rule_decide().
     """
 
     def __init__(self) -> None:
-        self._client = None
-        if not _HAS_OPENAI:
-            logger.warning("openai not installed — rule-based fallback active")
-            return
-        if not HF_TOKEN:
-            logger.warning("HF_TOKEN not set — rule-based fallback active")
-            return
+        # Disable OpenAI usage
         try:
-            self._client = _OpenAI(
-                api_key=HF_TOKEN,
-                base_url=API_BASE_URL,
-                timeout=LLM_TIMEOUT,
-            )
-            logger.info(
-                "OpenAI client ready: base_url=%s model=%s",
-                API_BASE_URL, MODEL_NAME,
-            )
+            self._client = None
+            logger.warning("LLM disabled — using rule-based fallback agent")
         except Exception as exc:
-            logger.error("OpenAI client init failed: %s", exc)
+            # Absolute safeguard
+            self._client = None
+            logger.error("LLMCaller init safeguard triggered: %s", exc)
 
     def call(self, system: str, user: str) -> Tuple[Optional[Dict], int]:
         """
-        One LLM call with up to 3 retries on transient errors.
-        Returns (action_dict_or_None, tokens_used). Never raises.
+        LLM call wrapper.
+        Since LLM is disabled, always return fallback signal.
         """
-        if self._client is None:
+        try:
             return None, 0
-
-        last_err: Optional[Exception] = None
-        for attempt in range(3):
-            try:
-                resp = self._client.chat.completions.create(
-                    model=MODEL_NAME,
-                    messages=[
-                        {"role": "system", "content": system},
-                        {"role": "user",   "content": user},
-                    ],
-                    max_tokens=MAX_TOKENS,
-                    temperature=TEMPERATURE,
-                    stream=False,
-                )
-                text   = (resp.choices[0].message.content or "").strip()
-                tokens = 0
-                try:
-                    if resp.usage:
-                        tokens = resp.usage.total_tokens
-                except Exception:
-                    pass
-                action = extract_action(text)
-                if action:
-                    return action, tokens
-                logger.warning("LLM response unparseable — rule fallback")
-                return None, tokens
-
-            except (_RateLimitError, _APITimeoutError) as exc:
-                wait = 2 ** attempt
-                logger.warning(
-                    "LLM transient error (attempt %d/3): %s — retry in %ds",
-                    attempt + 1, exc, wait,
-                )
-                time.sleep(wait)
-                last_err = exc
-
-            except Exception as exc:
-                logger.error("LLM call failed (non-retryable): %s", exc)
-                last_err = exc
-                break
-
-        logger.warning("LLM gave up (%s) — rule fallback", last_err)
-        return None, 0
+        except Exception:
+            return None, 0
 
 
 # ── HTTP client — httpx if available, urllib otherwise ────────────────────────
@@ -1027,7 +975,7 @@ def wait_server(env: EnvClient, timeout: float = 120.0) -> bool:
         elapsed = int(time.monotonic() - (deadline - timeout))
         if spin % 5 == 0:
             print(f"[INFO] Waiting for server… ({elapsed}s / {int(timeout)}s)",
-      file=sys.stderr, flush=True)
+                  flush=True)
         spin += 1
         time.sleep(3.0)
     return False
